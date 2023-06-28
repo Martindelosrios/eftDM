@@ -7,15 +7,14 @@ import time
 from scipy import stats
 import seaborn as sbn
 import pandas as pd
-import h5py
+#import h5py
 import torch
-from torchsummary import summary
 
 # It is usefull to print the versions of the package that we are using
 print('swyft version:', swyft.__version__)
 print('numpy version:', np.__version__)
 print('matplotlib version:', mpl.__version__)
-print('h5py version:', h5py.__version__)
+print('torch version:', torch.__version__)
 
 # # Let's load the data
 
@@ -53,10 +52,10 @@ fig, ax = plt.subplots(1,2, figsize = (10,5))
 ax[0].plot(diff_rate[i,:])
 ax[0].set_xlabel('$E_{r}$ [keV]' )
 ax[0].set_ylabel('$dR/E_{r}$' )
-ax[0].text(30, 7.4e-6,  'm = {:.2f} [?]'.format(pars[i,0]))
-ax[0].text(30, 6.8e-6,  '$\sigma$ = {:.2e} [?]'.format(pars[i,1]))
-ax[0].text(30, 6.2e-6, '$\\theta$ = {:.2f}'.format(pars[i,2]))
-ax[0].text(30, 5.5e-6, 'Total Rate = {:.2e}'.format(rate[i]))
+ax[0].text(0.5, 0.8,  'm = {:.2f} [?]'.format(pars[i,0]), transform = ax[0].transAxes)
+ax[0].text(0.5, 0.7,  '$\sigma$ = {:.2e} [?]'.format(pars[i,1]), transform = ax[0].transAxes)
+ax[0].text(0.5, 0.6, '$\\theta$ = {:.2f}'.format(pars[i,2]), transform = ax[0].transAxes)
+ax[0].text(0.5, 0.5, 'Total Rate = {:.2e}'.format(rate[i]), transform = ax[0].transAxes)
 
 ax[1].imshow(s1s2[i], origin = 'lower')
 ax[1].set_xlabel('s1')
@@ -66,6 +65,106 @@ ax[1].set_ylabel('s2')
 # # Let's play with SWYFT
 
 # ## Only using the total rate
+
+np.max(rate)
+
+x = np.log10(rate + 7) # Observable. Input data. I am adding 7 backgorund events to everything
+
+# +
+# Let's normalize everything between 0 and 1
+
+pars_min = np.min(pars, axis = 0)
+pars_max = np.max(pars, axis = 0)
+
+pars_norm = (pars - pars_min) / (pars_max - pars_min)
+
+x_min = np.min(x, axis = 0)
+x_max = np.max(x, axis = 0)
+
+x_norm = (x - x_min) / (x_max - x_min)
+
+# +
+fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
+
+ax[0,0].hist(x_norm)
+ax[0,0].set_xlabel('# Events')
+
+ax[1,0].hist(pars_norm[:,0])
+ax[1,0].set_xlabel('$M_{DM}$')
+
+ax[0,1].hist(pars_norm[:,1])
+ax[0,1].set_xlabel('$\sigma$')
+
+ax[1,1].hist(pars_norm[:,2])
+ax[1,1].set_xlabel('$\\theta$')
+
+# -
+
+x_norm = x_norm.reshape(len(x_norm), 1)
+print(x_norm.shape)
+print(pars_norm.shape)
+
+# +
+# We have to build a swyft.Samples object that will handle the data
+samples = swyft.Samples(x = x_norm, z = pars_norm)
+
+# We have to build a swyft.SwyftDataModule object that will split the data into training, testing and validation sets
+dm = swyft.SwyftDataModule(samples, fractions = [0.7, 0.25, 0.05])
+
+
+# -
+
+# Now let's define a network that estimates all the 1D and 2D marginal posteriors
+class Network(swyft.SwyftModule):
+    def __init__(self):
+        super().__init__()
+        marginals = ((0, 1), (0, 2), (1, 2))
+        self.logratios1 = swyft.LogRatioEstimator_1dim(num_features = 1, num_params = 3, varnames = 'pars_norm')
+        self.logratios2 = swyft.LogRatioEstimator_Ndim(num_features = 1, marginals = marginals, varnames = 'pars_norm')
+
+    def forward(self, A, B):
+        logratios1 = self.logratios1(A['x'], B['z'])
+        logratios2 = self.logratios2(A['x'], B['z'])
+        return logratios1, logratios2
+
+
+# Let's configure, instantiate and traint the network
+trainer = swyft.SwyftTrainer(accelerator = 'cpu', devices=1, max_epochs = 10, precision = 64)
+network = Network()
+trainer.fit(network, dm)
+
+# ### Let's make some inference
+
+# +
+# First let's create some observation from some "true" theta parameters
+i = 1000
+#theta_true = theta_norm[i,:]
+pars_true = pars_norm[i,:]
+x_obs = x_norm[i,:]
+
+print('"Observed" x value : {}'.format(x_obs))
+
+# +
+# We have to put this "observation" into a swyft.Sample object
+obs = swyft.Sample(x = x_obs)
+
+# Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
+pars_prior = np.random.uniform(low = 0, high = 1, size = (10000, 3))
+#theta_prior = np.random.uniform(low = [0, -50, -2], high = [1000, -40, 2], size = (1000000, 3))
+prior_samples = swyft.Samples(z = pars_prior)
+
+# Finally we make the inference
+predictions = trainer.infer(network, obs, prior_samples)
+# -
+
+# Let's plot the results
+swyft.corner(predictions, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
+
+parameters = np.asarray(predictions[0].params[:,:,0])
+parameters = parameters * (pars_max - pars_min) + pars_min
+parameters.shape
+
+
 
 # ## Only using the total diff_rate
 
@@ -115,7 +214,7 @@ samples = swyft.Samples(x = x_norm, z = pars_norm)
 dm = swyft.SwyftDataModule(samples, fractions = [0.7, 0.25, 0.05])
 # -
 
-samples[0]['z']
+samples[0]
 
 
 # Now let's define a network that estimates all the 1D and 2D marginal posteriors
@@ -142,10 +241,10 @@ class Network(swyft.SwyftModule):
 
     def forward(self, A, B):
         img = torch.tensor(A['x'])
-        z   = torch.tensor(B['z'])
+        #z   = torch.tensor(B['z'])
         f   = self.net(img)
-        logratios1 = self.logratios1(f, z)
-        logratios2 = self.logratios2(f, z)
+        logratios1 = self.logratios1(f, B['z'])
+        logratios2 = self.logratios2(f, B['z'])
         return logratios1, logratios2
 
 
@@ -157,14 +256,14 @@ net = torch.nn.Sequential(
           torch.nn.MaxPool2d(2),
           torch.nn.ReLU(),
           torch.nn.Flatten(start_dim=0, end_dim=-1),
-          #torch.nn.Linear(4500, 50),
-          #torch.nn.ReLU(),
-          #torch.nn.Linear(50, 10),
+          torch.nn.Linear(4500, 50),
+          torch.nn.ReLU(),
+          torch.nn.Linear(50, 10),
         )
 
 print(net)
 
-img = torch.tensor(samples[0]['x'])
+img = torch.tensor(samples[0]['x']).float()
 z   = torch.tensor(samples[0]['z'])
 
 net(img).shape
@@ -172,7 +271,7 @@ net(img).shape
 z.shape
 
 # Let's configure, instantiate and traint the network
-trainer = swyft.SwyftTrainer(accelerator = 'gpu', devices=1, max_epochs = 50, precision = 64)
+trainer = swyft.SwyftTrainer(accelerator = 'cpu', devices=1, max_epochs = 50, precision = 64)
 network = Network()
 trainer.fit(network, dm)
 
