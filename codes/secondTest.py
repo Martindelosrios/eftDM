@@ -16,6 +16,14 @@ print('numpy version:', np.__version__)
 print('matplotlib version:', mpl.__version__)
 print('torch version:', torch.__version__)
 
+# Check if gpu is available
+if torch.cuda.is_available():
+    device = 'gpu'
+    print('Using GPU')
+else:
+    device = 'cpu'
+    print('Using CPU')
+
 # # Let's load the data
 
 pars      = np.load('../data/andresData/data10krandom/pars.npy')
@@ -129,7 +137,7 @@ class Network(swyft.SwyftModule):
 
 
 # Let's configure, instantiate and traint the network
-trainer = swyft.SwyftTrainer(accelerator = 'cpu', devices=1, max_epochs = 10, precision = 64)
+trainer = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 10, precision = 64)
 network = Network()
 trainer.fit(network, dm)
 
@@ -163,8 +171,6 @@ swyft.corner(predictions, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins
 parameters = np.asarray(predictions[0].params[:,:,0])
 parameters = parameters * (pars_max - pars_min) + pars_min
 parameters.shape
-
-
 
 # ## Only using the total diff_rate
 
@@ -271,7 +277,7 @@ net(img).shape
 z.shape
 
 # Let's configure, instantiate and traint the network
-trainer = swyft.SwyftTrainer(accelerator = 'cpu', devices=1, max_epochs = 50, precision = 64)
+trainer = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 50, precision = 64)
 network = Network()
 trainer.fit(network, dm)
 
