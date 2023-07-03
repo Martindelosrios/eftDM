@@ -26,12 +26,12 @@ else:
 
 # # Let's load the data
 
-pars      = np.load('../data/andresData/segundotest/pars.npy') # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
-diff_rate = np.load('../data/andresData/segundotest/diff_rate.npy')
-rate      = np.load('../data/andresData/segundotest/rate.npy')
-s1s2      = np.load('../data/andresData/segundotest/s1s2.npy')
+# !ls ../data/andresData/cuartotest/
 
-plt.scatter(pars[:,0], pars[:,2])
+pars      = np.load('../data/andresData/cuartotest/pars.npy') # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
+diff_rate = np.load('../data/andresData/cuartotest/diff_rate.npy')
+rate      = np.load('../data/andresData/cuartotest/rate.npy')
+s1s2      = np.load('../data/andresData/cuartotest/s1s2.npy')
 
 # +
 # Let's work with the log of the mass and cross-section
@@ -46,6 +46,8 @@ print(diff_rate.shape)
 print(s1s2.shape)
 
 # ## Let's make some exploratory plots
+
+sbn.pairplot(pd.DataFrame(np.hstack((pars,np.log10(rate + 7).reshape(4998,1))), columns = ['$m_{\chi}$','$\sigma$', '$\\theta$', '#']))
 
 # +
 fig, ax = plt.subplots(1,3, figsize = (10,5))
@@ -89,8 +91,6 @@ np.min(rate)
 
 x_rate = np.log10(rate + 7) # Observable. Input data. I am adding 7 backgorund events to everything
 
-plt.scatter(pars[:,0], pars[:,2])
-
 # +
 # Let's normalize everything between 0 and 1
 
@@ -130,7 +130,7 @@ print(pars_norm.shape)
 samples_rate = swyft.Samples(x = x_norm_rate, z = pars_norm)
 
 # We have to build a swyft.SwyftDataModule object that will split the data into training, testing and validation sets
-dm_rate = swyft.SwyftDataModule(samples, fractions = [0.7, 0.25, 0.05])
+dm_rate = swyft.SwyftDataModule(samples_rate, fractions = [0.7, 0.25, 0.05])
 
 
 # -
@@ -150,13 +150,11 @@ class Network_rate(swyft.SwyftModule):
 
 
 # Let's configure, instantiate and traint the network
-trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 100, precision = 64)
+trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 100, precision = 64, verbose = False)
 network_rate = Network_rate()
 trainer_rate.fit(network_rate, dm_rate)
 
 # ### Let's make some inference
-
-print('hola')
 
 # +
 # First let's create some observation from some "true" theta parameters
@@ -172,7 +170,7 @@ print('"Observed" x value : {}'.format(x_obs))
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior = np.random.uniform(low = 0, high = 1, size = (1000000, 3))
+pars_prior = np.random.uniform(low = 0, high = 1, size = (1_000_000, 3))
 #theta_prior = np.random.uniform(low = [0, -50, -2], high = [1000, -40, 2], size = (1000000, 3))
 prior_samples = swyft.Samples(z = pars_prior)
 
@@ -182,6 +180,7 @@ predictions_rate = trainer_rate.infer(network_rate, obs, prior_samples)
 
 # Let's plot the results
 swyft.corner(predictions_rate, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
+plt.savefig('../graph/cornerplot_rate.pdf')
 
 parameters_rate = np.asarray(predictions_rate[0].params[:,:,0])
 parameters_rate = parameters_rate * (pars_max - pars_min) + pars_min
@@ -190,32 +189,23 @@ parameters_rate.shape
 # +
 fig,ax = plt.subplots(1,3, sharey=True)
 
-ax[0].scatter(parameters_rate[:,0], predictions_rate[0].logratios[:,0])
+ax[0].plot(parameters_rate[:,0], predictions_rate[0].logratios[:,0], 'o', rasterized = True)
 ax[0].set_xlabel(r'$m$')
 ax[0].set_ylabel(r'log ratio')
 ax[0].axvline(x = pars[i,0])
 
-ax[1].scatter(parameters_rate[:,1], predictions_rate[0].logratios[:,1])
+ax[1].plot(parameters_rate[:,1], predictions_rate[0].logratios[:,1], 'o', rasterized = True)
 ax[1].set_xlabel(r'$\sigma$')
 ax[1].axvline(x = pars[i,1])
 
-ax[2].scatter(parameters_rate[:,2], predictions_rate[0].logratios[:,2])
+ax[2].plot(parameters_rate[:,2], predictions_rate[0].logratios[:,2], 'o', rasterized = True)
 ax[2].set_xlabel(r'$g$')
 ax[2].axvline(x = pars[i,2])
+plt.savefig('../graph/loglikratio_rate.pdf')
 # -
 
 results_pars_rate = np.asarray(predictions_rate[1].params)
 results_rate = np.asarray(predictions_rate[1].logratios)
-
-# +
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], x, 'min', bins = 5)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-plt.contour(x_centers, y_centers, val.T, levels = [0, 1.27], colors = 'coral')
 
 # +
 fig, ax = plt.subplots(3,3, gridspec_kw = {'hspace':0.7, 'wspace':0.7}, figsize = (10,10))
@@ -235,7 +225,7 @@ im00 = ax[0,0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -150, v
 clb = plt.colorbar(im00, ax = ax[0,0])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], x, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], x_rate, 'min', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -262,7 +252,7 @@ im01 = ax[0,1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vm
 clb = plt.colorbar(im01, ax = ax[0,1])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,2], x, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,2], x_rate, 'min', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -289,7 +279,7 @@ im02 = ax[0,2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vm
 clb = plt.colorbar(im02, ax = ax[0,2])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,1], pars_norm[:,2], x, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,1], pars_norm[:,2], x_rate, 'min', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -318,7 +308,7 @@ im10 = ax[1,0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vm
 clb = plt.colorbar(im10, ax = ax[1,0])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], x, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], x_rate, 'min', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -345,7 +335,7 @@ im11 = ax[1,1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vm
 clb = plt.colorbar(im11, ax = ax[1,1])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,2], x, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,2], x_rate, 'min', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -372,7 +362,7 @@ im12 = ax[1,2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vm
 clb = plt.colorbar(im12, ax = ax[1,2])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,1], pars_norm[:,2], x, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,1], pars_norm[:,2], x_rate, 'min', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -401,7 +391,7 @@ im20 = ax[2,0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vm
 clb = plt.colorbar(im20, ax = ax[2,0])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], x, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], x_rate, 'min', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -428,7 +418,7 @@ im21 = ax[2,1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vm
 clb = plt.colorbar(im21, ax = ax[2,1])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,2], x, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,2], x_rate, 'min', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -455,7 +445,7 @@ im22 = ax[2,2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vm
 clb = plt.colorbar(im22, ax = ax[2,2])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,1], pars_norm[:,2], x, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,1], pars_norm[:,2], x_rate, 'min', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -467,11 +457,12 @@ ax[2,2].axhline(y = pars_true[2], c = 'red')
 ax[2,2].axvline(x = pars_true[1], c = 'red')
 ax[2,2].set_xlabel('$\sigma$')
 ax[2,2].set_ylabel('$\\theta$')
+plt.savefig('../graph/pars_rate.pdf')
 # -
 
 # ## Only using the total diff_rate
 
-x = diff_rate # Observable. Input data. I am cutting a bit the images to have 64x64
+x_drate = diff_rate # Observable. Input data. 
 
 # +
 # Let's normalize everything between 0 and 1
@@ -481,16 +472,16 @@ pars_max = np.max(pars, axis = 0)
 
 pars_norm = (pars - pars_min) / (pars_max - pars_min)
 
-x_min = np.min(x, axis = 0)
-x_max = np.max(x, axis = 0)
+x_min_drate = np.min(x_drate, axis = 0)
+x_max_drate = np.max(x_drate, axis = 0)
 
-x_norm = (x - x_min) / (x_max - x_min)
+x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
 
 # +
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
 
 for i in range(50):
-    ax[0,0].plot(x_norm[i])
+    ax[0,0].plot(x_norm_drate[i])
 ax[0,0].set_xlabel('$E_{r}$')
 
 ax[1,0].hist(pars_norm[:,0])
@@ -503,15 +494,15 @@ ax[1,1].hist(pars_norm[:,2])
 ax[1,1].set_xlabel('$\\theta$')
 # -
 
-print(x_norm.shape)
+print(x_norm_drate.shape)
 print(pars_norm.shape)
 
 # +
 # We have to build a swyft.Samples object that will handle the data
-samples = swyft.Samples(x = x_norm, z = pars_norm)
+samples_drate = swyft.Samples(x = x_norm_drate, z = pars_norm)
 
 # We have to build a swyft.SwyftDataModule object that will split the data into training, testing and validation sets
-dm = swyft.SwyftDataModule(samples, fractions = [0.7, 0.25, 0.05], batch_size = 32)
+dm_drate = swyft.SwyftDataModule(samples_drate, fractions = [0.7, 0.25, 0.05], batch_size = 32)
 
 
 # -
@@ -531,9 +522,9 @@ class Network(swyft.SwyftModule):
 
 
 # Let's configure, instantiate and traint the network
-trainer = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 5, precision = 64)
-network = Network()
-trainer.fit(network, dm)
+trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 100, precision = 64)
+network_drate = Network()
+trainer_drate.fit(network_drate, dm_drate)
 
 # ### Let's make some inference
 
@@ -542,7 +533,7 @@ trainer.fit(network, dm)
 i = 1000
 #theta_true = theta_norm[i,:]
 pars_true = pars_norm[i,:]
-x_obs = x_norm[i,:]
+x_obs = x_norm_drate[i,:]
 
 plt.plot(x_obs)
 
@@ -551,40 +542,45 @@ plt.plot(x_obs)
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior = np.random.uniform(low = 0, high = 1, size = (10000, 3))
+pars_prior = np.random.uniform(low = 0, high = 1, size = (1_000_000, 3))
 #theta_prior = np.random.uniform(low = [0, -50, -2], high = [1000, -40, 2], size = (1000000, 3))
 prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
-predictions = trainer.infer(network, obs, prior_samples)
+predictions_drate = trainer_drate.infer(network_drate, obs, prior_samples)
+
+# +
+# Let's plot the results
+swyft.corner(predictions_drate, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
+
+plt.savefig('../graph/cornerplot_drate.pdf')
 # -
 
-# Let's plot the results
-swyft.corner(predictions, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3);
-
-parameters = np.asarray(predictions[0].params[:,:,0])
-parameters = parameters * (pars_max - pars_min) + pars_min
-parameters.shape
+parameters_drate = np.asarray(predictions_drate[0].params[:,:,0])
+parameters_drate = parameters_drate * (pars_max - pars_min) + pars_min
+parameters_drate.shape
 
 # +
 fig,ax = plt.subplots(1,3, sharey=True)
 
-ax[0].scatter(parameters[:,0], predictions[0].logratios[:,0])
+ax[0].plot(parameters_drate[:,0], predictions_drate[0].logratios[:,0], 'o', rasterized = True)
 ax[0].set_xlabel(r'$m$')
 ax[0].set_ylabel(r'log ratio')
 ax[0].axvline(x = pars[i,0])
 
-ax[1].scatter(parameters[:,1], predictions[0].logratios[:,1])
+ax[1].plot(parameters_drate[:,1], predictions_drate[0].logratios[:,1], 'o', rasterized = True)
 ax[1].set_xlabel(r'$\sigma$')
 ax[1].axvline(x = pars[i,1])
 
-ax[2].scatter(parameters[:,2], predictions[0].logratios[:,2])
+ax[2].plot(parameters_drate[:,2], predictions_drate[0].logratios[:,2], 'o', rasterized = True)
 ax[2].set_xlabel(r'$g$')
 ax[2].axvline(x = pars[i,2])
+
+plt.savefig('../graph/loglikratio_drate.pdf')
 # -
 
-results_pars = np.asarray(predictions[1].params)
-results = np.asarray(predictions[1].logratios)
+results_pars_drate = np.asarray(predictions_drate[1].params)
+results_drate = np.asarray(predictions_drate[1].logratios)
 
 # +
 fig, ax = plt.subplots(3,3, gridspec_kw = {'hspace':0.5, 'wspace':0.5}, figsize = (10,10))
@@ -592,7 +588,7 @@ fig, ax = plt.subplots(3,3, gridspec_kw = {'hspace':0.5, 'wspace':0.5}, figsize 
 # ------------------------- MIN ----------------------------------------
 
 # M vs Sigma
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,0,0], results_pars[:,0,1], results[:,0], 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,0,0], results_pars_drate[:,0,1], results_drate[:,0], 'min', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -618,7 +614,7 @@ ax[0,0].set_ylabel('$\sigma$')
 
 # M vs g
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,1,0], results_pars[:,1,1], results[:,1], 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,1,0], results_pars_drate[:,1,1], results_drate[:,1], 'min', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -644,7 +640,7 @@ ax[0,1].set_ylabel('$\\theta$')
 
 # Sigma vs g
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,2,0], results_pars[:,2,1], results[:,2], 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,2,0], results_pars_drate[:,2,1], results_drate[:,2], 'min', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -672,7 +668,7 @@ ax[0,2].set_ylabel('$\\theta$')
 
 # M vs Sigma
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,0,0], results_pars[:,0,1], results[:,0], 'mean', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,0,0], results_pars_drate[:,0,1], results_drate[:,0], 'mean', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -698,7 +694,7 @@ ax[1,0].set_ylabel('$\sigma$')
 
 # M vs g
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,1,0], results_pars[:,1,1], results[:,1], 'mean', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,1,0], results_pars_drate[:,1,1], results_drate[:,1], 'mean', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -724,7 +720,7 @@ ax[1,1].set_ylabel('$\\theta$')
 
 # Sigma vs g
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,2,0], results_pars[:,2,1], results[:,2], 'mean', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,2,0], results_pars_drate[:,2,1], results_drate[:,2], 'mean', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -752,7 +748,7 @@ ax[1,2].set_ylabel('$\\theta$')
 
 # M vs Sigma
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,0,0], results_pars[:,0,1], results[:,0], 'max', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,0,0], results_pars_drate[:,0,1], results_drate[:,0], 'max', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -778,7 +774,7 @@ ax[2,0].set_ylabel('$\sigma$')
 
 # M vs g
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,1,0], results_pars[:,1,1], results[:,1], 'max', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,1,0], results_pars_drate[:,1,1], results_drate[:,1], 'max', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -804,7 +800,7 @@ ax[2,1].set_ylabel('$\\theta$')
 
 # Sigma vs g
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,2,0], results_pars[:,2,1], results[:,2], 'max', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,2,0], results_pars_drate[:,2,1], results_drate[:,2], 'max', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -827,11 +823,13 @@ ax[2,2].axhline(y = pars_true[2], c = 'red')
 ax[2,2].axvline(x = pars_true[1], c = 'red')
 ax[2,2].set_xlabel('$\sigma$')
 ax[2,2].set_ylabel('$\\theta$')
+
+plt.savefig('../graph/pars_drate.pdf')
 # -
 
 # ## Only using s1s2
 
-x = s1s2[:,3:-3,1:-2] # Observable. Input data. I am cutting a bit the images to have 64x64
+x_s1s2 = s1s2[:,3:-3,1:-2] # Observable. Input data. I am cutting a bit the images to have 64x64
 
 # +
 # Let's normalize everything between 0 and 1
@@ -841,15 +839,15 @@ pars_max = np.max(pars, axis = 0)
 
 pars_norm = (pars - pars_min) / (pars_max - pars_min)
 
-x_min = np.min(x, axis = 0)
-x_max = np.max(x, axis = 0)
+x_min_s1s2 = np.min(x_s1s2, axis = 0)
+x_max_s1s2 = np.max(x_s1s2, axis = 0)
 
-x_norm = x#(x - x_min) / (x_max - x_min)
+x_norm_s1s2 = x_s1s2#(x - x_min) / (x_max - x_min)
 
 # +
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
 
-ax[0,0].hist(x_norm[:,50,30])
+ax[0,0].hist(x_norm_s1s2[:,50,30])
 ax[0,0].set_xlabel('# Events')
 
 ax[1,0].hist(pars_norm[:,0])
@@ -863,16 +861,16 @@ ax[1,1].set_xlabel('$\\theta$')
 
 # -
 
-x_norm = x_norm.reshape(len(x_norm), 1, 64, 64) # The shape need to be (#obs, #channels, dim, dim)
-print(x_norm.shape)
+x_norm_s1s2 = x_norm_s1s2.reshape(len(x_norm_s1s2), 1, 64, 64) # The shape need to be (#obs, #channels, dim, dim)
+print(x_norm_s1s2.shape)
 print(pars_norm.shape)
 
 # +
 # We have to build a swyft.Samples object that will handle the data
-samples = swyft.Samples(x = x_norm, z = pars_norm)
+samples_s1s2 = swyft.Samples(x = x_norm_s1s2, z = pars_norm)
 
 # We have to build a swyft.SwyftDataModule object that will split the data into training, testing and validation sets
-dm = swyft.SwyftDataModule(samples, fractions = [0.7, 0.25, 0.05], batch_size = 32)
+dm_s1s2 = swyft.SwyftDataModule(samples_s1s2, fractions = [0.7, 0.25, 0.05], batch_size = 32)
 
 
 # -
@@ -909,9 +907,9 @@ class Network(swyft.SwyftModule):
 
 
 # Let's configure, instantiate and traint the network
-trainer = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 5, precision = 64)
-network = Network()
-trainer.fit(network, dm)
+trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 100, precision = 64)
+network_s1s2 = Network()
+trainer_s1s2.fit(network_s1s2, dm_s1s2)
 
 # ### Let's make some inference
 
@@ -920,7 +918,7 @@ trainer.fit(network, dm)
 i = 1000
 #theta_true = theta_norm[i,:]
 pars_true = pars_norm[i,:]
-x_obs = x_norm[i,:]
+x_obs = x_norm_s1s2[i,:]
 
 plt.imshow(x_obs[0], origin = 'lower')
 
@@ -929,45 +927,45 @@ plt.imshow(x_obs[0], origin = 'lower')
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior = np.random.uniform(low = 0, high = 1, size = (10000, 3))
+pars_prior = np.random.uniform(low = 0, high = 1, size = (1_000_000, 3))
 #theta_prior = np.random.uniform(low = [0, -50, -2], high = [1000, -40, 2], size = (1000000, 3))
 prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
-predictions = trainer.infer(network, obs, prior_samples)
+predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
+
+# +
+# Let's plot the results
+swyft.corner(predictions_s1s2, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
+
+plt.savefig('../graph/cornerplot_s1s2.pdf')
 # -
 
-# Let's plot the results
-swyft.corner(predictions, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3);
-
-parameters = np.asarray(predictions[0].params[:,:,0])
-parameters = parameters * (pars_max - pars_min) + pars_min
-parameters.shape
-
-predictions[0].logratios[:,0].shape
+parameters_s1s2 = np.asarray(predictions_s1s2[0].params[:,:,0])
+parameters_s1s2 = parameters_s1s2 * (pars_max - pars_min) + pars_min
+parameters_s1s2.shape
 
 # +
 fig,ax = plt.subplots(1,3, sharey=True)
 
-ax[0].scatter(parameters[:,0], predictions[0].logratios[:,0])
+ax[0].plot(parameters_s1s2[:,0], predictions_s1s2[0].logratios[:,0], 'o', rasterized = True)
 ax[0].set_xlabel(r'$m$')
 ax[0].set_ylabel(r'log ratio')
 ax[0].axvline(x = pars[i,0])
 
-ax[1].scatter(parameters[:,1], predictions[0].logratios[:,1])
+ax[1].plot(parameters_s1s2[:,1], predictions_s1s2[0].logratios[:,1], 'o', rasterized = True)
 ax[1].set_xlabel(r'$\sigma$')
 ax[1].axvline(x = pars[i,1])
 
-ax[2].scatter(parameters[:,2], predictions[0].logratios[:,2])
+ax[2].plot(parameters_s1s2[:,2], predictions_s1s2[0].logratios[:,2], 'o', rasterized = True)
 ax[2].set_xlabel(r'$g$')
 ax[2].axvline(x = pars[i,2])
 
+plt.savefig('../graph/loglikratio_s1s2.pdf')
 # -
 
-results_pars = np.asarray(predictions[1].params)
-results = np.asarray(predictions[1].logratios)
-
-results[:,0].shape
+results_pars_s1s2 = np.asarray(predictions_s1s2[1].params)
+results_s1s2 = np.asarray(predictions_s1s2[1].logratios)
 
 # +
 fig, ax = plt.subplots(3,3, gridspec_kw = {'hspace':0.5, 'wspace':0.5}, figsize = (10,10))
@@ -975,7 +973,7 @@ fig, ax = plt.subplots(3,3, gridspec_kw = {'hspace':0.5, 'wspace':0.5}, figsize 
 # ------------------------- MIN ----------------------------------------
 
 # M vs Sigma
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,0,0], results_pars[:,0,1], results[:,0], 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,0,0], results_pars_s1s2[:,0,1], results_s1s2[:,0], 'min', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -1001,7 +999,7 @@ ax[0,0].set_ylabel('$\sigma$')
 
 # M vs g
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,1,0], results_pars[:,1,1], results[:,1], 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,1,0], results_pars_s1s2[:,1,1], results_s1s2[:,1], 'min', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -1027,7 +1025,7 @@ ax[0,1].set_ylabel('$\\theta$')
 
 # Sigma vs g
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,2,0], results_pars[:,2,1], results[:,2], 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,2,0], results_pars_s1s2[:,2,1], results_s1s2[:,2], 'min', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -1055,7 +1053,7 @@ ax[0,2].set_ylabel('$\\theta$')
 
 # M vs Sigma
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,0,0], results_pars[:,0,1], results[:,0], 'mean', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,0,0], results_pars_s1s2[:,0,1], results_s1s2[:,0], 'mean', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -1081,7 +1079,7 @@ ax[1,0].set_ylabel('$\sigma$')
 
 # M vs g
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,1,0], results_pars[:,1,1], results[:,1], 'mean', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,1,0], results_pars_s1s2[:,1,1], results_s1s2[:,1], 'mean', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -1107,7 +1105,7 @@ ax[1,1].set_ylabel('$\\theta$')
 
 # Sigma vs g
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,2,0], results_pars[:,2,1], results[:,2], 'mean', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,2,0], results_pars_s1s2[:,2,1], results_s1s2[:,2], 'mean', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -1135,7 +1133,7 @@ ax[1,2].set_ylabel('$\\theta$')
 
 # M vs Sigma
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,0,0], results_pars[:,0,1], results[:,0], 'max', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,0,0], results_pars_s1s2[:,0,1], results_s1s2[:,0], 'max', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -1161,7 +1159,7 @@ ax[2,0].set_ylabel('$\sigma$')
 
 # M vs g
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,1,0], results_pars[:,1,1], results[:,1], 'max', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,1,0], results_pars_s1s2[:,1,1], results_s1s2[:,1], 'max', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -1187,7 +1185,7 @@ ax[2,1].set_ylabel('$\\theta$')
 
 # Sigma vs g
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars[:,2,0], results_pars[:,2,1], results[:,2], 'max', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,2,0], results_pars_s1s2[:,2,1], results_s1s2[:,2], 'max', bins = 15)
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -1210,3 +1208,8 @@ ax[2,2].axhline(y = pars_true[2], c = 'red')
 ax[2,2].axvline(x = pars_true[1], c = 'red')
 ax[2,2].set_xlabel('$\sigma$')
 ax[2,2].set_ylabel('$\\theta$')
+
+plt.savefig('../graph/pars_s1s2.pdf')
+# -
+
+
