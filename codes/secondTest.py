@@ -45,6 +45,45 @@ print(rate.shape)
 print(diff_rate.shape)
 print(s1s2.shape)
 
+np.sum(diff_rate[12,:])
+
+rate[12]
+
+np.sum(s1s2[12,:,:])
+
+# +
+# Let's split in training, validation and testing
+nobs = len(pars) # Total number of observations
+
+ntrain = int(70 * nobs / 100)
+nval   = int(25 * nobs / 100)
+ntest  = int(5 * nobs / 100)
+
+np.random.seed(28890)
+ind = np.random.choice(np.arange(nobs), size = nobs, replace = False)
+
+train_ind = ind[:ntrain]
+val_ind   = ind[ntrain:(ntrain + nval)]
+test_ind  = ind[(ntrain + nval):]
+
+pars_trainset = pars[train_ind,:]
+pars_valset   = pars[val_ind,:]
+pars_testset  = pars[test_ind,:]
+
+rate_trainset = rate[train_ind]
+rate_valset   = rate[val_ind]
+rate_testset  = rate[test_ind]
+
+diff_rate_trainset = diff_rate[train_ind,:]
+diff_rate_valset   = diff_rate[val_ind,:]
+diff_rate_testset  = diff_rate[test_ind,:]
+
+s1s2_trainset = s1s2[train_ind,:,:]
+s1s2_valset   = s1s2[val_ind,:,:]
+s1s2_testset  = s1s2[test_ind,:,:]
+
+# -
+
 # ## Let's make some exploratory plots
 
 sbn.pairplot(pd.DataFrame(np.hstack((pars,np.log10(rate + 7).reshape(4998,1))), columns = ['$m_{\chi}$','$\sigma$', '$\\theta$', '#']))
@@ -62,19 +101,27 @@ ax[1].set_xlabel('$\log_{10}{\sigma}$ [?]')
 
 ax[2].hist(pars[:,2], histtype = 'step')
 ax[2].set_xlabel('$\\theta$')
+# -
+
+2458
+
+3397
 
 # +
 i = np.random.randint(len(pars))
-
+print(i)
 fig, ax = plt.subplots(1,2, figsize = (10,5))
 
-ax[0].plot(diff_rate[i,:])
+ax[0].plot(diff_rate[2458,:], c = 'blue')
+ax[0].plot(diff_rate[3397,:],c = 'red')
+ax[0].plot(diff_rate[i,:], c = 'black')
 ax[0].set_xlabel('$E_{r}$ [keV]' )
 ax[0].set_ylabel('$dR/E_{r}$' )
 ax[0].text(0.5, 0.8,  '$\log_{10} $' + 'm = {:.2f} [?]'.format(pars[i,0]), transform = ax[0].transAxes)
-ax[0].text(0.5, 0.7,  '$\log_{10}\sigma$' + ' = {:.2e} [?]'.format(pars[i,1]), transform = ax[0].transAxes)
+ax[0].text(0.5, 0.7,  '$\log_{10}\sigma$' + ' = {:.2f} [?]'.format(pars[i,1]), transform = ax[0].transAxes)
 ax[0].text(0.5, 0.6, '$\\theta$ = {:.2f}'.format(pars[i,2]), transform = ax[0].transAxes)
 ax[0].text(0.5, 0.5, 'Total Rate = {:.2e}'.format(rate[i]), transform = ax[0].transAxes)
+ax[0].set_yscale('log')
 
 ax[1].imshow(s1s2[i], origin = 'lower')
 ax[1].set_xlabel('s1')
@@ -85,19 +132,15 @@ ax[1].set_ylabel('s2')
 
 # ## Using only the total rate
 
-np.max(rate)
-
-np.min(rate)
-
-x_rate = np.log10(rate + 7) # Observable. Input data. I am adding 7 backgorund events to everything
+x_rate = np.log10(rate_trainset + 7) # Observable. Input data. I am adding 7 backgorund events to everything
 
 # +
 # Let's normalize everything between 0 and 1
 
-pars_min = np.min(pars, axis = 0)
-pars_max = np.max(pars, axis = 0)
+pars_min = np.min(pars_trainset, axis = 0)
+pars_max = np.max(pars_trainset, axis = 0)
 
-pars_norm = (pars - pars_min) / (pars_max - pars_min)
+pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 
 x_min_rate = np.min(x_rate, axis = 0)
 x_max_rate = np.max(x_rate, axis = 0)
@@ -150,28 +193,39 @@ class Network_rate(swyft.SwyftModule):
 
 
 # Let's configure, instantiate and traint the network
-trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 100, precision = 64, verbose = False)
+trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 100, precision = 64)
 network_rate = Network_rate()
 trainer_rate.fit(network_rate, dm_rate)
 
 # ### Let's make some inference
 
 # +
-# First let's create some observation from some "true" theta parameters
-i = 1000
-#theta_true = theta_norm[i,:]
-pars_true = pars_norm[i,:]
-x_obs = x_norm_rate[i,:]
+# Let's normalize testset between 0 and 1
 
-print('"Observed" x value : {}'.format(x_obs))
+pars_norm = (pars_testset - pars_min) / (pars_max - pars_min)
+
+x_rate = np.log10(rate_testset + 7)
+x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
+
+# +
+# First let's create some observation from some "true" theta parameters
+i = np.random.randint(ntest)
+print(i)
+pars_true = pars_norm[i,:]
+x_obs     = x_norm_rate[i,:]
+
+print('"Normalized Observed" x value : {}'.format(x_obs))
+real_val = 10**(x_obs * (x_max_rate - x_min_rate) + x_min_rate)
+print('"Observed" x value : {}'.format(real_val))
+
 
 # +
 # We have to put this "observation" into a swyft.Sample object
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior = np.random.uniform(low = 0, high = 1, size = (1_000_000, 3))
-#theta_prior = np.random.uniform(low = [0, -50, -2], high = [1000, -40, 2], size = (1000000, 3))
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (1_000_000, 3))
 prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
@@ -205,181 +259,21 @@ plt.savefig('../graph/loglikratio_rate.pdf')
 # -
 
 results_pars_rate = np.asarray(predictions_rate[1].params)
-results_rate = np.asarray(predictions_rate[1].logratios)
+results_rate      = np.asarray(predictions_rate[1].logratios)
 
 # +
-fig, ax = plt.subplots(3,3, gridspec_kw = {'hspace':0.7, 'wspace':0.7}, figsize = (10,10))
-
-# ------------------------- MIN ----------------------------------------
-
-# M vs Sigma
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_rate[:,0,0], results_pars_rate[:,0,1], results_rate[:,0], 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im00 = ax[0,0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -150, vmax = 8)
-clb = plt.colorbar(im00, ax = ax[0,0])
-clb.ax.set_title('$\lambda$')
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], x_rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[0,0].contour(x_centers, y_centers, val.T, levels = [0, 1.27], colors = 'coral')
-ax[0,0].axhline(y = pars_true[1], c = 'red')
-ax[0,0].axvline(x = pars_true[0], c = 'red')
-ax[0,0].set_xlabel('m')
-ax[0,0].set_ylabel('$\sigma$')
-
-# M vs g
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_rate[:,1,0], results_pars_rate[:,1,1], results_rate[:,1], 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im01 = ax[0,1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-clb = plt.colorbar(im01, ax = ax[0,1])
-clb.ax.set_title('$\lambda$')
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,2], x_rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[0,1].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[0,1].axhline(y = pars_true[2], c = 'red')
-ax[0,1].axvline(x = pars_true[0], c = 'red')
-ax[0,1].set_xlabel('m')
-ax[0,1].set_ylabel('$\\theta$')
-
-# Sigma vs g
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_rate[:,2,0], results_pars_rate[:,2,1], results_rate[:,2], 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im02 = ax[0,2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-clb = plt.colorbar(im02, ax = ax[0,2])
-clb.ax.set_title('$\lambda$')
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,1], pars_norm[:,2], x_rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[0,2].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[0,2].axhline(y = pars_true[2], c = 'red')
-ax[0,2].axvline(x = pars_true[1], c = 'red')
-ax[0,2].set_xlabel('$\sigma$')
-ax[0,2].set_ylabel('$\\theta$')
-
-# ------------------------------ MEAN ------------------------------
-
-# M vs Sigma
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_rate[:,0,0], results_pars_rate[:,0,1], results_rate[:,0], 'mean', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im10 = ax[1,0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-clb = plt.colorbar(im10, ax = ax[1,0])
-clb.ax.set_title('$\lambda$')
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], x_rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[1,0].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[1,0].axhline(y = pars_true[1], c = 'red')
-ax[1,0].axvline(x = pars_true[0], c = 'red')
-ax[1,0].set_xlabel('m')
-ax[1,0].set_ylabel('$\sigma$')
-
-# M vs g
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_rate[:,1,0], results_pars_rate[:,1,1], results_rate[:,1], 'mean', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im11 = ax[1,1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-clb = plt.colorbar(im11, ax = ax[1,1])
-clb.ax.set_title('$\lambda$')
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,2], x_rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[1,1].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[1,1].axhline(y = pars_true[2], c = 'red')
-ax[1,1].axvline(x = pars_true[0], c = 'red')
-ax[1,1].set_xlabel('m')
-ax[1,1].set_ylabel('$\\theta$')
-
-# Sigma vs g
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_rate[:,2,0], results_pars_rate[:,2,1], results_rate[:,2], 'mean', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im12 = ax[1,2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-clb = plt.colorbar(im12, ax = ax[1,2])
-clb.ax.set_title('$\lambda$')
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,1], pars_norm[:,2], x_rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[1,2].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[1,2].axhline(y = pars_true[2], c = 'red')
-ax[1,2].axvline(x = pars_true[1], c = 'red')
-ax[1,2].set_xlabel('$\sigma$')
-ax[1,2].set_ylabel('$\\theta$')
+fig, ax = plt.subplots(1,3, gridspec_kw = {'hspace':0.7, 'wspace':0.4}, figsize = (12,4))
 
 #  -------------------------------- MAX  ----------------------------------------
 
 # M vs Sigma
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_rate[:,0,0], results_pars_rate[:,0,1], results_rate[:,0], 'max', bins = 15)
+m_results     = 10**(results_pars_rate[:,0,0] * (pars_max[0] - pars_min[0]) + pars_min[0])
+m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
+sigma_results = 10**(results_pars_rate[:,0,1] * (pars_max[1] - pars_min[1]) + pars_min[1])
+sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
+
+val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_rate[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-47, -41, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -387,26 +281,33 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im20 = ax[2,0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-clb = plt.colorbar(im20, ax = ax[2,0])
+im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+clb = plt.colorbar(im20, ax = ax[0])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], x_rate, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-47, -41, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
 
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
-ax[2,0].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[2,0].axhline(y = pars_true[1], c = 'red')
-ax[2,0].axvline(x = pars_true[0], c = 'red')
-ax[2,0].set_xlabel('m')
-ax[2,0].set_ylabel('$\sigma$')
+ax[0].contour(x_centers, y_centers, val.T, levels = [0, 1, 2, 3], cmap = 'inferno')
+ax[0].axhline(y = sigma_true, c = 'red')
+ax[0].axvline(x = m_true, c = 'red')
+ax[0].set_xlabel('m')
+ax[0].set_ylabel('$\sigma$')
+ax[0].set_xscale('log')
+ax[0].set_yscale('log')
 
-# M vs g
+# M vs theta
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_rate[:,1,0], results_pars_rate[:,1,1], results_rate[:,1], 'max', bins = 15)
+m_results     = 10**(results_pars_rate[:,1,0] * (pars_max[0] - pars_min[0]) + pars_min[0])
+m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
+theta_results = results_pars_rate[:,1,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
+theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
+
+val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, theta_results, results_rate[:,1], 'max', bins = [np.logspace(0.81, 3, 15), np.linspace(-1.6, 1.6, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -414,26 +315,32 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im21 = ax[2,1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-clb = plt.colorbar(im21, ax = ax[2,1])
+im21 = ax[1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+clb = plt.colorbar(im21, ax = ax[1])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,2], x_rate, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.linspace(-1.6, 1.6, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
 
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
-ax[2,1].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[2,1].axhline(y = pars_true[2], c = 'red')
-ax[2,1].axvline(x = pars_true[0], c = 'red')
-ax[2,1].set_xlabel('m')
-ax[2,1].set_ylabel('$\\theta$')
+ax[1].contour(x_centers, y_centers, val.T, levels = [0, 1, 2, 3], cmap = 'inferno')
+ax[1].axhline(y = theta_true, c = 'red')
+ax[1].axvline(x = m_true, c = 'red')
+ax[1].set_xlabel('m')
+ax[1].set_ylabel('$\\theta$')
+ax[1].set_xscale('log')
 
-# Sigma vs g
+# Sigma vs theta
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_rate[:,2,0], results_pars_rate[:,2,1], results_rate[:,2], 'max', bins = 15)
+sigma_results = 10**(results_pars_rate[:,2,0] * (pars_max[1] - pars_min[1]) + pars_min[1])
+sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
+theta_results = results_pars_rate[:,2,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
+theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
+
+val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_rate[:,2], 'max', bins = [np.logspace(-47, -41, 15), np.linspace(-1.6, 1.6, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -441,36 +348,38 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im22 = ax[2,2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-clb = plt.colorbar(im22, ax = ax[2,2])
+im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+clb = plt.colorbar(im22, ax = ax[2])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,1], pars_norm[:,2], x_rate, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-47, -41, 10), np.linspace(-1.6, 1.6, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
 
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
-ax[2,2].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[2,2].axhline(y = pars_true[2], c = 'red')
-ax[2,2].axvline(x = pars_true[1], c = 'red')
-ax[2,2].set_xlabel('$\sigma$')
-ax[2,2].set_ylabel('$\\theta$')
+ax[2].contour(x_centers, y_centers, val.T, levels = [0, 1, 2, 3], cmap = 'inferno')
+ax[2].axhline(y = theta_true, c = 'red')
+ax[2].axvline(x = sigma_true, c = 'red')
+ax[2].set_xlabel('$\sigma$')
+ax[2].set_ylabel('$\\theta$')
+ax[2].set_xscale('log')
+
 plt.savefig('../graph/pars_rate.pdf')
 # -
 
 # ## Only using the total diff_rate
 
-x_drate = diff_rate # Observable. Input data. 
+x_drate = diff_rate_trainset # Observable. Input data. 
 
 # +
 # Let's normalize everything between 0 and 1
 
-pars_min = np.min(pars, axis = 0)
-pars_max = np.max(pars, axis = 0)
+pars_min = np.min(pars_trainset, axis = 0)
+pars_max = np.max(pars_trainset, axis = 0)
 
-pars_norm = (pars - pars_min) / (pars_max - pars_min)
+pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 
 x_min_drate = np.min(x_drate, axis = 0)
 x_max_drate = np.max(x_drate, axis = 0)
@@ -529,11 +438,19 @@ trainer_drate.fit(network_drate, dm_drate)
 # ### Let's make some inference
 
 # +
+# Let's normalize testset between 0 and 1
+
+pars_norm = (pars_testset - pars_min) / (pars_max - pars_min)
+
+x_drate = diff_rate_testset
+x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+
+# +
 # First let's create some observation from some "true" theta parameters
-i = 1000
-#theta_true = theta_norm[i,:]
+#i = np.random.randint(ntest)
+print(i)
 pars_true = pars_norm[i,:]
-x_obs = x_norm_drate[i,:]
+x_obs     = x_norm_drate[i,:]
 
 plt.plot(x_obs)
 
@@ -543,7 +460,7 @@ obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
 pars_prior = np.random.uniform(low = 0, high = 1, size = (1_000_000, 3))
-#theta_prior = np.random.uniform(low = [0, -50, -2], high = [1000, -40, 2], size = (1000000, 3))
+
 prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
@@ -583,172 +500,18 @@ results_pars_drate = np.asarray(predictions_drate[1].params)
 results_drate = np.asarray(predictions_drate[1].logratios)
 
 # +
-fig, ax = plt.subplots(3,3, gridspec_kw = {'hspace':0.5, 'wspace':0.5}, figsize = (10,10))
-
-# ------------------------- MIN ----------------------------------------
-
-# M vs Sigma
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,0,0], results_pars_drate[:,0,1], results_drate[:,0], 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im00 = ax[0,0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im00, ax = ax[0,0])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[0,0].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[0,0].axhline(y = pars_true[1], c = 'red')
-ax[0,0].axvline(x = pars_true[0], c = 'red')
-ax[0,0].set_xlabel('m')
-ax[0,0].set_ylabel('$\sigma$')
-
-# M vs g
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,1,0], results_pars_drate[:,1,1], results_drate[:,1], 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im01 = ax[0,1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im01, ax = ax[0,1])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,2], rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[0,1].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[0,1].axhline(y = pars_true[2], c = 'red')
-ax[0,1].axvline(x = pars_true[0], c = 'red')
-ax[0,1].set_xlabel('m')
-ax[0,1].set_ylabel('$\\theta$')
-
-# Sigma vs g
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,2,0], results_pars_drate[:,2,1], results_drate[:,2], 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im02 = ax[0,2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im02, ax = ax[0,2])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,1], pars_norm[:,2], rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[0,2].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[0,2].axhline(y = pars_true[2], c = 'red')
-ax[0,2].axvline(x = pars_true[1], c = 'red')
-ax[0,2].set_xlabel('$\sigma$')
-ax[0,2].set_ylabel('$\\theta$')
-
-# ------------------------------ MEAN ------------------------------
-
-# M vs Sigma
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,0,0], results_pars_drate[:,0,1], results_drate[:,0], 'mean', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im10 = ax[1,0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im10, ax = ax[1,0])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[1,0].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[1,0].axhline(y = pars_true[1], c = 'red')
-ax[1,0].axvline(x = pars_true[0], c = 'red')
-ax[1,0].set_xlabel('m')
-ax[1,0].set_ylabel('$\sigma$')
-
-# M vs g
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,1,0], results_pars_drate[:,1,1], results_drate[:,1], 'mean', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im11 = ax[1,1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im11, ax = ax[1,1])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,2], rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[1,1].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[1,1].axhline(y = pars_true[2], c = 'red')
-ax[1,1].axvline(x = pars_true[0], c = 'red')
-ax[1,1].set_xlabel('m')
-ax[1,1].set_ylabel('$\\theta$')
-
-# Sigma vs g
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,2,0], results_pars_drate[:,2,1], results_drate[:,2], 'mean', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im12 = ax[1,2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im12, ax = ax[1,2])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,1], pars_norm[:,2], rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[1,2].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[1,2].axhline(y = pars_true[2], c = 'red')
-ax[1,2].axvline(x = pars_true[1], c = 'red')
-ax[1,2].set_xlabel('$\sigma$')
-ax[1,2].set_ylabel('$\\theta$')
+fig, ax = plt.subplots(1,3, gridspec_kw = {'hspace':0.7, 'wspace':0.4}, figsize = (12,4))
 
 #  -------------------------------- MAX  ----------------------------------------
 
 # M vs Sigma
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,0,0], results_pars_drate[:,0,1], results_drate[:,0], 'max', bins = 15)
+m_results     = 10**(results_pars_drate[:,0,0] * (pars_max[0] - pars_min[0]) + pars_min[0])
+m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
+sigma_results = 10**(results_pars_drate[:,0,1] * (pars_max[1] - pars_min[1]) + pars_min[1])
+sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
+
+val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_drate[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-47, -41, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -756,51 +519,33 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im20 = ax[2,0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im20, ax = ax[2,0])
+im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+clb = plt.colorbar(im20, ax = ax[0])
+clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], rate, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-47, -41, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
 
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
-ax[2,0].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[2,0].axhline(y = pars_true[1], c = 'red')
-ax[2,0].axvline(x = pars_true[0], c = 'red')
-ax[2,0].set_xlabel('m')
-ax[2,0].set_ylabel('$\sigma$')
+ax[0].contour(x_centers, y_centers, val.T, levels = [0, 1, 2, 3], cmap = 'inferno')
+ax[0].axhline(y = sigma_true, c = 'red')
+ax[0].axvline(x = m_true, c = 'red')
+ax[0].set_xlabel('m')
+ax[0].set_ylabel('$\sigma$')
+ax[0].set_xscale('log')
+ax[0].set_yscale('log')
 
-# M vs g
+# M vs theta
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,1,0], results_pars_drate[:,1,1], results_drate[:,1], 'max', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
+m_results     = 10**(results_pars_drate[:,1,0] * (pars_max[0] - pars_min[0]) + pars_min[0])
+m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
+theta_results = results_pars_drate[:,1,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
+theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
 
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im21 = ax[2,1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im21, ax = ax[2,1])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,2], rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[2,1].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[2,1].axhline(y = pars_true[2], c = 'red')
-ax[2,1].axvline(x = pars_true[0], c = 'red')
-ax[2,1].set_xlabel('m')
-ax[2,1].set_ylabel('$\\theta$')
-
-# Sigma vs g
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_drate[:,2,0], results_pars_drate[:,2,1], results_drate[:,2], 'max', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, theta_results, results_drate[:,1], 'max', bins = [np.logspace(0.81, 3, 15), np.linspace(-1.6, 1.6, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -808,36 +553,71 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im22 = ax[2,2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im22, ax = ax[2,2])
+im21 = ax[1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+clb = plt.colorbar(im21, ax = ax[1])
+clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,1], pars_norm[:,2], rate, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.linspace(-1.6, 1.6, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
 
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
-ax[2,2].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[2,2].axhline(y = pars_true[2], c = 'red')
-ax[2,2].axvline(x = pars_true[1], c = 'red')
-ax[2,2].set_xlabel('$\sigma$')
-ax[2,2].set_ylabel('$\\theta$')
+ax[1].contour(x_centers, y_centers, val.T, levels = [0, 1, 2, 3], cmap = 'inferno')
+ax[1].axhline(y = theta_true, c = 'red')
+ax[1].axvline(x = m_true, c = 'red')
+ax[1].set_xlabel('m')
+ax[1].set_ylabel('$\\theta$')
+ax[1].set_xscale('log')
+
+# Sigma vs theta
+
+sigma_results = 10**(results_pars_drate[:,2,0] * (pars_max[1] - pars_min[1]) + pars_min[1])
+sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
+theta_results = results_pars_drate[:,2,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
+theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
+
+val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_drate[:,2], 'max', bins = [np.logspace(-47, -41, 15), np.linspace(-1.6, 1.6, 15)])
+    
+xbin = xaux[1] - xaux[0]
+x_centers = xaux[:-1] + xbin
+
+ybin = yaux[1] - yaux[0]
+y_centers = yaux[:-1] + ybin
+
+im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+clb = plt.colorbar(im22, ax = ax[2])
+clb.ax.set_title('$\lambda$')
+
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-47, -41, 10), np.linspace(-1.6, 1.6, 10)])
+    
+xbin = xaux[1] - xaux[0]
+x_centers = xaux[:-1] + xbin
+
+ybin = yaux[1] - yaux[0]
+y_centers = yaux[:-1] + ybin
+ax[2].contour(x_centers, y_centers, val.T, levels = [0, 1, 2, 3], cmap = 'inferno')
+ax[2].axhline(y = theta_true, c = 'red')
+ax[2].axvline(x = sigma_true, c = 'red')
+ax[2].set_xlabel('$\sigma$')
+ax[2].set_ylabel('$\\theta$')
+ax[2].set_xscale('log')
 
 plt.savefig('../graph/pars_drate.pdf')
 # -
 
 # ## Only using s1s2
 
-x_s1s2 = s1s2[:,3:-3,1:-2] # Observable. Input data. I am cutting a bit the images to have 64x64
+x_s1s2 = s1s2_trainset[:,3:-3,1:-2] # Observable. Input data. I am cutting a bit the images to have 64x64
 
 # +
 # Let's normalize everything between 0 and 1
 
-pars_min = np.min(pars, axis = 0)
-pars_max = np.max(pars, axis = 0)
+pars_min = np.min(pars_trainset, axis = 0)
+pars_max = np.max(pars_trainset, axis = 0)
 
-pars_norm = (pars - pars_min) / (pars_max - pars_min)
+pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 
 x_min_s1s2 = np.min(x_s1s2, axis = 0)
 x_max_s1s2 = np.max(x_s1s2, axis = 0)
@@ -914,11 +694,19 @@ trainer_s1s2.fit(network_s1s2, dm_s1s2)
 # ### Let's make some inference
 
 # +
+# Let's normalize testset between 0 and 1
+
+pars_norm = (pars_testset - pars_min) / (pars_max - pars_min)
+
+x_norm_s1s2 = x_s1s2 = s1s2_testset[:,3:-3,1:-2]
+
+# +
 # First let's create some observation from some "true" theta parameters
-i = 1000
-#theta_true = theta_norm[i,:]
+#i = np.random.randint(ntest)
+print(i)
+
 pars_true = pars_norm[i,:]
-x_obs = x_norm_s1s2[i,:]
+x_obs     = x_norm_s1s2[i,:].reshape(1,64,64)
 
 plt.imshow(x_obs[0], origin = 'lower')
 
@@ -928,7 +716,7 @@ obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
 pars_prior = np.random.uniform(low = 0, high = 1, size = (1_000_000, 3))
-#theta_prior = np.random.uniform(low = [0, -50, -2], high = [1000, -40, 2], size = (1000000, 3))
+
 prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
@@ -965,175 +753,21 @@ plt.savefig('../graph/loglikratio_s1s2.pdf')
 # -
 
 results_pars_s1s2 = np.asarray(predictions_s1s2[1].params)
-results_s1s2 = np.asarray(predictions_s1s2[1].logratios)
+results_s1s2      = np.asarray(predictions_s1s2[1].logratios)
 
 # +
-fig, ax = plt.subplots(3,3, gridspec_kw = {'hspace':0.5, 'wspace':0.5}, figsize = (10,10))
-
-# ------------------------- MIN ----------------------------------------
-
-# M vs Sigma
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,0,0], results_pars_s1s2[:,0,1], results_s1s2[:,0], 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im00 = ax[0,0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im00, ax = ax[0,0])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[0,0].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[0,0].axhline(y = pars_true[1], c = 'red')
-ax[0,0].axvline(x = pars_true[0], c = 'red')
-ax[0,0].set_xlabel('m')
-ax[0,0].set_ylabel('$\sigma$')
-
-# M vs g
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,1,0], results_pars_s1s2[:,1,1], results_s1s2[:,1], 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im01 = ax[0,1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im01, ax = ax[0,1])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,2], rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[0,1].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[0,1].axhline(y = pars_true[2], c = 'red')
-ax[0,1].axvline(x = pars_true[0], c = 'red')
-ax[0,1].set_xlabel('m')
-ax[0,1].set_ylabel('$\\theta$')
-
-# Sigma vs g
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,2,0], results_pars_s1s2[:,2,1], results_s1s2[:,2], 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im02 = ax[0,2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im02, ax = ax[0,2])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,1], pars_norm[:,2], rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[0,2].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[0,2].axhline(y = pars_true[2], c = 'red')
-ax[0,2].axvline(x = pars_true[1], c = 'red')
-ax[0,2].set_xlabel('$\sigma$')
-ax[0,2].set_ylabel('$\\theta$')
-
-# ------------------------------ MEAN ------------------------------
-
-# M vs Sigma
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,0,0], results_pars_s1s2[:,0,1], results_s1s2[:,0], 'mean', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im10 = ax[1,0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im10, ax = ax[1,0])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[1,0].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[1,0].axhline(y = pars_true[1], c = 'red')
-ax[1,0].axvline(x = pars_true[0], c = 'red')
-ax[1,0].set_xlabel('m')
-ax[1,0].set_ylabel('$\sigma$')
-
-# M vs g
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,1,0], results_pars_s1s2[:,1,1], results_s1s2[:,1], 'mean', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im11 = ax[1,1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im11, ax = ax[1,1])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,2], rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[1,1].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[1,1].axhline(y = pars_true[2], c = 'red')
-ax[1,1].axvline(x = pars_true[0], c = 'red')
-ax[1,1].set_xlabel('m')
-ax[1,1].set_ylabel('$\\theta$')
-
-# Sigma vs g
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,2,0], results_pars_s1s2[:,2,1], results_s1s2[:,2], 'mean', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im12 = ax[1,2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im12, ax = ax[1,2])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,1], pars_norm[:,2], rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[1,2].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[1,2].axhline(y = pars_true[2], c = 'red')
-ax[1,2].axvline(x = pars_true[1], c = 'red')
-ax[1,2].set_xlabel('$\sigma$')
-ax[1,2].set_ylabel('$\\theta$')
+fig, ax = plt.subplots(1,3, gridspec_kw = {'hspace':0.7, 'wspace':0.4}, figsize = (12,4))
 
 #  -------------------------------- MAX  ----------------------------------------
 
 # M vs Sigma
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,0,0], results_pars_s1s2[:,0,1], results_s1s2[:,0], 'max', bins = 15)
+m_results     = 10**(results_pars_s1s2[:,0,0] * (pars_max[0] - pars_min[0]) + pars_min[0])
+m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
+sigma_results = 10**(results_pars_s1s2[:,0,1] * (pars_max[1] - pars_min[1]) + pars_min[1])
+sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
+
+val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_s1s2[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-47, -41, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -1141,51 +775,33 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im20 = ax[2,0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im20, ax = ax[2,0])
+im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+clb = plt.colorbar(im20, ax = ax[0])
+clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,1], rate, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-47, -41, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
 
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
-ax[2,0].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[2,0].axhline(y = pars_true[1], c = 'red')
-ax[2,0].axvline(x = pars_true[0], c = 'red')
-ax[2,0].set_xlabel('m')
-ax[2,0].set_ylabel('$\sigma$')
+ax[0].contour(x_centers, y_centers, val.T, levels = [0, 1, 2, 3], cmap = 'inferno')
+ax[0].axhline(y = sigma_true, c = 'red')
+ax[0].axvline(x = m_true, c = 'red')
+ax[0].set_xlabel('m')
+ax[0].set_ylabel('$\sigma$')
+ax[0].set_xscale('log')
+ax[0].set_yscale('log')
 
-# M vs g
+# M vs theta
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,1,0], results_pars_s1s2[:,1,1], results_s1s2[:,1], 'max', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
+m_results     = 10**(results_pars_s1s2[:,1,0] * (pars_max[0] - pars_min[0]) + pars_min[0])
+m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
+theta_results = results_pars_s1s2[:,1,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
+theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
 
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im21 = ax[2,1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im21, ax = ax[2,1])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,0], pars_norm[:,2], rate, 'min', bins = 15)
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[2,1].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[2,1].axhline(y = pars_true[2], c = 'red')
-ax[2,1].axvline(x = pars_true[0], c = 'red')
-ax[2,1].set_xlabel('m')
-ax[2,1].set_ylabel('$\\theta$')
-
-# Sigma vs g
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(results_pars_s1s2[:,2,0], results_pars_s1s2[:,2,1], results_s1s2[:,2], 'max', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, theta_results, results_s1s2[:,1], 'max', bins = [np.logspace(0.81, 3, 15), np.linspace(-1.6, 1.6, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -1193,23 +809,59 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im22 = ax[2,2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
-plt.colorbar(im22, ax = ax[2,2])
+im21 = ax[1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+clb = plt.colorbar(im21, ax = ax[1])
+clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(pars_norm[:,1], pars_norm[:,2], rate, 'min', bins = 15)
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.linspace(-1.6, 1.6, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
 
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
-ax[2,2].contour(x_centers, y_centers, val.T, levels = [0, 1.27])
-ax[2,2].axhline(y = pars_true[2], c = 'red')
-ax[2,2].axvline(x = pars_true[1], c = 'red')
-ax[2,2].set_xlabel('$\sigma$')
-ax[2,2].set_ylabel('$\\theta$')
+ax[1].contour(x_centers, y_centers, val.T, levels = [0, 1, 2, 3], cmap = 'inferno')
+ax[1].axhline(y = theta_true, c = 'red')
+ax[1].axvline(x = m_true, c = 'red')
+ax[1].set_xlabel('m')
+ax[1].set_ylabel('$\\theta$')
+ax[1].set_xscale('log')
+
+# Sigma vs theta
+
+sigma_results = 10**(results_pars_s1s2[:,2,0] * (pars_max[1] - pars_min[1]) + pars_min[1])
+sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
+theta_results = results_pars_s1s2[:,2,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
+theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
+
+val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_s1s2[:,2], 'max', bins = [np.logspace(-47, -41, 15), np.linspace(-1.6, 1.6, 15)])
+    
+xbin = xaux[1] - xaux[0]
+x_centers = xaux[:-1] + xbin
+
+ybin = yaux[1] - yaux[0]
+y_centers = yaux[:-1] + ybin
+
+im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+clb = plt.colorbar(im22, ax = ax[2])
+clb.ax.set_title('$\lambda$')
+
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-47, -41, 10), np.linspace(-1.6, 1.6, 10)])
+    
+xbin = xaux[1] - xaux[0]
+x_centers = xaux[:-1] + xbin
+
+ybin = yaux[1] - yaux[0]
+y_centers = yaux[:-1] + ybin
+ax[2].contour(x_centers, y_centers, val.T, levels = [0, 1, 2, 3], cmap = 'inferno')
+ax[2].axhline(y = theta_true, c = 'red')
+ax[2].axvline(x = sigma_true, c = 'red')
+ax[2].set_xlabel('$\sigma$')
+ax[2].set_ylabel('$\\theta$')
+ax[2].set_xscale('log')
 
 plt.savefig('../graph/pars_s1s2.pdf')
 # -
+
 
 
