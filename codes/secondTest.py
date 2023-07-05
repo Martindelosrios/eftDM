@@ -9,6 +9,8 @@ import seaborn as sbn
 import pandas as pd
 #import h5py
 import torch
+import seaborn as sns
+pallete = np.flip(sns.color_palette("tab20c", 8), axis = 0)
 
 # It is usefull to print the versions of the package that we are using
 print('swyft version:', swyft.__version__)
@@ -38,6 +40,15 @@ s1s2      = np.load('../data/andresData/cuartotest/s1s2.npy')
 
 pars[:,0] = np.log10(pars[:,0])
 pars[:,1] = np.log10(pars[:,1])
+
+# +
+# Let's transform the diff_rate to counts per energy bin
+
+diff_rate = np.round(diff_rate * 362440)
+
+# Let's discrtize the total rate 
+
+rate = np.round(rate)
 # -
 
 print(pars.shape)
@@ -101,19 +112,12 @@ ax[1].set_xlabel('$\log_{10}{\sigma}$ [?]')
 
 ax[2].hist(pars[:,2], histtype = 'step')
 ax[2].set_xlabel('$\\theta$')
-# -
-
-2458
-
-3397
 
 # +
 i = np.random.randint(len(pars))
 print(i)
 fig, ax = plt.subplots(1,2, figsize = (10,5))
 
-ax[0].plot(diff_rate[2458,:], c = 'blue')
-ax[0].plot(diff_rate[3397,:],c = 'red')
 ax[0].plot(diff_rate[i,:], c = 'black')
 ax[0].set_xlabel('$E_{r}$ [keV]' )
 ax[0].set_ylabel('$dR/E_{r}$' )
@@ -121,7 +125,7 @@ ax[0].text(0.5, 0.8,  '$\log_{10} $' + 'm = {:.2f} [?]'.format(pars[i,0]), trans
 ax[0].text(0.5, 0.7,  '$\log_{10}\sigma$' + ' = {:.2f} [?]'.format(pars[i,1]), transform = ax[0].transAxes)
 ax[0].text(0.5, 0.6, '$\\theta$ = {:.2f}'.format(pars[i,2]), transform = ax[0].transAxes)
 ax[0].text(0.5, 0.5, 'Total Rate = {:.2e}'.format(rate[i]), transform = ax[0].transAxes)
-ax[0].set_yscale('log')
+#ax[0].set_yscale('log')
 
 ax[1].imshow(s1s2[i], origin = 'lower')
 ax[1].set_xlabel('s1')
@@ -130,7 +134,7 @@ ax[1].set_ylabel('s2')
 
 # # Let's play with SWYFT
 
-# ## Using only the total rate
+# ## Using only the total rate w/ 7 events of background
 
 x_rate = np.log10(rate_trainset + 7) # Observable. Input data. I am adding 7 backgorund events to everything
 
@@ -219,6 +223,11 @@ print('"Normalized Observed" x value : {}'.format(x_obs))
 real_val = 10**(x_obs * (x_max_rate - x_min_rate) + x_min_rate)
 print('"Observed" x value : {}'.format(real_val))
 
+if x_obs == 0: 
+    flag = 'exc'
+else:
+    flag = 'disc'
+
 
 # +
 # We have to put this "observation" into a swyft.Sample object
@@ -234,7 +243,10 @@ predictions_rate = trainer_rate.infer(network_rate, obs, prior_samples)
 
 # Let's plot the results
 swyft.corner(predictions_rate, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
-plt.savefig('../graph/cornerplot_rate.pdf')
+if flag == 'exc':
+    plt.savefig('../graph/cornerplot_rate_exc.pdf')
+else:
+    plt.savefig('../graph/cornerplot_rate.pdf')
 
 parameters_rate = np.asarray(predictions_rate[0].params[:,:,0])
 parameters_rate = parameters_rate * (pars_max - pars_min) + pars_min
@@ -255,7 +267,11 @@ ax[1].axvline(x = pars[i,1])
 ax[2].plot(parameters_rate[:,2], predictions_rate[0].logratios[:,2], 'o', rasterized = True)
 ax[2].set_xlabel(r'$g$')
 ax[2].axvline(x = pars[i,2])
-plt.savefig('../graph/loglikratio_rate.pdf')
+
+if flag == 'exc':
+    plt.savefig('../graph/loglikratio_rate_exc.pdf')
+else:
+    plt.savefig('../graph/loglikratio_rate.pdf')
 # -
 
 results_pars_rate = np.asarray(predictions_rate[1].params)
@@ -281,7 +297,7 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, -10, -5, -2, 0, 2, 5, 10, 100], colors = pallete)
 clb = plt.colorbar(im20, ax = ax[0])
 clb.ax.set_title('$\lambda$')
 
@@ -315,7 +331,7 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im21 = ax[1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+im21 = ax[1].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, -10, -5, -2, 0, 2, 5, 10, 100], colors = pallete)
 clb = plt.colorbar(im21, ax = ax[1])
 clb.ax.set_title('$\lambda$')
 
@@ -348,7 +364,7 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, -10, -5, -2, 0, 2, 5, 10, 100], colors = pallete)
 clb = plt.colorbar(im22, ax = ax[2])
 clb.ax.set_title('$\lambda$')
 
@@ -366,12 +382,15 @@ ax[2].set_xlabel('$\sigma$')
 ax[2].set_ylabel('$\\theta$')
 ax[2].set_xscale('log')
 
-plt.savefig('../graph/pars_rate.pdf')
+if flag == 'exc':
+    plt.savefig('../graph/pars_rate_exc.pdf')
+else:
+    plt.savefig('../graph/pars_rate.pdf')
 # -
 
-# ## Only using the total diff_rate
+# ## Only using the total diff_rate (without background)
 
-x_drate = diff_rate_trainset # Observable. Input data. 
+x_drate = np.log10(diff_rate_trainset + 1) # Observable. Input data. 
 
 # +
 # Let's normalize everything between 0 and 1
@@ -442,7 +461,7 @@ trainer_drate.fit(network_drate, dm_drate)
 
 pars_norm = (pars_testset - pars_min) / (pars_max - pars_min)
 
-x_drate = diff_rate_testset
+x_drate = np.log10(diff_rate_testset + 1)
 x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
 
 # +
@@ -470,7 +489,10 @@ predictions_drate = trainer_drate.infer(network_drate, obs, prior_samples)
 # Let's plot the results
 swyft.corner(predictions_drate, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
 
-plt.savefig('../graph/cornerplot_drate.pdf')
+if flag == 'exc':
+    plt.savefig('../graph/cornerplot_drate_exc.pdf')
+else:
+    plt.savefig('../graph/cornerplot_drate.pdf')
 # -
 
 parameters_drate = np.asarray(predictions_drate[0].params[:,:,0])
@@ -493,7 +515,10 @@ ax[2].plot(parameters_drate[:,2], predictions_drate[0].logratios[:,2], 'o', rast
 ax[2].set_xlabel(r'$g$')
 ax[2].axvline(x = pars[i,2])
 
-plt.savefig('../graph/loglikratio_drate.pdf')
+if flag == 'exc':
+    plt.savefig('../graph/loglikratio_drate_exc.pdf')
+else:
+    plt.savefig('../graph/loglikratio_drate.pdf')
 # -
 
 results_pars_drate = np.asarray(predictions_drate[1].params)
@@ -519,7 +544,7 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, -10, -5, -2, 0, 2, 5, 10, 100], colors = pallete)
 clb = plt.colorbar(im20, ax = ax[0])
 clb.ax.set_title('$\lambda$')
 
@@ -553,7 +578,7 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im21 = ax[1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+im21 = ax[1].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, -10, -5, -2, 0, 2, 5, 10, 100], colors = pallete)
 clb = plt.colorbar(im21, ax = ax[1])
 clb.ax.set_title('$\lambda$')
 
@@ -586,7 +611,7 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, -10, -5, -2, 0, 2, 5, 10, 100], colors = pallete)
 clb = plt.colorbar(im22, ax = ax[2])
 clb.ax.set_title('$\lambda$')
 
@@ -604,10 +629,13 @@ ax[2].set_xlabel('$\sigma$')
 ax[2].set_ylabel('$\\theta$')
 ax[2].set_xscale('log')
 
-plt.savefig('../graph/pars_drate.pdf')
+if flag == 'exc':
+    plt.savefig('../graph/pars_drate_exc.pdf')
+else:
+    plt.savefig('../graph/pars_drate.pdf')
 # -
 
-# ## Only using s1s2
+# ## Using s1s2
 
 x_s1s2 = s1s2_trainset[:,3:-3,1:-2] # Observable. Input data. I am cutting a bit the images to have 64x64
 
@@ -715,7 +743,7 @@ plt.imshow(x_obs[0], origin = 'lower')
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior = np.random.uniform(low = 0, high = 1, size = (1_000_000, 3))
+pars_prior = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
 
 prior_samples = swyft.Samples(z = pars_prior)
 
@@ -726,7 +754,10 @@ predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
 # Let's plot the results
 swyft.corner(predictions_s1s2, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
 
-plt.savefig('../graph/cornerplot_s1s2.pdf')
+if flag == 'exc':
+    plt.savefig('../graph/cornerplot_s1s2_exc.pdf')
+else:
+    plt.savefig('../graph/cornerplot_s1s2.pdf')
 # -
 
 parameters_s1s2 = np.asarray(predictions_s1s2[0].params[:,:,0])
@@ -749,7 +780,10 @@ ax[2].plot(parameters_s1s2[:,2], predictions_s1s2[0].logratios[:,2], 'o', raster
 ax[2].set_xlabel(r'$g$')
 ax[2].axvline(x = pars[i,2])
 
-plt.savefig('../graph/loglikratio_s1s2.pdf')
+if flag == 'exc':
+    plt.savefig('../graph/loglikratio_s1s2_exc.pdf')
+else:
+    plt.savefig('../graph/loglikratio_s1s2.pdf')
 # -
 
 results_pars_s1s2 = np.asarray(predictions_s1s2[1].params)
@@ -775,7 +809,7 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, -10, -5, -2, 0, 2, 5, 10, 100], colors = pallete)
 clb = plt.colorbar(im20, ax = ax[0])
 clb.ax.set_title('$\lambda$')
 
@@ -809,7 +843,7 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im21 = ax[1].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+im21 = ax[1].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, -10, -5, -2, 0, 2, 5, 10, 100], colors = pallete)
 clb = plt.colorbar(im21, ax = ax[1])
 clb.ax.set_title('$\lambda$')
 
@@ -842,7 +876,7 @@ x_centers = xaux[:-1] + xbin
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
 
-im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, vmin = -15, vmax = 8)
+im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, -10, -5, -2, 0, 2, 5, 10, 100], colors = pallete)
 clb = plt.colorbar(im22, ax = ax[2])
 clb.ax.set_title('$\lambda$')
 
@@ -860,7 +894,10 @@ ax[2].set_xlabel('$\sigma$')
 ax[2].set_ylabel('$\\theta$')
 ax[2].set_xscale('log')
 
-plt.savefig('../graph/pars_s1s2.pdf')
+if flag == 'exc':
+    plt.savefig('../graph/pars_s1s2_exc.pdf')
+else:
+    plt.savefig('../graph/pars_s1s2.pdf')
 # -
 
 
