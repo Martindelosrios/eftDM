@@ -46,21 +46,16 @@ pars[:,1] = np.log10(pars[:,1])
 
 diff_rate = np.round(diff_rate * 362440)
 
-# Let's discrtize the total rate 
+# Let's add background and discrtize the total rate
 
-rate = np.round(rate)
+bkg_rate = np.random.normal(loc = 7, scale = 1, size = len(rate))
+rate = np.round(rate + bkg_rate)
 # -
 
 print(pars.shape)
 print(rate.shape)
 print(diff_rate.shape)
 print(s1s2.shape)
-
-np.sum(diff_rate[12,:])
-
-rate[12]
-
-np.sum(s1s2[12,:,:])
 
 # +
 # Let's split in training, validation and testing
@@ -97,7 +92,7 @@ s1s2_testset  = s1s2[test_ind,:,:]
 
 # ## Let's make some exploratory plots
 
-sbn.pairplot(pd.DataFrame(np.hstack((pars,np.log10(rate + 7).reshape(4998,1))), columns = ['$m_{\chi}$','$\sigma$', '$\\theta$', '#']))
+sbn.pairplot(pd.DataFrame(np.hstack((pars,np.log10(rate).reshape(4998,1))), columns = ['$m_{\chi}$','$\sigma$', '$\\theta$', '#']))
 
 # +
 fig, ax = plt.subplots(1,3, figsize = (10,5))
@@ -134,9 +129,9 @@ ax[1].set_ylabel('s2')
 
 # # Let's play with SWYFT
 
-# ## Using only the total rate w/ 7 events of background
+# ## Using only the total rate with gaussian background ($\mu = 7 ; \sigma = 1$)
 
-x_rate = np.log10(rate_trainset + 7) # Observable. Input data. I am adding 7 backgorund events to everything
+x_rate = np.log10(rate_trainset) # Observable. Input data.
 
 # +
 # Let's normalize everything between 0 and 1
@@ -197,6 +192,7 @@ class Network_rate(swyft.SwyftModule):
 
 
 # Let's configure, instantiate and traint the network
+torch.manual_seed(28890)
 trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 100, precision = 64)
 network_rate = Network_rate()
 trainer_rate.fit(network_rate, dm_rate)
@@ -208,7 +204,7 @@ trainer_rate.fit(network_rate, dm_rate)
 
 pars_norm = (pars_testset - pars_min) / (pars_max - pars_min)
 
-x_rate = np.log10(rate_testset + 7)
+x_rate = np.log10(rate_testset)
 x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
 x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
 
@@ -247,6 +243,59 @@ if flag == 'exc':
     plt.savefig('../graph/cornerplot_rate_exc.pdf')
 else:
     plt.savefig('../graph/cornerplot_rate.pdf')
+
+# +
+bins = 50
+weights = torch.exp(logratios_rate) / torch.exp(logratios_rate).mean(axis = 0)
+h1 = torchist.histogramdd(predictions_rate[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
+h1 /= len(predictions_rate[0].params[:,1,:]) * (upp - low) / bins
+
+h1 = np.array(h1)
+
+v = predictions_rate[0].params[:,1,0]
+edges = torch.linspace(v.min(), v.max(), bins + 1)
+x = np.array((edges[1:] + edges[:-1]) / 2)
+# -
+
+vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
+
+# +
+low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+up_1sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+
+low_2sigma = np.min(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+up_2sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+
+low_3sigma = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+up_3sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+
+
+# +
+plt.plot(x,h1, c = 'blue')
+
+y0 = -1.0 * x.max()
+y1 = 5.0 * x.max()
+plt.fill_between(x, y0, y1, where = h1 > vals[0], color='red', alpha=0.1)
+plt.fill_between(x, y0, y1, where = h1 > vals[1], color='red', alpha=0.2)
+plt.fill_between(x, y0, y1, where = h1 > vals[2], color='red', alpha=0.3)
+
+plt.axvline(low_1sigma, c = 'green')
+plt.axvline(up_1sigma, c = 'green')
+
+plt.axvline(low_2sigma, c = 'green', linestyle = '--')
+plt.axvline(up_2sigma, c = 'green', linestyle = '--')
+
+plt.axvline(low_3sigma, c = 'green', linestyle = ':')
+plt.axvline(up_3sigma, c = 'green', linestyle = ':')
+plt.ylim(0,4.5)
+
+# +
+swyft.plot_1d(predictions_rate, "pars_norm[1]", bins = 50, smooth = 1)
+#plt.plot(x,h1, c = 'blue')
+#plt.plot(zm, v, c = 'magenta', linestyle = '--')
+
+#swyft.plot.plot2.contour1d(x, h1, vals, linestyle = ':', alpha = 0.2, color = 'magenta')
+# -
 
 parameters_rate = np.asarray(predictions_rate[0].params[:,:,0])
 parameters_rate = parameters_rate * (pars_max - pars_min) + pars_min
@@ -450,6 +499,7 @@ class Network(swyft.SwyftModule):
 
 
 # Let's configure, instantiate and traint the network
+torch.manual_seed(28890)
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 100, precision = 64)
 network_drate = Network()
 trainer_drate.fit(network_drate, dm_drate)
@@ -715,6 +765,7 @@ class Network(swyft.SwyftModule):
 
 
 # Let's configure, instantiate and traint the network
+torch.manual_seed(28890)
 trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 100, precision = 64)
 network_s1s2 = Network()
 trainer_s1s2.fit(network_s1s2, dm_s1s2)
@@ -743,7 +794,7 @@ plt.imshow(x_obs[0], origin = 'lower')
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+pars_prior = np.random.uniform(low = 0, high = 1, size = (1_000_000, 3))
 
 prior_samples = swyft.Samples(z = pars_prior)
 
@@ -899,6 +950,6 @@ if flag == 'exc':
 else:
     plt.savefig('../graph/pars_s1s2.pdf')
 # -
-
+flag
 
 
