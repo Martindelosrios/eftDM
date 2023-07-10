@@ -133,6 +133,8 @@ ax[1].set_ylabel('s2')
 
 # ## Using only the total rate with gaussian background ($\mu = 7 ; \sigma = 1$)
 
+# ### Training
+
 x_rate = np.log10(rate_trainset) # Observable. Input data.
 
 # +
@@ -196,7 +198,8 @@ class Network_rate(swyft.SwyftModule):
 # +
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
-trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 200, precision = 64)
+early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=3, verbose=False, mode='min')
+trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 200, precision = 64, callbacks=[early_stopping_callback])
 network_rate = Network_rate()
 trainer_rate.fit(network_rate, dm_rate)
 
@@ -338,7 +341,7 @@ else:
     plt.savefig('../graph/loglikratio_rate.pdf')
 # -
 
-pars_true * (pars_max - pars_min) + pars_min
+10**(pars_true * (pars_max - pars_min) + pars_min)
 
 results_pars_rate = np.asarray(predictions_rate[1].params)
 results_rate      = np.asarray(predictions_rate[1].logratios)
@@ -452,6 +455,75 @@ if flag == 'exc':
     plt.savefig('../graph/pars_rate_exc.pdf')
 else:
     plt.savefig('../graph/pars_rate.pdf')
+# -
+
+x_norm_rate
+
+# +
+# Let's normalize testset between 0 and 1
+
+pars_norm = (pars_valset - pars_min) / (pars_max - pars_min)
+
+x_rate = np.log10(rate_valset)
+x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
+
+res_1sigma = np.ones(len(x_rate)) * -99
+res_2sigma = np.ones(len(x_rate)) * -99
+res_3sigma = np.ones(len(x_rate)) * -99
+
+for itest in tqdm(range(len(x_rate))):
+    x_obs = x_norm_rate[itest, :]
+    
+    # We have to put this "observation" into a swyft.Sample object
+    obs = swyft.Sample(x = x_obs)
+    
+    # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
+    pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+    prior_samples = swyft.Samples(z = pars_prior)
+    
+    # Finally we make the inference
+    predictions_rate = trainer_rate.infer(network_rate, obs, prior_samples)
+
+    bins = 50
+    logratios_rate = predictions_rate[0].logratios[:,1]
+    v              = predictions_rate[0].params[:,1,0]
+    low, upp = v.min(), v.max()
+    weights  = torch.exp(logratios_rate) / torch.exp(logratios_rate).mean(axis = 0)
+    h1       = torchist.histogramdd(predictions_rate[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
+    h1      /= len(predictions_rate[0].params[:,1,:]) * (upp - low) / bins
+    h1       = np.array(h1)
+    
+    edges = torch.linspace(v.min(), v.max(), bins + 1)
+    x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
+
+    vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
+    
+    low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+    up_1sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+    
+    low_2sigma = np.min(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+    up_2sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+    
+    low_3sigma = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+    up_3sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+    
+    if low_1sigma > -47.8: res_1sigma[itest] = 1
+    if low_2sigma > -47.8: res_2sigma[itest] = 1
+    if low_3sigma > -47.8: res_3sigma[itest] = 1
+
+# +
+val, x, y,_ = stats.binned_statistic_2d(pars_valset[:,0], pars_valset[:,1], res_1sigma, 'max', bins = 10)
+        
+xbin = x[1] - x[0]
+x_centers = x[:-1] + xbin
+
+ybin = y[1] - y[0]
+y_centers = y[:-1] + ybin
+
+cs = plt.contourf(x_centers, y_centers, val.T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
+plt.contour(x_centers, y_centers, val.T, levels=[0], linewidths = 2, zorder = 4)
+plt.scatter(pars_valset[:-2,0], pars_valset[:-2,1])
 # -
 
 # ## Only using the total diff_rate (without background)
