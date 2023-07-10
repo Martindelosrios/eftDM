@@ -9,6 +9,8 @@ import seaborn as sbn
 import pandas as pd
 #import h5py
 import torch
+import torchist
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import seaborn as sns
 pallete = np.flip(sns.color_palette("tab20c", 8), axis = 0)
 
@@ -191,11 +193,17 @@ class Network_rate(swyft.SwyftModule):
         return logratios1, logratios2
 
 
+# +
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
-trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 100, precision = 64)
+trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 200, precision = 64)
 network_rate = Network_rate()
 trainer_rate.fit(network_rate, dm_rate)
+
+# ---------------------------------------------- 
+# It converges to val_loss = -1.73 at epoch 103
+# ---------------------------------------------- 
+# -
 
 # ### Let's make some inference
 
@@ -219,10 +227,11 @@ print('"Normalized Observed" x value : {}'.format(x_obs))
 real_val = 10**(x_obs * (x_max_rate - x_min_rate) + x_min_rate)
 print('"Observed" x value : {}'.format(real_val))
 
-if x_obs == 0: 
+if real_val < 7: 
     flag = 'exc'
 else:
     flag = 'disc'
+print(flag)
 
 
 # +
@@ -246,20 +255,21 @@ else:
 
 # +
 bins = 50
-weights = torch.exp(logratios_rate) / torch.exp(logratios_rate).mean(axis = 0)
-h1 = torchist.histogramdd(predictions_rate[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
-h1 /= len(predictions_rate[0].params[:,1,:]) * (upp - low) / bins
+logratios_rate = predictions_rate[0].logratios[:,1]
+v              = predictions_rate[0].params[:,1,0]
+low, upp = v.min(), v.max()
+weights  = torch.exp(logratios_rate) / torch.exp(logratios_rate).mean(axis = 0)
+h1       = torchist.histogramdd(predictions_rate[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
+h1      /= len(predictions_rate[0].params[:,1,:]) * (upp - low) / bins
+h1       = np.array(h1)
 
-h1 = np.array(h1)
-
-v = predictions_rate[0].params[:,1,0]
 edges = torch.linspace(v.min(), v.max(), bins + 1)
-x = np.array((edges[1:] + edges[:-1]) / 2)
-# -
-
-vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
+x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
+#x     = 10**(x)
 
 # +
+vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
+
 low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
 up_1sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
 
@@ -269,29 +279,34 @@ up_2sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
 low_3sigma = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
 up_3sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
 
+if low_1sigma > -47.8: print('Distinguish at 1 $\sigma$')
+if low_2sigma > -47.8: print('Distinguish at 2 $\sigma$')
+if low_3sigma > -47.8: print('Distinguish at 3 $\sigma$')
+
 
 # +
-plt.plot(x,h1, c = 'blue')
+plt.plot(x, h1, c = 'blue')
 
-y0 = -1.0 * x.max()
-y1 = 5.0 * x.max()
-plt.fill_between(x, y0, y1, where = h1 > vals[0], color='red', alpha=0.1)
-plt.fill_between(x, y0, y1, where = h1 > vals[1], color='red', alpha=0.2)
-plt.fill_between(x, y0, y1, where = h1 > vals[2], color='red', alpha=0.3)
+#y0 = 0 #-1.0 * x.max()
+#y1 = 5.0# * x.max()
+#plt.fill_between(x, y0, y1, where = h1 > vals[0], color='red', alpha=0.1)
+#plt.fill_between(x, y0, y1, where = h1 > vals[1], color='red', alpha=0.2)
+#plt.fill_between(x, y0, y1, where = h1 > vals[2], color='red', alpha=0.3)
 
-plt.axvline(low_1sigma, c = 'green')
-plt.axvline(up_1sigma, c = 'green')
+if low_1sigma > -47.8: plt.axvline(low_1sigma, c = 'green')
+if up_1sigma > -47.8: plt.axvline(up_1sigma, c = 'green')
 
-plt.axvline(low_2sigma, c = 'green', linestyle = '--')
-plt.axvline(up_2sigma, c = 'green', linestyle = '--')
+if low_2sigma > -47.8: plt.axvline(low_2sigma, c = 'green', linestyle = '--')
+if up_2sigma > -47.8: plt.axvline(up_2sigma, c = 'green', linestyle = '--')
 
-plt.axvline(low_3sigma, c = 'green', linestyle = ':')
-plt.axvline(up_3sigma, c = 'green', linestyle = ':')
-plt.ylim(0,4.5)
+if low_3sigma > -47.8: plt.axvline(low_3sigma, c = 'green', linestyle = ':')
+if up_3sigma > -47.8: plt.axvline(up_3sigma, c = 'green', linestyle = ':')
+#plt.ylim(0,4.5)
+#plt.xscale('log')
 
 # +
 swyft.plot_1d(predictions_rate, "pars_norm[1]", bins = 50, smooth = 1)
-#plt.plot(x,h1, c = 'blue')
+plt.plot(x, h1, c = 'blue')
 #plt.plot(zm, v, c = 'magenta', linestyle = '--')
 
 #swyft.plot.plot2.contour1d(x, h1, vals, linestyle = ':', alpha = 0.2, color = 'magenta')
@@ -307,21 +322,23 @@ fig,ax = plt.subplots(1,3, sharey=True)
 ax[0].plot(parameters_rate[:,0], predictions_rate[0].logratios[:,0], 'o', rasterized = True)
 ax[0].set_xlabel(r'$m$')
 ax[0].set_ylabel(r'log ratio')
-ax[0].axvline(x = pars[i,0])
+ax[0].axvline(x = pars_testset[i,0])
 
 ax[1].plot(parameters_rate[:,1], predictions_rate[0].logratios[:,1], 'o', rasterized = True)
 ax[1].set_xlabel(r'$\sigma$')
-ax[1].axvline(x = pars[i,1])
+ax[1].axvline(x = pars_testset[i,1])
 
 ax[2].plot(parameters_rate[:,2], predictions_rate[0].logratios[:,2], 'o', rasterized = True)
 ax[2].set_xlabel(r'$g$')
-ax[2].axvline(x = pars[i,2])
+ax[2].axvline(x = pars_testset[i,2])
 
 if flag == 'exc':
     plt.savefig('../graph/loglikratio_rate_exc.pdf')
 else:
     plt.savefig('../graph/loglikratio_rate.pdf')
 # -
+
+pars_true * (pars_max - pars_min) + pars_min
 
 results_pars_rate = np.asarray(predictions_rate[1].params)
 results_rate      = np.asarray(predictions_rate[1].logratios)
@@ -338,7 +355,7 @@ m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
 sigma_results = 10**(results_pars_rate[:,0,1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_rate[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-47, -41, 15)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_rate[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-48.2, -41, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -350,7 +367,7 @@ im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, 
 clb = plt.colorbar(im20, ax = ax[0])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-47, -41, 10)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-48.2, -41, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -405,7 +422,7 @@ sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 theta_results = results_pars_rate[:,2,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
 theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_rate[:,2], 'max', bins = [np.logspace(-47, -41, 15), np.linspace(-1.6, 1.6, 15)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_rate[:,2], 'max', bins = [np.logspace(-48.2, -41, 15), np.linspace(-1.6, 1.6, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -417,7 +434,7 @@ im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, 
 clb = plt.colorbar(im22, ax = ax[2])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-47, -41, 10), np.linspace(-1.6, 1.6, 10)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-48.2, -41, 10), np.linspace(-1.6, 1.6, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -498,11 +515,17 @@ class Network(swyft.SwyftModule):
         return logratios1, logratios2
 
 
+# +
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
-trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 100, precision = 64)
+trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 200, precision = 64)
 network_drate = Network()
 trainer_drate.fit(network_drate, dm_drate)
+
+# --------------------------------------------
+# Converge to val_loss = -2.59 at 105 epochs
+# --------------------------------------------
+# -
 
 # ### Let's make some inference
 
@@ -522,6 +545,9 @@ pars_true = pars_norm[i,:]
 x_obs     = x_norm_drate[i,:]
 
 plt.plot(x_obs)
+# -
+
+pars_true * (pars_max - pars_min) + pars_min
 
 # +
 # We have to put this "observation" into a swyft.Sample object
@@ -543,7 +569,57 @@ if flag == 'exc':
     plt.savefig('../graph/cornerplot_drate_exc.pdf')
 else:
     plt.savefig('../graph/cornerplot_drate.pdf')
+
+# +
+bins = 50
+logratios_drate = predictions_drate[0].logratios[:,1]
+v               = predictions_drate[0].params[:,1,0]
+low, upp = v.min(), v.max()
+weights  = torch.exp(logratios_drate) / torch.exp(logratios_drate).mean(axis = 0)
+h1       = torchist.histogramdd(predictions_drate[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
+h1      /= len(predictions_drate[0].params[:,1,:]) * (upp - low) / bins
+h1       = np.array(h1)
+
+edges = torch.linspace(v.min(), v.max(), bins + 1)
+x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
+
+# +
+vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
+
+low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+up_1sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+
+low_2sigma = np.min(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+up_2sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+
+low_3sigma = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+up_3sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+
+if low_1sigma > -47.8: print('Distinguish at 1 $\sigma$')
+if low_2sigma > -47.8: print('Distinguish at 2 $\sigma$')
+if low_3sigma > -47.8: print('Distinguish at 3 $\sigma$')
+
+# +
+plt.plot(x, h1, c = 'blue')
+
+#y0 = 0 #-1.0 * x.max()
+#y1 = 5.0# * x.max()
+#plt.fill_between(x, y0, y1, where = h1 > vals[0], color='red', alpha=0.1)
+#plt.fill_between(x, y0, y1, where = h1 > vals[1], color='red', alpha=0.2)
+#plt.fill_between(x, y0, y1, where = h1 > vals[2], color='red', alpha=0.3)
+
+if low_1sigma > -47.8: plt.axvline(low_1sigma, c = 'green')
+if up_1sigma > -47.8: plt.axvline(up_1sigma, c = 'green')
+
+if low_2sigma > -47.8: plt.axvline(low_2sigma, c = 'green', linestyle = '--')
+if up_2sigma > -47.8: plt.axvline(up_2sigma, c = 'green', linestyle = '--')
+
+if low_3sigma > -47.8: plt.axvline(low_3sigma, c = 'green', linestyle = ':')
+if up_3sigma > -47.8: plt.axvline(up_3sigma, c = 'green', linestyle = ':')
 # -
+
+swyft.plot_1d(predictions_drate, "pars_norm[1]", bins = 50, smooth = 1)
+plt.plot(x, h1, c = 'blue')
 
 parameters_drate = np.asarray(predictions_drate[0].params[:,:,0])
 parameters_drate = parameters_drate * (pars_max - pars_min) + pars_min
@@ -555,15 +631,15 @@ fig,ax = plt.subplots(1,3, sharey=True)
 ax[0].plot(parameters_drate[:,0], predictions_drate[0].logratios[:,0], 'o', rasterized = True)
 ax[0].set_xlabel(r'$m$')
 ax[0].set_ylabel(r'log ratio')
-ax[0].axvline(x = pars[i,0])
+ax[0].axvline(x = pars_testset[i,0])
 
 ax[1].plot(parameters_drate[:,1], predictions_drate[0].logratios[:,1], 'o', rasterized = True)
 ax[1].set_xlabel(r'$\sigma$')
-ax[1].axvline(x = pars[i,1])
+ax[1].axvline(x = pars_testset[i,1])
 
 ax[2].plot(parameters_drate[:,2], predictions_drate[0].logratios[:,2], 'o', rasterized = True)
 ax[2].set_xlabel(r'$g$')
-ax[2].axvline(x = pars[i,2])
+ax[2].axvline(x = pars_testset[i,2])
 
 if flag == 'exc':
     plt.savefig('../graph/loglikratio_drate_exc.pdf')
@@ -586,7 +662,7 @@ m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
 sigma_results = 10**(results_pars_drate[:,0,1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_drate[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-47, -41, 15)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_drate[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-48.2, -41, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -598,7 +674,7 @@ im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, 
 clb = plt.colorbar(im20, ax = ax[0])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-47, -41, 10)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-48.2, -41, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -653,7 +729,7 @@ sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 theta_results = results_pars_drate[:,2,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
 theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_drate[:,2], 'max', bins = [np.logspace(-47, -41, 15), np.linspace(-1.6, 1.6, 15)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_drate[:,2], 'max', bins = [np.logspace(-48.2, -41, 15), np.linspace(-1.6, 1.6, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -665,7 +741,7 @@ im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, 
 clb = plt.colorbar(im22, ax = ax[2])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-47, -41, 10), np.linspace(-1.6, 1.6, 10)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-48.2, -41, 10), np.linspace(-1.6, 1.6, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -737,18 +813,21 @@ dm_s1s2 = swyft.SwyftDataModule(samples_s1s2, fractions = [0.7, 0.25, 0.05], bat
 class Network(swyft.SwyftModule):
     def __init__(self, lr = 1e-3, gamma = 1.):
         super().__init__()
-        self.optimizer_init = swyft.OptimizerInit(torch.optim.Adam, dict(lr = lr),
+        self.optimizer_init = swyft.OptimizerInit(torch.optim.Adam, dict(lr = lr, weight_decay=1e-5),
               torch.optim.lr_scheduler.ExponentialLR, dict(gamma = gamma))
         self.net = torch.nn.Sequential(
           torch.nn.Conv2d(1, 10, kernel_size=5),
           torch.nn.MaxPool2d(2),
           torch.nn.ReLU(),
+          torch.nn.Dropout(0.2),
           torch.nn.Conv2d(10, 20, kernel_size=5, padding=2),
           torch.nn.MaxPool2d(2),
           torch.nn.ReLU(),
+          torch.nn.Dropout(0.2),
           torch.nn.Flatten(),
           torch.nn.Linear(4500, 50),
           torch.nn.ReLU(),
+          torch.nn.Dropout(0.2),
           torch.nn.Linear(50, 10),
         )
         marginals = ((0, 1), (0, 2), (1, 2))
@@ -764,11 +843,35 @@ class Network(swyft.SwyftModule):
         return logratios1, logratios2
 
 
+# +
+from pytorch_lightning.callbacks import Callback
+
+class MetricTracker(Callback):
+
+    def __init__(self):
+        self.collection = []
+    
+    def on_validation_batch_end(trainer, module, outputs):
+        vacc = outputs['val_loss'] # you can access them here
+        self.collection.append(vacc) # track them
+    
+    def on_validation_epoch_end(trainer, module):
+        elogs = trainer.logged_metrics # access it here
+        self.collection.append(elogs)
+    # do whatever is needed
+
+
+# +
 # Let's configure, instantiate and traint the network
-torch.manual_seed(28890)
-trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 100, precision = 64)
+torch.manual_seed(28891)
+cb = MetricTracker()
+early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=15, verbose=False, mode='min')
+trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 250, precision = 64, callbacks=[early_stopping_callback])
 network_s1s2 = Network()
-trainer_s1s2.fit(network_s1s2, dm_s1s2)
+story = trainer_s1s2.fit(network_s1s2, dm_s1s2)
+
+# Do not converge at 100 epochs. Val_loss increasing!!!
+# -
 
 # ### Let's make some inference
 
@@ -788,6 +891,9 @@ pars_true = pars_norm[i,:]
 x_obs     = x_norm_s1s2[i,:].reshape(1,64,64)
 
 plt.imshow(x_obs[0], origin = 'lower')
+# -
+
+pars_true * (pars_max - pars_min) + pars_min
 
 # +
 # We have to put this "observation" into a swyft.Sample object
@@ -809,7 +915,57 @@ if flag == 'exc':
     plt.savefig('../graph/cornerplot_s1s2_exc.pdf')
 else:
     plt.savefig('../graph/cornerplot_s1s2.pdf')
+
+# +
+bins = 50
+logratios_s1s2 = predictions_s1s2[0].logratios[:,1]
+v              = predictions_s1s2[0].params[:,1,0]
+low, upp = v.min(), v.max()
+weights  = torch.exp(logratios_s1s2) / torch.exp(logratios_s1s2).mean(axis = 0)
+h1       = torchist.histogramdd(predictions_s1s2[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
+h1      /= len(predictions_s1s2[0].params[:,1,:]) * (upp - low) / bins
+h1       = np.array(h1)
+
+edges = torch.linspace(v.min(), v.max(), bins + 1)
+x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
+
+# +
+vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
+
+low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+up_1sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+
+low_2sigma = np.min(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+up_2sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+
+low_3sigma = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+up_3sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+
+if low_1sigma > -47.8: print('Distinguish at 1 $\sigma$')
+if low_2sigma > -47.8: print('Distinguish at 2 $\sigma$')
+if low_3sigma > -47.8: print('Distinguish at 3 $\sigma$')
+
+# +
+plt.plot(x, h1, c = 'blue')
+
+#y0 = 0 #-1.0 * x.max()
+#y1 = 5.0# * x.max()
+#plt.fill_between(x, y0, y1, where = h1 > vals[0], color='red', alpha=0.1)
+#plt.fill_between(x, y0, y1, where = h1 > vals[1], color='red', alpha=0.2)
+#plt.fill_between(x, y0, y1, where = h1 > vals[2], color='red', alpha=0.3)
+
+if low_1sigma > -47.8: plt.axvline(low_1sigma, c = 'green')
+if up_1sigma > -47.8: plt.axvline(up_1sigma, c = 'green')
+
+if low_2sigma > -47.8: plt.axvline(low_2sigma, c = 'green', linestyle = '--')
+if up_2sigma > -47.8: plt.axvline(up_2sigma, c = 'green', linestyle = '--')
+
+if low_3sigma > -47.8: plt.axvline(low_3sigma, c = 'green', linestyle = ':')
+if up_3sigma > -47.8: plt.axvline(up_3sigma, c = 'green', linestyle = ':')
 # -
+
+swyft.plot_1d(predictions_s1s2, "pars_norm[1]", bins = 50, smooth = 1)
+plt.plot(x, h1, c = 'blue')
 
 parameters_s1s2 = np.asarray(predictions_s1s2[0].params[:,:,0])
 parameters_s1s2 = parameters_s1s2 * (pars_max - pars_min) + pars_min
@@ -821,15 +977,15 @@ fig,ax = plt.subplots(1,3, sharey=True)
 ax[0].plot(parameters_s1s2[:,0], predictions_s1s2[0].logratios[:,0], 'o', rasterized = True)
 ax[0].set_xlabel(r'$m$')
 ax[0].set_ylabel(r'log ratio')
-ax[0].axvline(x = pars[i,0])
+ax[0].axvline(x = pars_testset[i,0])
 
 ax[1].plot(parameters_s1s2[:,1], predictions_s1s2[0].logratios[:,1], 'o', rasterized = True)
 ax[1].set_xlabel(r'$\sigma$')
-ax[1].axvline(x = pars[i,1])
+ax[1].axvline(x = pars_testset[i,1])
 
 ax[2].plot(parameters_s1s2[:,2], predictions_s1s2[0].logratios[:,2], 'o', rasterized = True)
 ax[2].set_xlabel(r'$g$')
-ax[2].axvline(x = pars[i,2])
+ax[2].axvline(x = pars_testset[i,2])
 
 if flag == 'exc':
     plt.savefig('../graph/loglikratio_s1s2_exc.pdf')
@@ -852,7 +1008,7 @@ m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
 sigma_results = 10**(results_pars_s1s2[:,0,1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_s1s2[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-47, -41, 15)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_s1s2[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-48.2, -41, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -864,7 +1020,7 @@ im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, 
 clb = plt.colorbar(im20, ax = ax[0])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-47, -41, 10)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-48.2, -41, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -919,7 +1075,7 @@ sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 theta_results = results_pars_s1s2[:,2,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
 theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_s1s2[:,2], 'max', bins = [np.logspace(-47, -41, 15), np.linspace(-1.6, 1.6, 15)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_s1s2[:,2], 'max', bins = [np.logspace(-48.2, -41, 15), np.linspace(-1.6, 1.6, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -931,7 +1087,7 @@ im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, 
 clb = plt.colorbar(im22, ax = ax[2])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-47, -41, 10), np.linspace(-1.6, 1.6, 10)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-48.2, -41, 10), np.linspace(-1.6, 1.6, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -950,6 +1106,6 @@ if flag == 'exc':
 else:
     plt.savefig('../graph/pars_s1s2.pdf')
 # -
-flag
+
 
 
