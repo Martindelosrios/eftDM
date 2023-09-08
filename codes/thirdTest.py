@@ -32,24 +32,41 @@ else:
 
 # # Let's load the data
 
-# !ls ../data/andresData/SI-run0and1/SI-run02
-
-# where are your files?
-datFolder = '../data/andresData/SI-run0and1/SI-run02/'
+# !ls ../data/andresData/SI-run0and1/
 
 # +
-pars      = np.loadtxt(datFolder+'pars.txt') # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
-rate_raw  = np.loadtxt(datFolder+'rate.txt') # rate[:,0] = total expected events ; rate[:,1] = expected signal ; rate[:,2] = # events pseudo-experiment ; rate[:,3] = # signal events pseudo-experiment 
-diff_rate = np.loadtxt(datFolder+'diff_rate.txt')
-
-s1s2_WIMP     = np.loadtxt(datFolder+'s1s2_WIMP.txt')
-s1s2_er       = np.loadtxt(datFolder+'s1s2_er.txt')
-s1s2_ac       = np.loadtxt(datFolder+'s1s2_ac.txt')
-s1s2_cevns_SM = np.loadtxt(datFolder+'s1s2_CEVNS-SM.txt')
-s1s2_radio    = np.loadtxt(datFolder+'s1s2_radiogenics.txt')
-s1s2_wall     = np.loadtxt(datFolder+'s1s2_wall.txt')
-
+# where are your files?
+datFolder = ['../data/andresData/SI-run0and1/SI-run01/', 
+             '../data/andresData/SI-run0and1/SI-run02/']
+nobs = 0
+for i, folder in enumerate(datFolder):
+    print(i)
+    if i == 0:
+        pars      = np.loadtxt(folder + 'pars.txt') # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
+        rate_raw  = np.loadtxt(folder + 'rate.txt') # rate[:,0] = total expected events ; rate[:,1] = expected signal ; rate[:,2] = # events pseudo-experiment ; rate[:,3] = # signal events pseudo-experiment 
+        diff_rate = np.loadtxt(folder + 'diff_rate.txt')
+        
+        s1s2_WIMP     = np.loadtxt(folder + 's1s2_WIMP.txt')
+        s1s2_er       = np.loadtxt(folder + 's1s2_er.txt')
+        s1s2_ac       = np.loadtxt(folder + 's1s2_ac.txt')
+        s1s2_cevns_SM = np.loadtxt(folder + 's1s2_CEVNS-SM.txt')
+        s1s2_radio    = np.loadtxt(folder + 's1s2_radiogenics.txt')
+        s1s2_wall     = np.loadtxt(folder + 's1s2_wall.txt')
+    else:
+        pars      = np.vstack((pars, np.loadtxt(folder + 'pars.txt'))) # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
+        rate_raw  = np.vstack((rate_raw, np.loadtxt(folder + 'rate.txt'))) # rate[:,0] = total expected events ; rate[:,1] = expected signal ; rate[:,2] = # events pseudo-experiment ; rate[:,3] = # signal events pseudo-experiment 
+        diff_rate = np.vstack((diff_rate, np.loadtxt(folder + 'diff_rate.txt')))
+        
+        s1s2_WIMP     = np.vstack((s1s2_WIMP, np.loadtxt(folder + 's1s2_WIMP.txt')))
+        s1s2_er       = np.vstack((s1s2_er, np.loadtxt(folder + 's1s2_er.txt')))
+        s1s2_ac       = np.vstack((s1s2_ac, np.loadtxt(folder + 's1s2_ac.txt')))
+        s1s2_cevns_SM = np.vstack((s1s2_cevns_SM, np.loadtxt(folder + 's1s2_CEVNS-SM.txt')))
+        s1s2_radio    = np.vstack((s1s2_radio, np.loadtxt(folder + 's1s2_radiogenics.txt')))
+        s1s2_wall     = np.vstack((s1s2_wall, np.loadtxt(folder + 's1s2_wall.txt')))
+        
+    
 nobs = len(pars) # Total number of observations
+print('We have ' + str(nobs) + ' observations...')
 # -
 
 s1s2 = s1s2_WIMP + s1s2_er + s1s2_ac + s1s2_cevns_SM + s1s2_radio + s1s2_wall
@@ -86,9 +103,9 @@ print(s1s2_wall.shape)
 ###############
 # EXTRA FILES # backgrounds
 ###############
-print(np.loadtxt(datFolder+'s1s2_CEVNS-NSI.txt').shape)
-print(np.loadtxt(datFolder+'s1s2_EVES-NSI.txt').shape)
-print(np.loadtxt(datFolder+'s1s2_EVES-SM.txt').shape)
+print(np.loadtxt(folder+'s1s2_CEVNS-NSI.txt').shape)
+print(np.loadtxt(folder+'s1s2_EVES-NSI.txt').shape)
+print(np.loadtxt(folder+'s1s2_EVES-SM.txt').shape)
 
 # +
 # Let's work with the log of the mass and cross-section
