@@ -70,9 +70,8 @@ print('We have ' + str(nobs) + ' observations...')
 # -
 
 s1s2 = s1s2_WIMP + s1s2_er + s1s2_ac + s1s2_cevns_SM + s1s2_radio + s1s2_wall
-rate = np.sum(s1s2, axis = 1) # Just to have the same as on the other notebooks
+rate = np.sum(s1s2, axis = 1) # Just to have the same as on the other notebooks. This already includes the backgrounds
 s1s2 = s1s2.reshape(nobs, 97, 97)
-#s1s2 = s1s2.T
 
 # This should be always zero
 i = np.random.randint(nobs)
@@ -98,8 +97,6 @@ print(s1s2_cevns_SM.shape)
 print(s1s2_radio.shape)
 print(s1s2_wall.shape)
 
-
-
 ###############
 # EXTRA FILES # backgrounds
 ###############
@@ -117,11 +114,6 @@ pars[:,1] = np.log10(pars[:,1])
 # Let's transform the diff_rate to counts per energy bin
 
 diff_rate = np.round(diff_rate * 362440)
-
-# Let's add background and discrtize the total rate
-
-bkg_rate = np.random.normal(loc = 7, scale = 1, size = len(rate))
-rate = np.round(rate + bkg_rate)
 # -
 
 print(pars.shape)
@@ -267,13 +259,13 @@ class Network_rate(swyft.SwyftModule):
 # +
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
-early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=3, verbose=False, mode='min')
+early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=30, verbose=False, mode='min')
 trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 200, precision = 64, callbacks=[early_stopping_callback])
 network_rate = Network_rate()
 trainer_rate.fit(network_rate, dm_rate)
 
 # ---------------------------------------------- 
-# It converges to val_loss = -1.73 at epoch 103
+# It converges to val_loss = -1.18 at epoch 100
 # ---------------------------------------------- 
 # -
 
@@ -1003,7 +995,7 @@ class MetricTracker(Callback):
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28891)
 cb = MetricTracker()
-early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=15, verbose=False, mode='min')
+early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=35, verbose=False, mode='min')
 trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 250, precision = 64, callbacks=[early_stopping_callback])
 network_s1s2 = Network()
 story = trainer_s1s2.fit(network_s1s2, dm_s1s2)
