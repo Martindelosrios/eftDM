@@ -13,6 +13,7 @@ import torchist
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import seaborn as sns
 pallete = np.flip(sns.color_palette("tab20c", 8), axis = 0)
+cross_section_th = -50
 
 from torchsummary import summary
 
@@ -29,6 +30,52 @@ if torch.cuda.is_available():
 else:
     device = 'cpu'
     print('Using CPU')
+
+
+def read_slice(datFolder):
+    nobs_slices = 0
+    for i, folder in enumerate(datFolder):
+        print(i)
+        if i == 0:
+            pars_slices      = np.loadtxt(folder + 'pars.txt') # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
+            rate_raw_slices  = np.loadtxt(folder + 'rate.txt') # rate[:,0] = total expected events ; rate[:,1] = expected signal ; rate[:,2] = # events pseudo-experiment ; rate[:,3] = # signal events pseudo-experiment 
+            diff_rate_slices = np.loadtxt(folder + 'diff_rate.txt')
+            
+            s1s2_WIMP_slices     = np.loadtxt(folder + 's1s2_WIMP.txt')
+            s1s2_er_slices       = np.loadtxt(folder + 's1s2_er.txt')
+            s1s2_ac_slices       = np.loadtxt(folder + 's1s2_ac.txt')
+            s1s2_cevns_SM_slices = np.loadtxt(folder + 's1s2_CEVNS-SM.txt')
+            s1s2_radio_slices    = np.loadtxt(folder + 's1s2_radiogenics.txt')
+            s1s2_wall_slices     = np.loadtxt(folder + 's1s2_wall.txt')
+        else:
+            pars_slices      = np.vstack((pars_slices, np.loadtxt(folder + 'pars.txt'))) # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
+            rate_raw_slices  = np.vstack((rate_raw_slices, np.loadtxt(folder + 'rate.txt'))) # rate[:,0] = total expected events ; rate[:,1] = expected signal ; rate[:,2] = # events pseudo-experiment ; rate[:,3] = # signal events pseudo-experiment 
+            diff_rate_slices = np.vstack((diff_rate_slices, np.loadtxt(folder + 'diff_rate.txt')))
+            
+            s1s2_WIMP_slices     = np.vstack((s1s2_WIMP_slices, np.loadtxt(folder + 's1s2_WIMP.txt')))
+            s1s2_er_slices       = np.vstack((s1s2_er_slices, np.loadtxt(folder + 's1s2_er.txt')))
+            s1s2_ac_slices       = np.vstack((s1s2_ac_slices, np.loadtxt(folder + 's1s2_ac.txt')))
+            s1s2_cevns_SM_slices = np.vstack((s1s2_cevns_SM_slices, np.loadtxt(folder + 's1s2_CEVNS-SM.txt')))
+            s1s2_radio_slices    = np.vstack((s1s2_radio_slices, np.loadtxt(folder + 's1s2_radiogenics.txt')))
+            s1s2_wall_slices     = np.vstack((s1s2_wall_slices, np.loadtxt(folder + 's1s2_wall.txt')))
+            
+        
+    nobs_slices = len(pars_slices) # Total number of observations
+    print('We have ' + str(nobs_slices) + ' observations...')
+    
+    s1s2_slices = s1s2_WIMP_slices + s1s2_er_slices + s1s2_ac_slices + s1s2_cevns_SM_slices + s1s2_radio_slices + s1s2_wall_slices
+    rate_slices = np.sum(s1s2_slices, axis = 1) # Just to have the same as on the other notebooks. This already includes the backgrounds
+    s1s2_slices = s1s2_slices.reshape(nobs_slices, 97, 97)
+    
+    # Let's work with the log of the mass and cross-section
+    
+    pars_slices[:,0] = np.log10(pars_slices[:,0])
+    pars_slices[:,1] = np.log10(pars_slices[:,1])
+    
+    # Let's transform the diff_rate to counts per energy bin
+    
+    diff_rate_slices = np.round(diff_rate_slices * 362440)
+    return pars_slices, rate_slices, diff_rate_slices, s1s2_slices
 
 # # Let's load the data
 
@@ -67,11 +114,20 @@ for i, folder in enumerate(datFolder):
     
 nobs = len(pars) # Total number of observations
 print('We have ' + str(nobs) + ' observations...')
-# -
 
 s1s2 = s1s2_WIMP + s1s2_er + s1s2_ac + s1s2_cevns_SM + s1s2_radio + s1s2_wall
 rate = np.sum(s1s2, axis = 1) # Just to have the same as on the other notebooks. This already includes the backgrounds
 s1s2 = s1s2.reshape(nobs, 97, 97)
+
+# Let's work with the log of the mass and cross-section
+
+pars[:,0] = np.log10(pars[:,0])
+pars[:,1] = np.log10(pars[:,1])
+
+# Let's transform the diff_rate to counts per energy bin
+
+diff_rate = np.round(diff_rate * 362440)
+# -
 
 # This should be always zero
 i = np.random.randint(nobs)
@@ -103,17 +159,6 @@ print(s1s2_wall.shape)
 print(np.loadtxt(folder+'s1s2_CEVNS-NSI.txt').shape)
 print(np.loadtxt(folder+'s1s2_EVES-NSI.txt').shape)
 print(np.loadtxt(folder+'s1s2_EVES-SM.txt').shape)
-
-# +
-# Let's work with the log of the mass and cross-section
-
-pars[:,0] = np.log10(pars[:,0])
-pars[:,1] = np.log10(pars[:,1])
-
-# +
-# Let's transform the diff_rate to counts per energy bin
-
-diff_rate = np.round(diff_rate * 362440)
 # -
 
 print(pars.shape)
@@ -152,6 +197,63 @@ s1s2_valset   = s1s2[val_ind,:,:]
 s1s2_testset  = s1s2[test_ind,:,:]
 
 # -
+
+# !ls ../data/andresData/SI-slices01-variostheta/
+
+# +
+# Slices theta = -pi/2
+datFolder = ['../data/andresData/SI-slices01-minuspidiv2/']
+nobs_slices = 0
+for i, folder in enumerate(datFolder):
+    print(i)
+    if i == 0:
+        pars_slices      = np.loadtxt(folder + 'pars.txt') # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
+        rate_raw_slices  = np.loadtxt(folder + 'rate.txt') # rate[:,0] = total expected events ; rate[:,1] = expected signal ; rate[:,2] = # events pseudo-experiment ; rate[:,3] = # signal events pseudo-experiment 
+        diff_rate_slices = np.loadtxt(folder + 'diff_rate.txt')
+        
+        s1s2_WIMP_slices     = np.loadtxt(folder + 's1s2_WIMP.txt')
+        s1s2_er_slices       = np.loadtxt(folder + 's1s2_er.txt')
+        s1s2_ac_slices       = np.loadtxt(folder + 's1s2_ac.txt')
+        s1s2_cevns_SM_slices = np.loadtxt(folder + 's1s2_CEVNS-SM.txt')
+        s1s2_radio_slices    = np.loadtxt(folder + 's1s2_radiogenics.txt')
+        s1s2_wall_slices     = np.loadtxt(folder + 's1s2_wall.txt')
+    else:
+        pars_slices      = np.vstack((pars_slices, np.loadtxt(folder + 'pars.txt'))) # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
+        rate_raw_slices  = np.vstack((rate_raw_slices, np.loadtxt(folder + 'rate.txt'))) # rate[:,0] = total expected events ; rate[:,1] = expected signal ; rate[:,2] = # events pseudo-experiment ; rate[:,3] = # signal events pseudo-experiment 
+        diff_rate_slices = np.vstack((diff_rate_slices, np.loadtxt(folder + 'diff_rate.txt')))
+        
+        s1s2_WIMP_slices     = np.vstack((s1s2_WIMP_slices, np.loadtxt(folder + 's1s2_WIMP.txt')))
+        s1s2_er_slices       = np.vstack((s1s2_er_slices, np.loadtxt(folder + 's1s2_er.txt')))
+        s1s2_ac_slices       = np.vstack((s1s2_ac_slices, np.loadtxt(folder + 's1s2_ac.txt')))
+        s1s2_cevns_SM_slices = np.vstack((s1s2_cevns_SM_slices, np.loadtxt(folder + 's1s2_CEVNS-SM.txt')))
+        s1s2_radio_slices    = np.vstack((s1s2_radio_slices, np.loadtxt(folder + 's1s2_radiogenics.txt')))
+        s1s2_wall_slices     = np.vstack((s1s2_wall_slices, np.loadtxt(folder + 's1s2_wall.txt')))
+        
+    
+nobs_slices = len(pars_slices) # Total number of observations
+print('We have ' + str(nobs_slices) + ' observations...')
+
+s1s2_slices = s1s2_WIMP_slices + s1s2_er_slices + s1s2_ac_slices + s1s2_cevns_SM_slices + s1s2_radio_slices + s1s2_wall_slices
+rate_slices = np.sum(s1s2_slices, axis = 1) # Just to have the same as on the other notebooks. This already includes the backgrounds
+s1s2_slices = s1s2_slices.reshape(nobs_slices, 97, 97)
+
+# Let's work with the log of the mass and cross-section
+
+pars_slices[:,0] = np.log10(pars_slices[:,0])
+pars_slices[:,1] = np.log10(pars_slices[:,1])
+
+# Let's transform the diff_rate to counts per energy bin
+
+diff_rate_slices = np.round(diff_rate_slices * 362440)
+# -
+
+# ## Xenon data
+#
+# from https://arxiv.org/pdf/2007.08796.pdf (Figure 6)
+
+xenon_nt_5s   = np.loadtxt('../data/xenon_nt_5sigma.csv', skiprows = 1, delimiter = ',')
+xenon_nt_3s   = np.loadtxt('../data/xenon_nt_3sigma.csv', skiprows = 1, delimiter = ',')
+xenon_nt_90cl = np.loadtxt('../data/xenon_nt_90cl.csv', skiprows = 1, delimiter = ',')
 
 # ## Let's make some exploratory plots
 
@@ -192,7 +294,7 @@ ax[1].set_ylabel('s2')
 
 # # Let's play with SWYFT
 
-# ## Using only the total rate with gaussian background ($\mu = 7 ; \sigma = 1$)
+# ## Using only the total rate with gaussian background 
 
 # ### Training
 
@@ -265,7 +367,7 @@ network_rate = Network_rate()
 trainer_rate.fit(network_rate, dm_rate)
 
 # ---------------------------------------------- 
-# It converges to val_loss = -1.18 at epoch 100
+# It converges to val_loss = -1.18 at epoch ~50
 # ---------------------------------------------- 
 # -
 
@@ -289,9 +391,9 @@ x_obs     = x_norm_rate[i,:]
 
 print('"Normalized Observed" x value : {}'.format(x_obs))
 real_val = 10**(x_obs * (x_max_rate - x_min_rate) + x_min_rate)
-print('"Observed" x value : {}'.format(real_val))
+print('"Observed" x value : {} events'.format(real_val))
 
-if real_val < 7: 
+if real_val < 2900: 
     flag = 'exc'
 else:
     flag = 'disc'
@@ -343,9 +445,9 @@ up_2sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
 low_3sigma = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
 up_3sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
 
-if low_1sigma > -47.8: print('Distinguish at 1 $\sigma$')
-if low_2sigma > -47.8: print('Distinguish at 2 $\sigma$')
-if low_3sigma > -47.8: print('Distinguish at 3 $\sigma$')
+if low_1sigma > cross_section_th: print('Distinguish at 1 $\sigma$')
+if low_2sigma > cross_section_th: print('Distinguish at 2 $\sigma$')
+if low_3sigma > cross_section_th: print('Distinguish at 3 $\sigma$')
 
 
 # +
@@ -357,14 +459,14 @@ plt.plot(x, h1, c = 'blue')
 #plt.fill_between(x, y0, y1, where = h1 > vals[1], color='red', alpha=0.2)
 #plt.fill_between(x, y0, y1, where = h1 > vals[2], color='red', alpha=0.3)
 
-if low_1sigma > -47.8: plt.axvline(low_1sigma, c = 'green')
-if up_1sigma > -47.8: plt.axvline(up_1sigma, c = 'green')
+if low_1sigma > cross_section_th: plt.axvline(low_1sigma, c = 'green')
+if up_1sigma > cross_section_th: plt.axvline(up_1sigma, c = 'green')
 
-if low_2sigma > -47.8: plt.axvline(low_2sigma, c = 'green', linestyle = '--')
-if up_2sigma > -47.8: plt.axvline(up_2sigma, c = 'green', linestyle = '--')
+if low_2sigma > cross_section_th: plt.axvline(low_2sigma, c = 'green', linestyle = '--')
+if up_2sigma > cross_section_th: plt.axvline(up_2sigma, c = 'green', linestyle = '--')
 
-if low_3sigma > -47.8: plt.axvline(low_3sigma, c = 'green', linestyle = ':')
-if up_3sigma > -47.8: plt.axvline(up_3sigma, c = 'green', linestyle = ':')
+if low_3sigma > cross_section_th: plt.axvline(low_3sigma, c = 'green', linestyle = ':')
+if up_3sigma > cross_section_th: plt.axvline(up_3sigma, c = 'green', linestyle = ':')
 #plt.ylim(0,4.5)
 #plt.xscale('log')
 
@@ -516,13 +618,16 @@ if flag == 'exc':
     plt.savefig('../graph/pars_rate_exc.pdf')
 else:
     plt.savefig('../graph/pars_rate.pdf')
+# -
+
+# ### Let's make the contour plot
 
 # +
 # Let's normalize testset between 0 and 1
 
-pars_norm = (pars_valset - pars_min) / (pars_max - pars_min)
+pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
 
-x_rate = np.log10(rate_valset)
+x_rate = np.log10(rate_slices)
 x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
 x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
 
@@ -566,12 +671,35 @@ for itest in tqdm(range(len(x_rate))):
     low_3sigma = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
     up_3sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
     
-    if low_1sigma > -47.8: res_1sigma[itest] = 1
-    if low_2sigma > -47.8: res_2sigma[itest] = 1
-    if low_3sigma > -47.8: res_3sigma[itest] = 1
+    if low_1sigma > cross_section_th: res_1sigma[itest] = 1
+    if low_2sigma > cross_section_th: res_2sigma[itest] = 1
+    if low_3sigma > cross_section_th: res_3sigma[itest] = 1
+# -
+
+m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
+sigma_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-val, x, y,_ = stats.binned_statistic_2d(pars_valset[:,0], pars_valset[:,1], res_1sigma, 'max', bins = 10)
+#plt.contourf(m_vals, sigma_vals, res_1sigma.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
+plt.contour(m_vals, sigma_vals, res_1sigma.reshape(30,30).T, levels=[0], linewidths = 2, zorder = 4, linestyles = '--')
+
+#plt.contourf(m_vals, sigma_vals, res_2sigma.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
+plt.contour(m_vals, sigma_vals, res_2sigma.reshape(30,30).T, levels=[0], linestyles = ':')
+
+plt.contourf(m_vals, sigma_vals, res_3sigma.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
+plt.contour(m_vals, sigma_vals, res_3sigma.reshape(30,30).T, levels=[0])
+
+plt.plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
+plt.plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
+plt.plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
+plt.xlabel('m [GeV]')
+plt.ylabel('$\sigma$ []')
+plt.yscale('log')
+plt.xscale('log')
+plt.grid(which='both')
+
+# +
+val, x, y,_ = stats.binned_statistic_2d(pars_slices[:,0], pars_slices[:,1], res_1sigma, 'max', bins = 22)
         
 xbin = x[1] - x[0]
 x_centers = x[:-1] + xbin
@@ -581,7 +709,7 @@ y_centers = y[:-1] + ybin
 
 cs = plt.contourf(x_centers, y_centers, val.T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
 plt.contour(x_centers, y_centers, val.T, levels=[0], linewidths = 2, zorder = 4)
-plt.scatter(pars_valset[:-2,0], pars_valset[:-2,1])
+plt.scatter(pars_slices[:-2,0], pars_slices[:-2,1])
 # -
 
 # ## Only using the total diff_rate (without background)
@@ -1000,7 +1128,7 @@ trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 
 network_s1s2 = Network()
 story = trainer_s1s2.fit(network_s1s2, dm_s1s2)
 
-# Do not converge at 100 epochs. Val_loss increasing!!!
+# Min val loss value at 7 epochs. -1.68
 # -
 
 # ### Let's make some inference
@@ -1071,9 +1199,9 @@ up_2sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
 low_3sigma = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
 up_3sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
 
-if low_1sigma > -47.8: print('Distinguish at 1 $\sigma$')
-if low_2sigma > -47.8: print('Distinguish at 2 $\sigma$')
-if low_3sigma > -47.8: print('Distinguish at 3 $\sigma$')
+if low_1sigma > cross_section_th: print('Distinguish at 1 $\sigma$')
+if low_2sigma > cross_section_th: print('Distinguish at 2 $\sigma$')
+if low_3sigma > cross_section_th: print('Distinguish at 3 $\sigma$')
 
 # +
 plt.plot(x, h1, c = 'blue')
@@ -1084,14 +1212,14 @@ plt.plot(x, h1, c = 'blue')
 #plt.fill_between(x, y0, y1, where = h1 > vals[1], color='red', alpha=0.2)
 #plt.fill_between(x, y0, y1, where = h1 > vals[2], color='red', alpha=0.3)
 
-if low_1sigma > -47.8: plt.axvline(low_1sigma, c = 'green')
-if up_1sigma > -47.8: plt.axvline(up_1sigma, c = 'green')
+if low_1sigma > cross_section_th: plt.axvline(low_1sigma, c = 'green')
+if up_1sigma > cross_section_th: plt.axvline(up_1sigma, c = 'green')
 
-if low_2sigma > -47.8: plt.axvline(low_2sigma, c = 'green', linestyle = '--')
-if up_2sigma > -47.8: plt.axvline(up_2sigma, c = 'green', linestyle = '--')
+if low_2sigma > cross_section_th: plt.axvline(low_2sigma, c = 'green', linestyle = '--')
+if up_2sigma > cross_section_th: plt.axvline(up_2sigma, c = 'green', linestyle = '--')
 
-if low_3sigma > -47.8: plt.axvline(low_3sigma, c = 'green', linestyle = ':')
-if up_3sigma > -47.8: plt.axvline(up_3sigma, c = 'green', linestyle = ':')
+if low_3sigma > cross_section_th: plt.axvline(low_3sigma, c = 'green', linestyle = ':')
+if up_3sigma > cross_section_th: plt.axvline(up_3sigma, c = 'green', linestyle = ':')
 # -
 
 swyft.plot_1d(predictions_s1s2, "pars_norm[1]", bins = 50, smooth = 1)
@@ -1236,6 +1364,143 @@ if flag == 'exc':
 else:
     plt.savefig('../graph/pars_s1s2.pdf')
 # -
+# ### Let's make the contour plot
 
+# !ls ../data/andresData/SI-slices01-variostheta/
+
+# +
+folder = ['../data/andresData/SI-slices01-variostheta/SI-slices01-minuspidiv2/']
+pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(folder)
+
+if os.path.exists(folder[0] + 'sigmas_s1s2.txt') == False:
+    # Let's normalize testset between 0 and 1
+    
+    pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
+    
+    x_norm_s1s2 = x_s1s2 = s1s2_slices[:,:-1,:-1]
+    
+    res_1sigma = np.ones(len(pars_norm)) * -99
+    res_2sigma = np.ones(len(pars_norm)) * -99
+    res_3sigma = np.ones(len(pars_norm)) * -99
+    
+    sigmas = np.ones((len(pars_slices), 6))
+    
+    for itest in tqdm(range(len(pars_norm))):
+        x_obs = x_norm_s1s2[itest, :,:]
+        
+        # We have to put this "observation" into a swyft.Sample object
+        obs = swyft.Sample(x = x_obs.reshape(1,96,96))
+        
+        # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
+        pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+        prior_samples = swyft.Samples(z = pars_prior)
+        
+        # Finally we make the inference
+        predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
+    
+        bins = 50
+        logratios_s1s2 = predictions_s1s2[0].logratios[:,1]
+        v              = predictions_s1s2[0].params[:,1,0]
+        low, upp = v.min(), v.max()
+        weights  = torch.exp(logratios_s1s2) / torch.exp(logratios_s1s2).mean(axis = 0)
+        h1       = torchist.histogramdd(predictions_s1s2[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
+        h1      /= len(predictions_s1s2[0].params[:,1,:]) * (upp - low) / bins
+        h1       = np.array(h1)
+        
+        edges = torch.linspace(v.min(), v.max(), bins + 1)
+        x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
+    
+        vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
+        
+        sigmas[itest,0] = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+        sigmas[itest,3] = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+        
+        sigmas[itest,1] = np.min(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+        sigmas[itest,4] = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+        
+        sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+        sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+    
+    np.savetxt(folder[0] + 'sigmas_s1s2.txt', sigmas)
+else:
+    print('pre-computed')
+    sigmas = np.loadtxt(folder[0] + 'sigmas_s1s2.txt')
+    
+
+# +
+cross_section_th = -49
+
+res_1sigma_mpi_2 = np.ones(len(pars_norm)) * -99
+res_2sigma_mpi_2 = np.ones(len(pars_norm)) * -99
+res_3sigma_mpi_2 = np.ones(len(pars_norm)) * -99
+
+res_1sigma_mpi_2[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
+
+res_2sigma_mpi_2[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
+
+res_3sigma_mpi_2[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
+# -
+
+m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
+cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
+
+# +
+fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
+
+ax[0,0].contour(m_vals, cross_vals, res_1sigma_pi_2.reshape(30,30).T, levels=[0], linewidths = 2, zorder = 4, linestyles = '--')
+ax[0,0].contour(m_vals, cross_vals, res_2sigma_pi_2.reshape(30,30).T, levels=[0], linestyles = ':')
+ax[0,0].contourf(m_vals, cross_vals, res_3sigma_pi_2.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
+ax[0,0].contour(m_vals, cross_vals, res_3sigma_pi_2.reshape(30,30).T, levels=[0])
+
+ax[0,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
+ax[0,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
+ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
+ax[0,0].set_yscale('log')
+ax[0,0].set_xscale('log')
+ax[0,0].grid(which='both')
+ax[0,0].text(3e2, 1e-44, '$\\theta = \pi/2$')
+#ax[0,0].legend(loc = 'lower right')
+
+ax[0,1].contour(m_vals, cross_vals, res_1sigma_pi_4.reshape(30,30).T, levels=[0], linewidths = 2, zorder = 4, linestyles = '--')
+ax[0,1].contour(m_vals, cross_vals, res_2sigma_pi_4.reshape(30,30).T, levels=[0], linestyles = ':')
+ax[0,1].contourf(m_vals, cross_vals, res_3sigma_pi_4.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
+ax[0,1].contour(m_vals, cross_vals, res_3sigma_pi_4.reshape(30,30).T, levels=[0])
+
+ax[0,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
+ax[0,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
+ax[0,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
+ax[0,1].grid(which='both')
+ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
+ax[0,1].legend(loc = 'lower right')
+
+ax[1,0].contour(m_vals, cross_vals, res_1sigma_mpi_2.reshape(30,30).T, levels=[0], linewidths = 2, zorder = 4, linestyles = '--')
+ax[1,0].contour(m_vals, cross_vals, res_2sigma_mpi_2.reshape(30,30).T, levels=[0], linestyles = ':')
+ax[1,0].contourf(m_vals, cross_vals, res_3sigma_mpi_2.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
+ax[1,0].contour(m_vals, cross_vals, res_3sigma_mpi_2.reshape(30,30).T, levels=[0])
+
+ax[1,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
+ax[1,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
+ax[1,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
+ax[1,0].grid(which='both')
+ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
+
+ax[1,1].contour(m_vals, cross_vals, res_1sigma_0.reshape(30,30).T, levels=[0], linewidths = 2, zorder = 4, linestyles = '--')
+ax[1,1].contour(m_vals, cross_vals, res_2sigma_0.reshape(30,30).T, levels=[0], linestyles = ':')
+ax[1,1].contourf(m_vals, cross_vals, res_3sigma_0.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
+ax[1,1].contour(m_vals, cross_vals, res_3sigma_0.reshape(30,30).T, levels=[0])
+
+ax[1,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
+ax[1,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
+ax[1,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
+ax[1,1].grid(which='both')
+ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
+
+ax[0,0].set_ylabel('$\sigma$ []')
+ax[1,0].set_ylabel('$\sigma$ []')
+ax[1,0].set_xlabel('m [GeV]')
+ax[1,1].set_xlabel('m [GeV]')
+
+plt.savefig('../graph/contours_m49.pdf')
+# -
 
 
