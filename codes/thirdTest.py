@@ -1425,7 +1425,7 @@ if os.path.exists(folder[0] + 'sigmas_s1s2.txt') == False:
 else:
     print('pre-computed')
     sigmas = np.loadtxt(folder[0] + 'sigmas_s1s2.txt')
-    
+
 
 # +
 cross_section_th = -49
