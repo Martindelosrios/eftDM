@@ -1,3 +1,4 @@
+# +
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -8,12 +9,15 @@ from scipy import stats
 import seaborn as sbn
 import pandas as pd
 #import h5py
+import os
+
 import torch
 import torchist
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import seaborn as sns
 pallete = np.flip(sns.color_palette("tab20c", 8), axis = 0)
 cross_section_th = -50
+# -
 
 from torchsummary import summary
 
@@ -294,7 +298,7 @@ ax[1].set_ylabel('s2')
 
 # # Let's play with SWYFT
 
-# ## Using only the total rate with gaussian background 
+# ## Using only the total rate with background 
 
 # ### Training
 
@@ -622,94 +626,163 @@ else:
 
 # ### Let's make the contour plot
 
-# +
-# Let's normalize testset between 0 and 1
-
-pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
-
-x_rate = np.log10(rate_slices)
-x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
-x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
-
-res_1sigma = np.ones(len(x_rate)) * -99
-res_2sigma = np.ones(len(x_rate)) * -99
-res_3sigma = np.ones(len(x_rate)) * -99
-
-for itest in tqdm(range(len(x_rate))):
-    x_obs = x_norm_rate[itest, :]
-    
-    # We have to put this "observation" into a swyft.Sample object
-    obs = swyft.Sample(x = x_obs)
-    
-    # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-    pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
-    prior_samples = swyft.Samples(z = pars_prior)
-    
-    # Finally we make the inference
-    predictions_rate = trainer_rate.infer(network_rate, obs, prior_samples)
-
-    bins = 50
-    logratios_rate = predictions_rate[0].logratios[:,1]
-    v              = predictions_rate[0].params[:,1,0]
-    low, upp = v.min(), v.max()
-    weights  = torch.exp(logratios_rate) / torch.exp(logratios_rate).mean(axis = 0)
-    h1       = torchist.histogramdd(predictions_rate[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
-    h1      /= len(predictions_rate[0].params[:,1,:]) * (upp - low) / bins
-    h1       = np.array(h1)
-    
-    edges = torch.linspace(v.min(), v.max(), bins + 1)
-    x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
-
-    vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
-    
-    low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
-    up_1sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
-    
-    low_2sigma = np.min(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
-    up_2sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
-    
-    low_3sigma = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
-    up_3sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
-    
-    if low_1sigma > cross_section_th: res_1sigma[itest] = 1
-    if low_2sigma > cross_section_th: res_2sigma[itest] = 1
-    if low_3sigma > cross_section_th: res_3sigma[itest] = 1
-# -
-
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
-sigma_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
+cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-#plt.contourf(m_vals, sigma_vals, res_1sigma.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
-plt.contour(m_vals, sigma_vals, res_1sigma.reshape(30,30).T, levels=[0], linewidths = 2, zorder = 4, linestyles = '--')
+folder = ['../data/andresData/SI-slices01-variostheta/SI-slices01-theta0/']
+pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(folder)
 
-#plt.contourf(m_vals, sigma_vals, res_2sigma.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
-plt.contour(m_vals, sigma_vals, res_2sigma.reshape(30,30).T, levels=[0], linestyles = ':')
+if os.path.exists(folder[0] + 'sigmas_rate.txt') == False:
+    # Let's normalize testset between 0 and 1
+    
+    pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
+    
+    x_rate = np.log10(rate_slices)
+    x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+    x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
 
-plt.contourf(m_vals, sigma_vals, res_3sigma.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
-plt.contour(m_vals, sigma_vals, res_3sigma.reshape(30,30).T, levels=[0])
-
-plt.plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-plt.plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-plt.plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
-plt.xlabel('m [GeV]')
-plt.ylabel('$\sigma$ []')
-plt.yscale('log')
-plt.xscale('log')
-plt.grid(which='both')
-
-# +
-val, x, y,_ = stats.binned_statistic_2d(pars_slices[:,0], pars_slices[:,1], res_1sigma, 'max', bins = 22)
+    res_1sigma = np.ones(len(pars_norm)) * -99
+    res_2sigma = np.ones(len(pars_norm)) * -99
+    res_3sigma = np.ones(len(pars_norm)) * -99
+    
+    sigmas = np.ones((len(pars_slices), 6))
+    
+    for itest in tqdm(range(len(pars_norm))):
+        x_obs = x_norm_rate[itest, :]
         
-xbin = x[1] - x[0]
-x_centers = x[:-1] + xbin
+        # We have to put this "observation" into a swyft.Sample object
+        obs = swyft.Sample(x = x_obs)
+        
+        # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
+        pars_prior    = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
+        prior_samples = swyft.Samples(z = pars_prior)
+        
+        # Finally we make the inference
+        predictions_rate = trainer_rate.infer(network_rate, obs, prior_samples)
+    
+        bins = 50
+        logratios_rate = predictions_rate[0].logratios[:,1]
+        v              = predictions_rate[0].params[:,1,0]
+        low, upp = v.min(), v.max()
+        weights  = torch.exp(logratios_rate) / torch.exp(logratios_rate).mean(axis = 0)
+        h1       = torchist.histogramdd(predictions_rate[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
+        h1      /= len(predictions_rate[0].params[:,1,:]) * (upp - low) / bins
+        h1       = np.array(h1)
+        
+        edges = torch.linspace(v.min(), v.max(), bins + 1)
+        x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
+    
+        vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
+        
+        sigmas[itest,0] = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+        sigmas[itest,3] = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+        
+        sigmas[itest,1] = np.min(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+        sigmas[itest,4] = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+        
+        sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+        sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+    
+    np.savetxt(folder[0] + 'sigmas_rate.txt', sigmas)
+else:
+    print('pre-computed')
+    sigmas = np.loadtxt(folder[0] + 'sigmas_rate.txt')
 
-ybin = y[1] - y[0]
-y_centers = y[:-1] + ybin
+# +
+cross_section_th = -49
 
-cs = plt.contourf(x_centers, y_centers, val.T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
-plt.contour(x_centers, y_centers, val.T, levels=[0], linewidths = 2, zorder = 4)
-plt.scatter(pars_slices[:-2,0], pars_slices[:-2,1])
+rate_1sigma_0 = np.ones(len(pars_norm)) * -99
+rate_2sigma_0 = np.ones(len(pars_norm)) * -99
+rate_3sigma_0 = np.ones(len(pars_norm)) * -99
+
+rate_1sigma_0[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
+
+rate_2sigma_0[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
+
+rate_3sigma_0[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
+
+# +
+from scipy.ndimage import gaussian_filter
+from matplotlib.pyplot import contour, show
+
+sigma = 0.2 # this depends on how noisy your data is, play with it!
+
+rate_1sigma_0_g = gaussian_filter(rate_1sigma_0, sigma)
+rate_1sigma_pi_2_g = gaussian_filter(rate_1sigma_pi_2, sigma)
+rate_1sigma_pi_4_g = gaussian_filter(rate_1sigma_pi_4, sigma)
+rate_1sigma_mpi_2_g = gaussian_filter(rate_1sigma_mpi_2, sigma)
+rate_1sigma_mpi_4_g = gaussian_filter(rate_1sigma_mpi_4, sigma)
+
+rate_2sigma_0_g = gaussian_filter(rate_2sigma_0, sigma)
+rate_2sigma_pi_2_g = gaussian_filter(rate_2sigma_pi_2, sigma)
+rate_2sigma_pi_4_g = gaussian_filter(rate_2sigma_pi_4, sigma)
+rate_2sigma_mpi_2_g = gaussian_filter(rate_2sigma_mpi_2, sigma)
+rate_2sigma_mpi_4_g = gaussian_filter(rate_2sigma_mpi_4, sigma)
+
+rate_3sigma_0_g = gaussian_filter(rate_3sigma_0, sigma)
+rate_3sigma_pi_2_g = gaussian_filter(rate_3sigma_pi_2, sigma)
+rate_3sigma_pi_4_g = gaussian_filter(rate_3sigma_pi_4, sigma)
+rate_3sigma_mpi_2_g = gaussian_filter(rate_3sigma_mpi_2, sigma)
+rate_3sigma_mpi_4_g = gaussian_filter(rate_3sigma_mpi_4, sigma)
+
+# +
+fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
+
+ax[0,0].contour(m_vals, cross_vals, rate_1sigma_pi_2_g.reshape(30,30).T, levels=[0], linewidths = 2, zorder = 4, linestyles = '--')
+ax[0,0].contour(m_vals, cross_vals, rate_2sigma_pi_2_g.reshape(30,30).T, levels=[0], linestyles = ':')
+ax[0,0].contourf(m_vals, cross_vals, rate_3sigma_pi_2_g.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
+ax[0,0].contour(m_vals, cross_vals, rate_3sigma_pi_2_g.reshape(30,30).T, levels=[0])
+
+ax[0,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
+ax[0,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
+ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
+ax[0,0].set_yscale('log')
+ax[0,0].set_xscale('log')
+ax[0,0].grid(which='both')
+ax[0,0].text(3e2, 1e-44, '$\\theta = \pi/2$')
+#ax[0,0].legend(loc = 'lower right')
+
+ax[0,1].contour(m_vals, cross_vals, rate_1sigma_pi_4_g.reshape(30,30).T, levels=[0], linewidths = 2, zorder = 4, linestyles = '--')
+ax[0,1].contour(m_vals, cross_vals, rate_2sigma_pi_4_g.reshape(30,30).T, levels=[0], linestyles = ':')
+ax[0,1].contourf(m_vals, cross_vals, rate_3sigma_pi_4_g.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
+ax[0,1].contour(m_vals, cross_vals, rate_3sigma_pi_4_g.reshape(30,30).T, levels=[0])
+
+ax[0,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
+ax[0,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
+ax[0,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
+ax[0,1].grid(which='both')
+ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
+ax[0,1].legend(loc = 'lower right')
+
+ax[1,0].contour(m_vals, cross_vals, rate_1sigma_mpi_2_g.reshape(30,30).T, levels=[0], linewidths = 2, zorder = 4, linestyles = '--')
+ax[1,0].contour(m_vals, cross_vals, rate_2sigma_mpi_2_g.reshape(30,30).T, levels=[0], linestyles = ':')
+ax[1,0].contourf(m_vals, cross_vals, rate_3sigma_mpi_2_g.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
+ax[1,0].contour(m_vals, cross_vals, rate_3sigma_mpi_2_g.reshape(30,30).T, levels=[0])
+
+ax[1,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
+ax[1,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
+ax[1,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
+ax[1,0].grid(which='both')
+ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
+
+ax[1,1].contour(m_vals, cross_vals, rate_1sigma_0_g.reshape(30,30).T, levels=[0], linewidths = 2, zorder = 4, linestyles = '--')
+ax[1,1].contour(m_vals, cross_vals, rate_2sigma_0_g.reshape(30,30).T, levels=[0], linestyles = ':')
+ax[1,1].contourf(m_vals, cross_vals, rate_3sigma_0_g.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
+ax[1,1].contour(m_vals, cross_vals, rate_3sigma_0_g.reshape(30,30).T, levels=[0])
+
+ax[1,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
+ax[1,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
+ax[1,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
+ax[1,1].grid(which='both')
+ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
+
+ax[0,0].set_ylabel('$\sigma$ []')
+ax[1,0].set_ylabel('$\sigma$ []')
+ax[1,0].set_xlabel('m [GeV]')
+ax[1,1].set_xlabel('m [GeV]')
+
+plt.savefig('../graph/contours_rate_m49.pdf')
 # -
 
 # ## Only using the total diff_rate (without background)
@@ -1425,7 +1498,7 @@ if os.path.exists(folder[0] + 'sigmas_s1s2.txt') == False:
 else:
     print('pre-computed')
     sigmas = np.loadtxt(folder[0] + 'sigmas_s1s2.txt')
-    
+
 
 # +
 cross_section_th = -49
