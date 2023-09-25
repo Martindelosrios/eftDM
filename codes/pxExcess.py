@@ -235,12 +235,9 @@ fig, ax = plt.subplots(1,3, figsize = (10,5))
 ax[0].hist(pval1)
 ax[1].hist(pval3)
 ax[2].hist(pval5)
-# -
 
-m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
-cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
+# +
 pval_th = 0.1
-
 
 folder = ['../data/andresData/SI-slices01-variostheta/SI-slices01-pluspidiv2/',
           '../data/andresData/SI-slices01-variostheta/SI-slices01-pluspidiv4/',
@@ -292,6 +289,12 @@ for fol in folder:
     res_1sigma.append(res_1sigma_aux)
     res_3sigma.append(res_3sigma_aux)
     res_5sigma.append(res_5sigma_aux)
+# -
+
+m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
+cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
+
+
 
 # +
 fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
