@@ -11,14 +11,17 @@ import pandas as pd
 #import h5py
 import os
 from scipy.ndimage import gaussian_filter
+from scipy.integrate import trapezoid
 from matplotlib.pyplot import contour, show
 
 import torch
 import torchist
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 import seaborn as sns
+
+torch.set_float32_matmul_precision('high')
 pallete = np.flip(sns.color_palette("tab20c", 8), axis = 0)
-cross_section_th = -50
 # -
 
 from torchsummary import summary
@@ -364,17 +367,52 @@ class Network_rate(swyft.SwyftModule):
         return logratios1, logratios2
 
 
-# +
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=30, verbose=False, mode='min')
-trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 200, precision = 64, callbacks=[early_stopping_callback])
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 200, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback])
 network_rate = Network_rate()
-trainer_rate.fit(network_rate, dm_rate)
+
+# +
+x_test_rate = np.log10(rate_testset)
+x_norm_test_rate = (x_test_rate - x_min_rate) / (x_max_rate - x_min_rate)
+x_norm_test_rate = x_norm_test_rate.reshape(len(x_norm_test_rate), 1)
+
+pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
+
+# We have to build a swyft.Samples object that will handle the data
+samples_test_rate = swyft.Samples(x = x_norm_test_rate, z = pars_norm_test)
+
+# We have to build a swyft.SwyftDataModule object that will split the data into training, testing and validation sets
+dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1], batch_size = 32)
+trainer_rate.test(network_rate, dm_test_rate)
+
+# +
+fit = False
+if fit:
+    trainer_rate.fit(network_rate, dm_rate)
+    checkpoint_callback.to_yaml("./logs/rate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/rate.yaml")
+else:
+    ckpt_path = swyft.best_from_yaml("./logs/rate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.18 at epoch ~50
 # ---------------------------------------------- 
+
+# +
+x_test_rate = np.log10(rate_testset)
+x_norm_test_rate = (x_test_rate - x_min_rate) / (x_max_rate - x_min_rate)
+x_norm_test_rate = x_norm_test_rate.reshape(len(x_norm_test_rate), 1)
+pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
+
+# We have to build a swyft.Samples object that will handle the data
+samples_test_rate = swyft.Samples(x = x_norm_test_rate, z = pars_norm_test)
+
+# We have to build a swyft.SwyftDataModule object that will split the data into training, testing and validation sets
+dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1], batch_size = 32)
+trainer_rate.test(network_rate, dm_test_rate, ckpt_path = ckpt_path)
 # -
 
 # ### Let's make some inference
@@ -390,7 +428,7 @@ x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = np.random.randint(ntest)
+i = np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
 print(i)
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_rate[i,:]
@@ -399,7 +437,7 @@ print('"Normalized Observed" x value : {}'.format(x_obs))
 real_val = 10**(x_obs * (x_max_rate - x_min_rate) + x_min_rate)
 print('"Observed" x value : {} events'.format(real_val))
 
-if real_val < 2900: 
+if real_val < 2930: 
     flag = 'exc'
 else:
     flag = 'disc'
@@ -411,7 +449,7 @@ print(flag)
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior    = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (1_000_000, 3))
 prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
@@ -440,6 +478,7 @@ x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + p
 #x     = 10**(x)
 
 # +
+cross_section_th = -49
 vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
 
 low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
@@ -457,7 +496,8 @@ if low_3sigma > cross_section_th: print('Distinguish at 3 $\sigma$')
 
 
 # +
-plt.plot(x, h1, c = 'blue')
+plt.plot(x, h1, c = 'black')
+plt.axvline(x = pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1], c = 'orange')
 
 #y0 = 0 #-1.0 * x.max()
 #y1 = 5.0# * x.max()
@@ -465,23 +505,22 @@ plt.plot(x, h1, c = 'blue')
 #plt.fill_between(x, y0, y1, where = h1 > vals[1], color='red', alpha=0.2)
 #plt.fill_between(x, y0, y1, where = h1 > vals[2], color='red', alpha=0.3)
 
-if low_1sigma > cross_section_th: plt.axvline(low_1sigma, c = 'green')
-if up_1sigma > cross_section_th: plt.axvline(up_1sigma, c = 'green')
+if low_1sigma > cross_section_th: plt.axvline(low_1sigma, c = 'black')
+if up_1sigma > cross_section_th: plt.axvline(up_1sigma, c = 'black')
 
-if low_2sigma > cross_section_th: plt.axvline(low_2sigma, c = 'green', linestyle = '--')
-if up_2sigma > cross_section_th: plt.axvline(up_2sigma, c = 'green', linestyle = '--')
+if low_2sigma > cross_section_th: plt.axvline(low_2sigma, c = 'black', linestyle = '--')
+if up_2sigma > cross_section_th: plt.axvline(up_2sigma, c = 'black', linestyle = '--')
 
-if low_3sigma > cross_section_th: plt.axvline(low_3sigma, c = 'green', linestyle = ':')
-if up_3sigma > cross_section_th: plt.axvline(up_3sigma, c = 'green', linestyle = ':')
+if low_3sigma > cross_section_th: plt.axvline(low_3sigma, c = 'black', linestyle = ':')
+if up_3sigma > cross_section_th: plt.axvline(up_3sigma, c = 'black', linestyle = ':')
 #plt.ylim(0,4.5)
 #plt.xscale('log')
-# -
-
-np.argmin(np.abs(x - (-49)))
-
-from scipy.integrate import trapezoid
-cr_th = np.argmin(np.abs(x - (-49)))
-int_prob = trapezoid(h1[:cr_th],x[:cr_th]) / trapezoid(h1,x)
+plt.xlabel('$log(\sigma)$')
+plt.ylabel('$P(\sigma|x)$')
+if flag == 'exc':
+    plt.savefig('../graph/1Dposterior_rate_exc.pdf')
+else:
+    plt.savefig('../graph/1Dposterior_rate.pdf')
 
 # +
 swyft.plot_1d(predictions_rate, "pars_norm[1]", bins = 50, smooth = 1)
@@ -641,11 +680,11 @@ m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-folders = ['../data/andresData/SI-slices01-pluspidiv2-MUCHOS/SI-slices01-pluspidiv2-v2/',
-          '../data/andresData/SI-slices01-variostheta/SI-slices01-pluspidiv2/',
-          '../data/andresData/SI-slices01-pluspidiv2-MUCHOS/SI-slices01-pluspidiv2-v3/',
-          '../data/andresData/SI-slices01-pluspidiv2-MUCHOS/SI-slices01-pluspidiv2-v4/',
-          '../data/andresData/SI-slices01-pluspidiv2-MUCHOS/SI-slices01-pluspidiv2-v5/'
+folders = ['../data/andresData/SI-slices01-variostheta/SI-slices01-theta0/'#,
+          #'../data/andresData/SI-slices01-pluspidiv2-MUCHOS/SI-slices01-pluspidiv2-v2/',
+          #'../data/andresData/SI-slices01-pluspidiv2-MUCHOS/SI-slices01-pluspidiv2-v3/',
+          #'../data/andresData/SI-slices01-pluspidiv2-MUCHOS/SI-slices01-pluspidiv2-v4/',
+          #'../data/andresData/SI-slices01-pluspidiv2-MUCHOS/SI-slices01-pluspidiv2-v5/'
          ]
 
 
@@ -732,28 +771,25 @@ for folder in folders:
         sigmas_full.append(sigmas)
         int_prob_full.append(int_prob)
         int_prob_sup_full.append(int_prob_sup)
-# -
-
-np.mean(np.asarray(sigmas_full), axis = 0).shape
 
 # +
 cross_section_th = -49
 
 if len(int_prob_full) > 1:
-    int_prob_pi_2     = np.mean(np.asarray(int_prob_full), axis = 0)
-    int_prob_sup_pi_2 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
+    int_prob_0     = np.mean(np.asarray(int_prob_full), axis = 0)
+    int_prob_sup_0 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
     sigmas = np.mean(np.asarray(sigmas_full), axis = 0)
 else:
-    int_prob_pi_2 = int_prob
-    int_prob_sup_pi_2 = int_prob_sup
+    int_prob_0 = int_prob
+    int_prob_sup_0 = int_prob_sup
 
-rate_1sigma_pi_2 = np.ones(len(pars_norm)) * -99
-rate_2sigma_pi_2 = np.ones(len(pars_norm)) * -99
-rate_3sigma_pi_2 = np.ones(len(pars_norm)) * -99
+rate_1sigma_0 = np.ones(len(pars_norm)) * -99
+rate_2sigma_0 = np.ones(len(pars_norm)) * -99
+rate_3sigma_0 = np.ones(len(pars_norm)) * -99
 
-rate_1sigma_pi_2[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
-rate_2sigma_pi_2[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
-rate_3sigma_pi_2[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
+rate_1sigma_0[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
+rate_2sigma_0[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
+rate_3sigma_0[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
 
 # +
 #rate_1sigma_pi_2 = rate_1sigma_pi_2.reshape(5,30,30)
@@ -765,9 +801,6 @@ rate_3sigma_pi_2[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
 #rate_3sigma_pi_2 = np.mean(rate_3sigma_pi_2, axis = 2)
 
 # +
-from scipy.ndimage import gaussian_filter
-from matplotlib.pyplot import contour, show
-
 sigma = 0.2 # this depends on how noisy your data is, play with it!
 
 rate_1sigma_0_g = gaussian_filter(rate_1sigma_0, sigma)
@@ -788,7 +821,6 @@ rate_3sigma_pi_4_g = gaussian_filter(rate_3sigma_pi_4, sigma)
 rate_3sigma_mpi_2_g = gaussian_filter(rate_3sigma_mpi_2, sigma)
 rate_3sigma_mpi_4_g = gaussian_filter(rate_3sigma_mpi_4, sigma)
 
-# +
 fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
 
 ax[0,0].contour(m_vals, cross_vals, rate_1sigma_pi_2_g.reshape(30,30).T, levels=[0], linewidths = 2, zorder = 4, linestyles = '--')
@@ -845,7 +877,7 @@ ax[1,0].set_ylabel('$\sigma$ []')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
-#plt.savefig('../graph/contours_rate_m49.pdf')
+plt.savefig('../graph/contours_rate_m49.pdf')
 
 # +
 levels = [0,0.1,0.16,0.24,0.32]
@@ -908,12 +940,12 @@ fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
 cbar = fig.colorbar(fig00, cax=cbar_ax)
 cbar.ax.set_title('$\int_{-\inf}^{\sigma_{th}} P(\sigma|x)$')
-#plt.savefig('../graph/contours_rate_int_prob.pdf')
+plt.savefig('../graph/contours_rate_int_prob_th49.pdf')
 
 # +
 levels = 4
 
-sigma = 1.81 # this depends on how noisy your data is, play with it!
+sigma = 1.21 # this depends on how noisy your data is, play with it!
 
 int_prob_sup_0_g = gaussian_filter(int_prob_sup_0, sigma)
 int_prob_sup_pi_2_g = gaussian_filter(int_prob_sup_pi_2, sigma)
@@ -972,7 +1004,7 @@ fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
 cbar = fig.colorbar(fig00, cax=cbar_ax)
 cbar.ax.set_title('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
-#plt.savefig('../graph/contours_rate_int_prob_sup.pdf')
+plt.savefig('../graph/contours_rate_int_prob_sup_th49.pdf')
 # -
 
 # ## Only using the total diff_rate (without background)
@@ -1382,16 +1414,50 @@ class MetricTracker(Callback):
     # do whatever is needed
 
 
-# +
+# -
+
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28891)
 cb = MetricTracker()
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=35, verbose=False, mode='min')
-trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 250, precision = 64, callbacks=[early_stopping_callback])
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 250, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback])
 network_s1s2 = Network()
-story = trainer_s1s2.fit(network_s1s2, dm_s1s2)
 
+# +
+x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
+x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
+pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
+
+# We have to build a swyft.Samples object that will handle the data
+samples_test_s1s2 = swyft.Samples(x = x_norm_test_s1s2, z = pars_norm_test)
+
+# We have to build a swyft.SwyftDataModule object that will split the data into training, testing and validation sets
+dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1], batch_size = 32)
+trainer_s1s2.test(network_s1s2, dm_test_s1s2)
+
+# +
+fit = False
+if fit:
+    trainer_s1s2.fit(network_s1s2, dm_s1s2)
+    checkpoint_callback.to_yaml("./logs/s1s2.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/s1s2.yaml")
+else:
+    ckpt_path = swyft.best_from_yaml("./logs/s1s2.yaml")
+    
 # Min val loss value at 7 epochs. -1.68
+
+# +
+x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
+x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
+pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
+
+# We have to build a swyft.Samples object that will handle the data
+samples_test_s1s2 = swyft.Samples(x = x_norm_test_s1s2, z = pars_norm_test)
+
+# We have to build a swyft.SwyftDataModule object that will split the data into training, testing and validation sets
+dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1], batch_size = 32)
+trainer_s1s2.test(network_s1s2, dm_test_s1s2, ckpt_path = ckpt_path)
 # -
 
 # ### Let's make some inference
@@ -1405,16 +1471,13 @@ x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1]
 
 # +
 # First let's create some observation from some "true" theta parameters
-#i = np.random.randint(ntest)
+#i = 455 #np.random.randint(ntest)
 print(i)
 
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_s1s2[i,:].reshape(1,96,96)
 
 plt.imshow(x_obs[0].T, origin = 'lower')
-# -
-
-pars_true * (pars_max - pars_min) + pars_min
 
 # +
 # We have to put this "observation" into a swyft.Sample object
@@ -1467,22 +1530,25 @@ if low_2sigma > cross_section_th: print('Distinguish at 2 $\sigma$')
 if low_3sigma > cross_section_th: print('Distinguish at 3 $\sigma$')
 
 # +
-plt.plot(x, h1, c = 'blue')
+plt.plot(x, h1, c = 'black')
+plt.axvline(x = pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1], c = 'orange')
 
-#y0 = 0 #-1.0 * x.max()
-#y1 = 5.0# * x.max()
-#plt.fill_between(x, y0, y1, where = h1 > vals[0], color='red', alpha=0.1)
-#plt.fill_between(x, y0, y1, where = h1 > vals[1], color='red', alpha=0.2)
-#plt.fill_between(x, y0, y1, where = h1 > vals[2], color='red', alpha=0.3)
+if low_1sigma > cross_section_th: plt.axvline(low_1sigma, c = 'black')
+if up_1sigma > cross_section_th: plt.axvline(up_1sigma, c = 'black')
 
-if low_1sigma > cross_section_th: plt.axvline(low_1sigma, c = 'green')
-if up_1sigma > cross_section_th: plt.axvline(up_1sigma, c = 'green')
+if low_2sigma > cross_section_th: plt.axvline(low_2sigma, c = 'black', linestyle = '--')
+if up_2sigma > cross_section_th: plt.axvline(up_2sigma, c = 'black', linestyle = '--')
 
-if low_2sigma > cross_section_th: plt.axvline(low_2sigma, c = 'green', linestyle = '--')
-if up_2sigma > cross_section_th: plt.axvline(up_2sigma, c = 'green', linestyle = '--')
-
-if low_3sigma > cross_section_th: plt.axvline(low_3sigma, c = 'green', linestyle = ':')
-if up_3sigma > cross_section_th: plt.axvline(up_3sigma, c = 'green', linestyle = ':')
+if low_3sigma > cross_section_th: plt.axvline(low_3sigma, c = 'black', linestyle = ':')
+if up_3sigma > cross_section_th: plt.axvline(up_3sigma, c = 'black', linestyle = ':')
+#plt.ylim(0,4.5)
+#plt.xscale('log')
+plt.xlabel('$log(\sigma)$')
+plt.ylabel('$P(\sigma|x)$')
+if flag == 'exc':
+    plt.savefig('../graph/1Dposterior_s1s2_exc.pdf')
+else:
+    plt.savefig('../graph/1Dposterior_s1s2.pdf')
 # -
 
 swyft.plot_1d(predictions_s1s2, "pars_norm[1]", bins = 50, smooth = 1)
@@ -1634,94 +1700,139 @@ else:
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
+os.path.exists(folders[0] + 'sigmas_s1s2.txt')
+
 # +
-folder = ['../data/andresData/SI-slices01-variostheta/SI-slices01-theta0/']
-pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(folder)
+folders = ['../data/andresData/SI-slices01-variostheta/SI-slices01-theta0/'#,
+          #'../data/andresData/SI-slices01-pluspidiv2-MUCHOS/SI-slices01-pluspidiv2-v2/',
+          #'../data/andresData/SI-slices01-pluspidiv2-MUCHOS/SI-slices01-pluspidiv2-v3/',
+          #'../data/andresData/SI-slices01-pluspidiv2-MUCHOS/SI-slices01-pluspidiv2-v4/',
+          #'../data/andresData/SI-slices01-pluspidiv2-MUCHOS/SI-slices01-pluspidiv2-v5/'
+         ]
+
+
+sigmas_full = []
+int_prob_full = []
+int_prob_sup_full = []
+
+for folder in folders:
+    pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
  
-if (os.path.exists(folder[0] + 'sigmas_s1s2.txt') & 
-    os.path.exists(folder[0] + 'int_prob_s1s2.txt') &
-    os.path.exists(folder[0] + 'int_prob_sup_s1s2.txt')) == False:
-    # Let's normalize testset between 0 and 1
-    
-    pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
-    
-    x_norm_s1s2 = x_s1s2 = s1s2_slices[:,:-1,:-1]
-    
-    res_1sigma = np.ones(len(pars_norm)) * -99
-    res_2sigma = np.ones(len(pars_norm)) * -99
-    res_3sigma = np.ones(len(pars_norm)) * -99
-    
-    sigmas = np.ones((len(pars_slices), 6))
-    
-    int_prob = np.ones(len(pars_norm)) * -99
-    int_prob_sup = np.ones(len(pars_norm)) * -99
-    for itest in tqdm(range(len(pars_norm))):
-        x_obs = x_norm_s1s2[itest, :,:]
+    if (os.path.exists(folder + 'sigmas_s1s2.txt') & 
+        os.path.exists(folder + 'int_prob_s1s2.txt') &
+        os.path.exists(folder + 'int_prob_sup_s1s2.txt')) == False:
+        # Let's normalize testset between 0 and 1
         
-        # We have to put this "observation" into a swyft.Sample object
-        obs = swyft.Sample(x = x_obs.reshape(1,96,96))
+        pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
         
-        # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-        pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
-        prior_samples = swyft.Samples(z = pars_prior)
+        x_norm_s1s2 = x_s1s2 = s1s2_slices[:,:-1,:-1]
         
-        # Finally we make the inference
-        predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
-    
-        bins = 50
-        logratios_s1s2 = predictions_s1s2[0].logratios[:,1]
-        v              = predictions_s1s2[0].params[:,1,0]
-        low, upp = v.min(), v.max()
-        weights  = torch.exp(logratios_s1s2) / torch.exp(logratios_s1s2).mean(axis = 0)
-        h1       = torchist.histogramdd(predictions_s1s2[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
-        h1      /= len(predictions_s1s2[0].params[:,1,:]) * (upp - low) / bins
-        h1       = np.array(h1)
+        res_1sigma = np.ones(len(pars_norm)) * -99
+        res_2sigma = np.ones(len(pars_norm)) * -99
+        res_3sigma = np.ones(len(pars_norm)) * -99
         
-        edges = torch.linspace(v.min(), v.max(), bins + 1)
-        x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
-    
-        vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
+        sigmas = np.ones((len(pars_slices), 6))
         
-        sigmas[itest,0] = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
-        sigmas[itest,3] = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+        int_prob = np.ones(len(pars_norm)) * -99
+        int_prob_sup = np.ones(len(pars_norm)) * -99
+        for itest in tqdm(range(len(pars_norm))):
+            x_obs = x_norm_s1s2[itest, :,:]
+            
+            # We have to put this "observation" into a swyft.Sample object
+            obs = swyft.Sample(x = x_obs.reshape(1,96,96))
+            
+            # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
+            pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+            prior_samples = swyft.Samples(z = pars_prior)
+            
+            # Finally we make the inference
+            predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
         
-        sigmas[itest,1] = np.min(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
-        sigmas[itest,4] = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+            bins = 50
+            logratios_s1s2 = predictions_s1s2[0].logratios[:,1]
+            v              = predictions_s1s2[0].params[:,1,0]
+            low, upp = v.min(), v.max()
+            weights  = torch.exp(logratios_s1s2) / torch.exp(logratios_s1s2).mean(axis = 0)
+            h1       = torchist.histogramdd(predictions_s1s2[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
+            h1      /= len(predictions_s1s2[0].params[:,1,:]) * (upp - low) / bins
+            h1       = np.array(h1)
+            
+            edges = torch.linspace(v.min(), v.max(), bins + 1)
+            x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
         
-        sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
-        sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+            vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
+            
+            sigmas[itest,0] = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+            sigmas[itest,3] = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+            
+            sigmas[itest,1] = np.min(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+            sigmas[itest,4] = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+            
+            sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+            sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+            
+            cr_th = np.argmin(np.abs(x - (-49)))
+            int_prob[itest] = trapezoid(h1[:cr_th],x[:cr_th]) / trapezoid(h1,x)
+            int_prob_sup[itest] = trapezoid(h1[cr_th:],x[cr_th:]) / trapezoid(h1,x)
         
-        cr_th = np.argmin(np.abs(x - (-49)))
-        int_prob[itest] = trapezoid(h1[:cr_th],x[:cr_th]) / trapezoid(h1,x)
-        int_prob_sup[itest] = trapezoid(h1[cr_th:],x[cr_th:]) / trapezoid(h1,x)
-    
-    np.savetxt(folder[0] + 'sigmas_s1s2.txt', sigmas)
-    np.savetxt(folder[0] + 'int_prob_s1s2.txt', int_prob)
-    np.savetxt(folder[0] + 'int_prob_sup_s1s2.txt', int_prob)
-else:
-    print('pre-computed')
-    sigmas = np.loadtxt(folder[0] + 'sigmas_s1s2.txt')
-    int_prob = np.loadtxt(folder[0] + 'int_prob_s1s2.txt')
-    int_prob_sup = np.loadtxt(folder[0] + 'int_prob_sup_s1s2.txt')
+        sigmas_full.append(sigmas)
+        int_prob_full.append(int_prob)
+        int_prob_sup_full.append(int_prob_sup)
+            
+        np.savetxt(folder + 'sigmas_s1s2.txt', sigmas)
+        np.savetxt(folder + 'int_prob_s1s2.txt', int_prob)
+        np.savetxt(folder + 'int_prob_sup_s1s2.txt', int_prob_sup)
+    else:
+        print('pre-computed')
+        sigmas = np.loadtxt(folder + 'sigmas_s1s2.txt')
+        int_prob = np.loadtxt(folder + 'int_prob_s1s2.txt')
+        int_prob_sup = np.loadtxt(folder + 'int_prob_sup_s1s2.txt')
+
+        sigmas_full.append(sigmas)
+        int_prob_full.append(int_prob)
+        int_prob_sup_full.append(int_prob_sup)
 
 
 # +
 cross_section_th = -49
 
-int_prob_0 = int_prob
-int_prob_sup_0 = int_prob_sup
+if len(int_prob_full) > 1:
+    int_prob_0     = np.mean(np.asarray(int_prob_full), axis = 0)
+    int_prob_sup_0 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
+    sigmas = np.mean(np.asarray(sigmas_full), axis = 0)
+else:
+    int_prob_0 = int_prob
+    int_prob_sup_0 = int_prob_sup
 
-res_1sigma_0 = np.ones(len(pars_norm)) * -99
-res_2sigma_0 = np.ones(len(pars_norm)) * -99
-res_3sigma_0 = np.ones(len(pars_norm)) * -99
+s1s2_1sigma_0 = np.ones(len(pars_norm)) * -99
+s1s2_2sigma_0 = np.ones(len(pars_norm)) * -99
+s1s2_3sigma_0 = np.ones(len(pars_norm)) * -99
 
-res_1sigma_0[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
-
-res_2sigma_0[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
-
-res_3sigma_0[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
+s1s2_1sigma_0[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
+s1s2_2sigma_0[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
+s1s2_3sigma_0[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
 
 # +
+sigma = 0.2 # this depends on how noisy your data is, play with it!
+
+rate_1sigma_0_g = gaussian_filter(rate_1sigma_0, sigma)
+rate_1sigma_pi_2_g = gaussian_filter(rate_1sigma_pi_2, sigma)
+rate_1sigma_pi_4_g = gaussian_filter(rate_1sigma_pi_4, sigma)
+rate_1sigma_mpi_2_g = gaussian_filter(rate_1sigma_mpi_2, sigma)
+rate_1sigma_mpi_4_g = gaussian_filter(rate_1sigma_mpi_4, sigma)
+
+rate_2sigma_0_g = gaussian_filter(rate_2sigma_0, sigma)
+rate_2sigma_pi_2_g = gaussian_filter(rate_2sigma_pi_2, sigma)
+rate_2sigma_pi_4_g = gaussian_filter(rate_2sigma_pi_4, sigma)
+rate_2sigma_mpi_2_g = gaussian_filter(rate_2sigma_mpi_2, sigma)
+rate_2sigma_mpi_4_g = gaussian_filter(rate_2sigma_mpi_4, sigma)
+
+rate_3sigma_0_g = gaussian_filter(rate_3sigma_0, sigma)
+rate_3sigma_pi_2_g = gaussian_filter(rate_3sigma_pi_2, sigma)
+rate_3sigma_pi_4_g = gaussian_filter(rate_3sigma_pi_4, sigma)
+rate_3sigma_mpi_2_g = gaussian_filter(rate_3sigma_mpi_2, sigma)
+rate_3sigma_mpi_4_g = gaussian_filter(rate_3sigma_mpi_4, sigma)
+
 fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
 
 ax[0,0].contour(m_vals, cross_vals, rate_1sigma_pi_2_g.reshape(30,30).T, levels=[0], linewidths = 2, zorder = 4, linestyles = '--')
@@ -1773,8 +1884,8 @@ ax[1,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
 
-ax[0,0].set_ylabel('$\sigma$ []')
-ax[1,0].set_ylabel('$\sigma$ []')
+ax[0,0].set_ylabel('$\sigma [cm^{2}]$')
+ax[1,0].set_ylabel('$\sigma [cm^{2}]$')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
@@ -1833,8 +1944,8 @@ ax[1,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
 
-ax[0,0].set_ylabel('$\sigma$ []')
-ax[1,0].set_ylabel('$\sigma$ []')
+ax[0,0].set_ylabel('$\sigma [cm^{2}]$')
+ax[1,0].set_ylabel('$\sigma [cm^{2}]$')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
@@ -1842,10 +1953,10 @@ fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
 cbar = fig.colorbar(fig00, cax=cbar_ax)
 cbar.ax.set_title('$\int_{-\inf}^{\sigma_{th}} P(\sigma|x)$')
-plt.savefig('../graph/contours_s1s1_int_prob.pdf')
+plt.savefig('../graph/contours_s1s1_int_prob_th49.pdf')
 
 # +
-levels = 4
+levels = [0.5,0.7,0.8,0.9,1]
 
 sigma = 0.81 # this depends on how noisy your data is, play with it!
 
@@ -1897,8 +2008,8 @@ ax[1,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
 
-ax[0,0].set_ylabel('$\sigma$ []')
-ax[1,0].set_ylabel('$\sigma$ []')
+ax[0,0].set_ylabel('$\sigma [cm^{2}]$')
+ax[1,0].set_ylabel('$\sigma [cm^{2}]$')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
@@ -1906,7 +2017,7 @@ fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
 cbar = fig.colorbar(fig00, cax=cbar_ax)
 cbar.ax.set_title('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
-plt.savefig('../graph/contours_s1s2_int_prob_sup.pdf')
+plt.savefig('../graph/contours_s1s2_int_prob_sup_th49.pdf')
 # -
 
 
