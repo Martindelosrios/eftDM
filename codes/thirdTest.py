@@ -13,6 +13,7 @@ import os
 from scipy.ndimage import gaussian_filter
 from scipy.integrate import trapezoid
 from matplotlib.pyplot import contour, show
+from matplotlib.lines import Line2D
 
 import torch
 import torchist
@@ -87,23 +88,25 @@ def read_slice(datFolder):
     return pars_slices, rate_slices, diff_rate_slices, s1s2_slices
 
 
-def plot_1dpost(x, h1, ax):
-    ax.plot(x, h1, c = 'black')
-    ax.axvline(x = pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1], c = 'orange')
-    
-    ax.axvline(low_1sigma, c = 'black')
-    ax.axvline(up_1sigma, c = 'black')
-    
-    ax.axvline(low_2sigma, c = 'black', linestyle = '--')
-    ax.axvline(up_2sigma, c = 'black', linestyle = '--')
-    
-    ax.axvline(low_3sigma, c = 'black', linestyle = ':')
-    ax.axvline(up_3sigma, c = 'black', linestyle = ':')
+def plot_1dpost(x, h1, ax, low_1sigma = None, up_1sigma = None, alpha = 1, color = 'black', real_val = True):
+    ax.plot(x, h1, c = color, alpha = alpha)
+    if real_val: ax.axvline(x = pars_true[1], c = 'orange')
+    ax.axvline(x = -49, c = 'black', linewidth = 2)
 
-    ax.xlim(-50, -43)
+    if (low_1sigma is not None) & (up_1sigma is not None):
+        ax.axvline(low_1sigma, c = 'black', linestyle = '--')
+        ax.axvline(up_1sigma, c = 'black', linestyle = '--')
+    
+    #ax.axvline(low_2sigma, c = 'black', linestyle = '--')
+    #ax.axvline(up_2sigma, c = 'black', linestyle = '--')
+    
+    #ax.axvline(low_3sigma, c = 'black', linestyle = ':')
+    #ax.axvline(up_3sigma, c = 'black', linestyle = ':')
+
+    ax.set_xlim(-50, -43)
     #ax.xscale('log')
-    ax.xlabel('$log(\sigma)$')
-    ax.ylabel('$P(\sigma|x)$')
+    ax.set_xlabel('$log(\sigma)$')
+    ax.set_ylabel('$P(\sigma|x)$')
     return ax
 
 
@@ -1417,6 +1420,8 @@ else:
 
 # ## Using s1s2
 
+# ### training
+
 x_s1s2 = s1s2_trainset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 64x64
 
 # +
@@ -1802,11 +1807,11 @@ m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v5/'
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v5/'
          ]
 
 sigmas_full       = []
@@ -1895,20 +1900,20 @@ for folder in folders:
 cross_section_th = -49
 
 if len(int_prob_full) > 1:
-    int_prob_mpi_2     = np.mean(np.asarray(int_prob_full), axis = 0)
-    int_prob_sup_mpi_2 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
+    int_prob_pi_2     = np.mean(np.asarray(int_prob_full), axis = 0)
+    int_prob_sup_pi_2 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
     sigmas = np.mean(np.asarray(sigmas_full), axis = 0)
 else:
-    int_prob_mpi_2 = int_prob
-    int_prob_sup_mpi_2 = int_prob_sup
+    int_prob_pi_2 = int_prob
+    int_prob_sup_pi_2 = int_prob_sup
 
-s1s2_1sigma_mpi_2 = np.ones(len(pars_norm)) * -99
-s1s2_2sigma_mpi_2 = np.ones(len(pars_norm)) * -99
-s1s2_3sigma_mpi_2 = np.ones(len(pars_norm)) * -99
+s1s2_1sigma_pi_2 = np.ones(len(pars_norm)) * -99
+s1s2_2sigma_pi_2 = np.ones(len(pars_norm)) * -99
+s1s2_3sigma_pi_2 = np.ones(len(pars_norm)) * -99
 
-s1s2_1sigma_mpi_2[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
-s1s2_2sigma_mpi_2[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
-s1s2_3sigma_mpi_2[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
+s1s2_1sigma_pi_2[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
+s1s2_2sigma_pi_2[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
+s1s2_3sigma_pi_2[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
 
 # +
 sigma = 0.2 # this depends on how noisy your data is, play with it!
@@ -2136,5 +2141,183 @@ ax[1,1].plot(masses, s1s2_90_CL_0, color = 'black', linestyle = '-.')
 
 plt.savefig('../graph/contours_s1s2_int_prob_sup_th49.pdf')
 # -
+# # Some other plots
+
+
+m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
+cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
+
+pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2/'])
+
+m_vals[15]
+
+np.where(np.round(pars_slices[:,0], 4) == np.round(np.log10(m_vals[15]), 4))[0]
+
+# +
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v5/'
+         ]
+
+sigmas_full       = []
+int_prob_full     = []
+int_prob_sup_full = []
+
+#for folder in folders:
+#    pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
+ 
+    # Let's normalize testset between 0 and 1
+    
+pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
+    
+x_norm_s1s2 = x_s1s2 = s1s2_slices[:,:-1,:-1]
+    
+bps_ind = np.where(np.round(pars_slices[:,0], 4) == np.round(np.log10(m_vals[15]), 4))[0]
+c = 0
+for itest in bps_ind:
+    c = c + 1
+    print(c)
+    x_obs = x_norm_s1s2[itest, :,:]
+    
+    # We have to put this "observation" into a swyft.Sample object
+    obs = swyft.Sample(x = x_obs.reshape(1,96,96))
+    
+    # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
+    pars_true = pars_slices[itest,:]
+    pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+    prior_samples = swyft.Samples(z = pars_prior)
+    
+    # Finally we make the inference
+    predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
+    
+    bins = 50
+    logratios_s1s2 = predictions_s1s2[0].logratios[:,1]
+    v              = predictions_s1s2[0].params[:,1,0]
+    low, upp = v.min(), v.max()
+    weights  = torch.exp(logratios_s1s2) / torch.exp(logratios_s1s2).mean(axis = 0)
+    h1       = torchist.histogramdd(predictions_s1s2[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
+    h1      /= len(predictions_s1s2[0].params[:,1,:]) * (upp - low) / bins
+    h1       = np.array(h1)
+    
+    edges = torch.linspace(v.min(), v.max(), bins + 1)
+    x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
+
+    low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+    up_1sigma = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+    
+    cr_th    = np.argmin(np.abs(x - (-49)))
+    int_prob = trapezoid(h1[cr_th:],x[cr_th:]) / trapezoid(h1,x)
+    
+    levels = [0.67, 0.76, 0.84, 0.9, 1]
+    
+    sigma = 1.41 # this depends on how noisy your data is, play with it!
+    
+    int_prob_sup_pi_2_g = gaussian_filter(int_prob_sup_pi_2, sigma)
+    
+    fig, ax = plt.subplots(1,2, figsize = (12,5))
+
+    if int_prob > 0.9:
+        im = plot_1dpost(x,h1, ax[0], low_1sigma, up_1sigma)
+    else:
+        im = plot_1dpost(x,h1, ax[0])
+    ax[0].text(0.55, 0.9, 'm = {:.2e} [GeV]'.format(10**pars_true[0]), transform = ax[0].transAxes)
+    ax[0].text(0.55, 0.8, '$\sigma$ = {:.2e} [$cm^2$]'.format(10**pars_true[1]), transform = ax[0].transAxes)
+    ax[0].text(0.55, 0.7, 'Int. Prob = {:.2f}'.format(int_prob), transform = ax[0].transAxes)
+    
+    fig00 = ax[1].contourf(m_vals, cross_vals, int_prob_sup_pi_2_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
+    ax[1].contour(m_vals, cross_vals, int_prob_sup_pi_2_g.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
+    
+    
+    ax[1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
+    ax[1].scatter(10**(pars_true[0]), 10**(pars_true[1]), c = 'red', marker = '*')
+    ax[1].set_yscale('log')
+    ax[1].set_xscale('log')
+    ax[1].grid(which='both')
+    ax[1].text(3e2, 1e-44, '$\\theta = \pi/2$')
+    ax[1].plot(masses, s1s2_90_CL_pi2, color = 'black', linestyle = '-.', label = 'Bin. Lik. [90%]')
+    ax[1].legend(loc = 'lower left')
+    
+    ax[1].set_ylabel('$\sigma [cm^{2}]$')
+    ax[0].set_ylabel('$P(\sigma|x)$')
+    
+    ax[1].set_ylim(1e-49, 1e-43)
+    
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
+    cbar = fig.colorbar(fig00, cax=cbar_ax)
+    cbar.ax.set_title('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
+    
+    plt.savefig('../graph/gif_plot_m_84/' + str(c) + '.jpg')    
+# +
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v5/'
+         ]
+
+bps_ind = np.where(np.round(pars_slices[:,0], 4) == np.round(np.log10(m_vals[15]), 4))[0]
+c = 0
+
+fig, ax = plt.subplots(1,1, figsize = (7,7))
+
+for itest in bps_ind:
+    c = c + 1
+    print(c)
+    x_obs = x_norm_s1s2[itest, :,:]
+    
+    # We have to put this "observation" into a swyft.Sample object
+    obs = swyft.Sample(x = x_obs.reshape(1,96,96))
+    
+    # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
+    pars_true = pars_slices[itest,:]
+    pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+    prior_samples = swyft.Samples(z = pars_prior)
+    
+    # Finally we make the inference
+    predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
+    
+    bins = 50
+    logratios_s1s2 = predictions_s1s2[0].logratios[:,1]
+    v              = predictions_s1s2[0].params[:,1,0]
+    low, upp = v.min(), v.max()
+    weights  = torch.exp(logratios_s1s2) / torch.exp(logratios_s1s2).mean(axis = 0)
+    h1       = torchist.histogramdd(predictions_s1s2[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
+    h1      /= len(predictions_s1s2[0].params[:,1,:]) * (upp - low) / bins
+    h1       = np.array(h1)
+    
+    edges = torch.linspace(v.min(), v.max(), bins + 1)
+    x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
+
+    low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+    up_1sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+    
+    cr_th    = np.argmin(np.abs(x - (-49)))
+    int_prob = trapezoid(h1[cr_th:],x[cr_th:]) / trapezoid(h1,x)
+    
+    levels = [0.67, 0.76, 0.84, 0.9, 1]
+    
+    sigma = 1.41 # this depends on how noisy your data is, play with it!
+    
+    int_prob_sup_pi_2_g = gaussian_filter(int_prob_sup_pi_2, sigma)
+    
+
+    if int_prob > 0.9:
+        im = plot_1dpost(x,h1, ax, color = 'black', alpha = 0.3, real_val = False)
+    else:
+        im = plot_1dpost(x,h1, ax, color = 'red', alpha = 0.3, real_val = False)
+        
+
+ax.set_ylabel('$P(\sigma|x)$')
+ax.set_xlabel('$Log_{10}(\sigma)$')
+custom_lines = [Line2D([0],[0], color = 'black', label = 'Rec'), 
+                Line2D([0],[0], color = 'red', label = 'Non-Rec')]
+ax.legend(handles = custom_lines, loc = 'upper left')
+
+plt.savefig('../graph/plot_1Dposteriors_m_84.pdf') 
+# -
+
 
 
