@@ -97,27 +97,19 @@ def plot_1dpost(x, h1, ax, low_1sigma = None, up_1sigma = None, alpha = 1, color
         ax.axvline(low_1sigma, c = 'black', linestyle = '--')
         ax.axvline(up_1sigma, c = 'black', linestyle = '--')
     
-    #ax.axvline(low_2sigma, c = 'black', linestyle = '--')
-    #ax.axvline(up_2sigma, c = 'black', linestyle = '--')
-    
-    #ax.axvline(low_3sigma, c = 'black', linestyle = ':')
-    #ax.axvline(up_3sigma, c = 'black', linestyle = ':')
 
     ax.set_xlim(-50, -43)
-    #ax.xscale('log')
     ax.set_xlabel('$log(\sigma)$')
     ax.set_ylabel('$P(\sigma|x)$')
     return ax
 
-
 # # Let's load the data
 
-# !ls ../data/andresData/SI-run0and1/
+# !ls ../data/andresData/O11-full/O11-run01/
 
 # +
 # where are your files?
-datFolder = ['../data/andresData/SI-run0and1/SI-run01/', 
-             '../data/andresData/SI-run0and1/SI-run02/']
+datFolder = ['../data/andresData/O11-full/O11-run01/']
 nobs = 0
 for i, folder in enumerate(datFolder):
     print(i)
@@ -231,54 +223,7 @@ s1s2_testset  = s1s2[test_ind,:,:]
 
 # -
 
-# !ls ../data/andresData/SI-slices01-variostheta/
-
-# +
-# Slices theta = -pi/2
-datFolder = ['../data/andresData/SI-slices01-minuspidiv2/']
-nobs_slices = 0
-for i, folder in enumerate(datFolder):
-    print(i)
-    if i == 0:
-        pars_slices      = np.loadtxt(folder + 'pars.txt') # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
-        rate_raw_slices  = np.loadtxt(folder + 'rate.txt') # rate[:,0] = total expected events ; rate[:,1] = expected signal ; rate[:,2] = # events pseudo-experiment ; rate[:,3] = # signal events pseudo-experiment 
-        diff_rate_slices = np.loadtxt(folder + 'diff_rate.txt')
-        
-        s1s2_WIMP_slices     = np.loadtxt(folder + 's1s2_WIMP.txt')
-        s1s2_er_slices       = np.loadtxt(folder + 's1s2_er.txt')
-        s1s2_ac_slices       = np.loadtxt(folder + 's1s2_ac.txt')
-        s1s2_cevns_SM_slices = np.loadtxt(folder + 's1s2_CEVNS-SM.txt')
-        s1s2_radio_slices    = np.loadtxt(folder + 's1s2_radiogenics.txt')
-        s1s2_wall_slices     = np.loadtxt(folder + 's1s2_wall.txt')
-    else:
-        pars_slices      = np.vstack((pars_slices, np.loadtxt(folder + 'pars.txt'))) # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
-        rate_raw_slices  = np.vstack((rate_raw_slices, np.loadtxt(folder + 'rate.txt'))) # rate[:,0] = total expected events ; rate[:,1] = expected signal ; rate[:,2] = # events pseudo-experiment ; rate[:,3] = # signal events pseudo-experiment 
-        diff_rate_slices = np.vstack((diff_rate_slices, np.loadtxt(folder + 'diff_rate.txt')))
-        
-        s1s2_WIMP_slices     = np.vstack((s1s2_WIMP_slices, np.loadtxt(folder + 's1s2_WIMP.txt')))
-        s1s2_er_slices       = np.vstack((s1s2_er_slices, np.loadtxt(folder + 's1s2_er.txt')))
-        s1s2_ac_slices       = np.vstack((s1s2_ac_slices, np.loadtxt(folder + 's1s2_ac.txt')))
-        s1s2_cevns_SM_slices = np.vstack((s1s2_cevns_SM_slices, np.loadtxt(folder + 's1s2_CEVNS-SM.txt')))
-        s1s2_radio_slices    = np.vstack((s1s2_radio_slices, np.loadtxt(folder + 's1s2_radiogenics.txt')))
-        s1s2_wall_slices     = np.vstack((s1s2_wall_slices, np.loadtxt(folder + 's1s2_wall.txt')))
-        
-    
-nobs_slices = len(pars_slices) # Total number of observations
-print('We have ' + str(nobs_slices) + ' observations...')
-
-s1s2_slices = s1s2_WIMP_slices + s1s2_er_slices + s1s2_ac_slices + s1s2_cevns_SM_slices + s1s2_radio_slices + s1s2_wall_slices
-rate_slices = np.sum(s1s2_slices, axis = 1) # Just to have the same as on the other notebooks. This already includes the backgrounds
-s1s2_slices = s1s2_slices.reshape(nobs_slices, 97, 97)
-
-# Let's work with the log of the mass and cross-section
-
-pars_slices[:,0] = np.log10(pars_slices[:,0])
-pars_slices[:,1] = np.log10(pars_slices[:,1])
-
-# Let's transform the diff_rate to counts per energy bin
-
-diff_rate_slices = np.round(diff_rate_slices * 362440)
-# -
+# !ls ../data/andresData/O11-full
 
 # ## Xenon data
 #
@@ -475,23 +420,23 @@ dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1],
 trainer_rate.test(network_rate, dm_test_rate)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_rate.fit(network_rate, dm_rate)
-    checkpoint_callback.to_yaml("./logs/rate.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/rate.yaml")
+    checkpoint_callback.to_yaml("./logs/rate_O11.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/rate_O11.yaml")
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/rate.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/rate_O11.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.18 at epoch ~50
 # ---------------------------------------------- 
 
 # +
-x_test_rate = np.log10(rate_testset)
+x_test_rate      = np.log10(rate_testset)
 x_norm_test_rate = (x_test_rate - x_min_rate) / (x_max_rate - x_min_rate)
 x_norm_test_rate = x_norm_test_rate.reshape(len(x_norm_test_rate), 1)
-pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
+pars_norm_test   = (pars_testset - pars_min) / (pars_max - pars_min)
 
 # We have to build a swyft.Samples object that will handle the data
 samples_test_rate = swyft.Samples(x = x_norm_test_rate, z = pars_norm_test)
@@ -508,7 +453,7 @@ trainer_rate.test(network_rate, dm_test_rate, ckpt_path = ckpt_path)
 
 pars_norm = (pars_testset - pars_min) / (pars_max - pars_min)
 
-x_rate = np.log10(rate_testset)
+x_rate      = np.log10(rate_testset)
 x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
 x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
 
@@ -545,9 +490,9 @@ predictions_rate = trainer_rate.infer(network_rate, obs, prior_samples)
 # Let's plot the results
 swyft.corner(predictions_rate, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
 if flag == 'exc':
-    plt.savefig('../graph/cornerplot_rate_exc.pdf')
+    plt.savefig('../graph/O11_cornerplot_rate_exc.pdf')
 else:
-    plt.savefig('../graph/cornerplot_rate.pdf')
+    plt.savefig('../graph/O11_cornerplot_rate.pdf')
 
 # +
 bins = 50
@@ -604,9 +549,9 @@ if up_3sigma > cross_section_th: plt.axvline(up_3sigma, c = 'black', linestyle =
 plt.xlabel('$log(\sigma)$')
 plt.ylabel('$P(\sigma|x)$')
 if flag == 'exc':
-    plt.savefig('../graph/1Dposterior_rate_exc.pdf')
+    plt.savefig('../graph/O11_1Dposterior_rate_exc.pdf')
 else:
-    plt.savefig('../graph/1Dposterior_rate.pdf')
+    plt.savefig('../graph/O11_1Dposterior_rate.pdf')
 
 # +
 swyft.plot_1d(predictions_rate, "pars_norm[1]", bins = 50, smooth = 1)
@@ -637,9 +582,9 @@ ax[2].set_xlabel(r'$g$')
 ax[2].axvline(x = pars_testset[i,2])
 
 if flag == 'exc':
-    plt.savefig('../graph/loglikratio_rate_exc.pdf')
+    plt.savefig('../graph/O11_loglikratio_rate_exc.pdf')
 else:
-    plt.savefig('../graph/loglikratio_rate.pdf')
+    plt.savefig('../graph/O11_loglikratio_rate.pdf')
 # -
 
 10**(pars_true * (pars_max - pars_min) + pars_min)
@@ -753,37 +698,38 @@ ax[2].set_ylabel('$\\theta$')
 ax[2].set_xscale('log')
 
 if flag == 'exc':
-    plt.savefig('../graph/pars_rate_exc.pdf')
+    plt.savefig('../graph/O11_pars_rate_exc.pdf')
 else:
-    plt.savefig('../graph/pars_rate.pdf')
+    plt.savefig('../graph/O11_pars_rate.pdf')
 # -
 
 # ### Let's make the contour plot
 
-# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-0/
+# !ls ../data/andresData/O11-full/
 
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v5/'
+folders = ['../data/andresData/O11-full/O11-slices01-theta0/'#,
+           #'../data/andresData/O11-full/O11-slices01-minuspidiv2/',
+           #'../data/andresData/O11-full/O11-slices01-minuspidiv2/',
+           #'../data/andresData/O11-full/O11-slices01-minuspidiv2/',
+           #'../data/andresData/O11-full/O11-slices01-minuspidiv2/'
          ]
 
 
-sigmas_full = []
-int_prob_full = []
+sigmas_full       = []
+int_prob_full     = []
 int_prob_sup_full = []
 
 for folder in folders:
     pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
     
-    if (os.path.exists(folder + 'sigmas_rate.txt') & 
-        os.path.exists(folder + 'int_prob_rate.txt') &
-        os.path.exists(folder + 'int_prob_sup_rate.txt')) == False:
+    if (os.path.exists(folder + 'O11_sigmas_rate.txt') & 
+        os.path.exists(folder + 'O11_int_prob_rate.txt') &
+        os.path.exists(folder + 'O11_int_prob_sup_rate.txt')) == False:
+            
         # Let's normalize testset between 0 and 1
         
         pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
@@ -791,10 +737,6 @@ for folder in folders:
         x_rate = np.log10(rate_slices)
         x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
         x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
-    
-        #res_1sigma = np.ones(len(pars_norm)) * -99
-        #res_2sigma = np.ones(len(pars_norm)) * -99
-        #res_3sigma = np.ones(len(pars_norm)) * -99
         
         sigmas = np.ones((len(pars_slices), 6))
     
@@ -837,22 +779,22 @@ for folder in folders:
             sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             
             cr_th = np.argmin(np.abs(x - (-49)))
-            int_prob[itest] = trapezoid(h1[:cr_th],x[:cr_th]) / trapezoid(h1,x)
-            int_prob_sup[itest] = trapezoid(h1[cr_th:],x[cr_th:]) / trapezoid(h1,x)
+            int_prob[itest]     = trapezoid(h1[:cr_th], x[:cr_th]) / trapezoid(h1, x)
+            int_prob_sup[itest] = trapezoid(h1[cr_th:], x[cr_th:]) / trapezoid(h1, x)
 
         sigmas_full.append(sigmas)
         int_prob_full.append(int_prob)
         int_prob_sup_full.append(int_prob_sup)
             
-        np.savetxt(folder + 'sigmas_rate.txt', sigmas)
-        np.savetxt(folder + 'int_prob_rate.txt', int_prob)
-        np.savetxt(folder + 'int_prob_sup_rate.txt', int_prob_sup)
+        np.savetxt(folder + 'O11_sigmas_rate.txt', sigmas)
+        np.savetxt(folder + 'O11_int_prob_rate.txt', int_prob)
+        np.savetxt(folder + 'O11_int_prob_sup_rate.txt', int_prob_sup)
     else:
         print('pre-computed')
                 
-        sigmas = np.loadtxt(folder + 'sigmas_rate.txt')
-        int_prob = np.loadtxt(folder + 'int_prob_rate.txt')
-        int_prob_sup = np.loadtxt(folder + 'int_prob_sup_rate.txt')
+        sigmas = np.loadtxt(folder + 'O11_sigmas_rate.txt')
+        int_prob = np.loadtxt(folder + 'O11_int_prob_rate.txt')
+        int_prob_sup = np.loadtxt(folder + 'O11_int_prob_sup_rate.txt')
         
         sigmas_full.append(sigmas)
         int_prob_full.append(int_prob)
@@ -876,22 +818,13 @@ rate_3sigma_0 = np.ones(900) * -99
 rate_1sigma_0[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
 rate_2sigma_0[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
 rate_3sigma_0[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
-
-# +
-#rate_1sigma_pi_2 = rate_1sigma_pi_2.reshape(5,30,30)
-#rate_2sigma_pi_2 = rate_2sigma_pi_2.reshape(5,30,30)
-#rate_3sigma_pi_2 = rate_3sigma_pi_2.reshape(5,30,30)
-#int_prob_pi_2 = int_prob_pi_2.reshape(5,30,30)
-#int_prob_sup_pi_2 = int_prob_sup_pi_2.reshape(5,30,30)
-
-#rate_3sigma_pi_2 = np.mean(rate_3sigma_pi_2, axis = 2)
 # -
 
 sbn.kdeplot(int_prob_sup_0, label = '$\\theta = 0$')
-sbn.kdeplot(int_prob_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$')
-sbn.kdeplot(int_prob_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$')
-sbn.kdeplot(int_prob_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$')
-sbn.kdeplot(int_prob_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$')
+#sbn.kdeplot(int_prob_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$')
+#sbn.kdeplot(int_prob_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$')
+#sbn.kdeplot(int_prob_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$')
+#sbn.kdeplot(int_prob_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$')
 plt.legend()
 plt.xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
 plt.title('Total Rate')
@@ -975,7 +908,7 @@ ax[1,1].set_xlabel('m [GeV]')
 
 ax[0,0].set_ylim(1e-49, 1e-43)
 
-#plt.savefig('../graph/contours_rate_m49.pdf')
+#plt.savefig('../graph/O11_contours_rate_m49.pdf')
 
 # +
 levels = [0, 0.1, 0.16, 0.24, 0.32]
@@ -1046,7 +979,7 @@ ax[0,1].plot(masses, rate_90_CL_pi4, color = 'black', linestyle = '-.')
 ax[1,0].plot(masses, rate_90_CL_mpi2, color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, rate_90_CL_0, color = 'black', linestyle = '-.')
 
-#plt.savefig('../graph/contours_rate_int_prob_th49.pdf')
+#plt.savefig('../graph/O11_contours_rate_int_prob_th49.pdf')
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1] 
@@ -1118,10 +1051,10 @@ ax[0,1].plot(masses, rate_90_CL_pi4, color = 'black', linestyle = '-.')
 ax[1,0].plot(masses, rate_90_CL_mpi2, color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, rate_90_CL_0, color = 'black', linestyle = '-.')
 
-#plt.savefig('../graph/contours_rate_int_prob_sup_th49.pdf')
+#plt.savefig('../graph/O11_contours_rate_int_prob_sup_th49.pdf')
 # -
 
-# ## Only using the total diff_rate (without background)
+# ## Only using the total diff_rate (NOT IMPLEMENTED)
 
 x_drate = np.log10(diff_rate_trainset + 1) # Observable. Input data. 
 
@@ -1556,10 +1489,10 @@ trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 fit = False
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
-    checkpoint_callback.to_yaml("./logs/s1s2.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/s1s2.yaml")
+    checkpoint_callback.to_yaml("./logs/O11_s1s2.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O11_s1s2.yaml")
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/s1s2.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O11_s1s2.yaml")
     
 # Min val loss value at 7 epochs. -1.68
 
@@ -1612,9 +1545,9 @@ predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
 swyft.corner(predictions_s1s2, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
 
 if flag == 'exc':
-    plt.savefig('../graph/cornerplot_s1s2_exc.pdf')
+    plt.savefig('../graph/O11_cornerplot_s1s2_exc.pdf')
 else:
-    plt.savefig('../graph/cornerplot_s1s2.pdf')
+    plt.savefig('../graph/O11_cornerplot_s1s2.pdf')
 
 # +
 bins = 50
@@ -1662,9 +1595,9 @@ if up_3sigma > cross_section_th: plt.axvline(up_3sigma, c = 'black', linestyle =
 plt.xlabel('$log(\sigma)$')
 plt.ylabel('$P(\sigma|x)$')
 if flag == 'exc':
-    plt.savefig('../graph/1Dposterior_s1s2_exc.pdf')
+    plt.savefig('../graph/O11_1Dposterior_s1s2_exc.pdf')
 else:
-    plt.savefig('../graph/1Dposterior_s1s2_disc.pdf')
+    plt.savefig('../graph/O11_1Dposterior_s1s2_disc.pdf')
 # -
 
 swyft.plot_1d(predictions_s1s2, "pars_norm[1]", bins = 50, smooth = 1)
@@ -1691,9 +1624,9 @@ ax[2].set_xlabel(r'$g$')
 ax[2].axvline(x = pars_testset[i,2])
 
 if flag == 'exc':
-    plt.savefig('../graph/loglikratio_s1s2_exc.pdf')
+    plt.savefig('../graph/O11_loglikratio_s1s2_exc.pdf')
 else:
-    plt.savefig('../graph/loglikratio_s1s2.pdf')
+    plt.savefig('../graph/O11_loglikratio_s1s2.pdf')
 # -
 
 results_pars_s1s2 = np.asarray(predictions_s1s2[1].params)
@@ -1805,9 +1738,9 @@ ax[2].set_ylabel('$\\theta$')
 ax[2].set_xscale('log')
 
 if flag == 'exc':
-    plt.savefig('../graph/pars_s1s2_exc.pdf')
+    plt.savefig('../graph/O11_pars_s1s2_exc.pdf')
 else:
-    plt.savefig('../graph/pars_s1s2.pdf')
+    plt.savefig('../graph/O11_pars_s1s2.pdf')
 # -
 # ### Let's make the contour plot
 
@@ -1894,14 +1827,14 @@ for folder in folders:
         int_prob_full.append(int_prob)
         int_prob_sup_full.append(int_prob_sup)
             
-        np.savetxt(folder + 'sigmas_s1s2.txt', sigmas)
-        np.savetxt(folder + 'int_prob_s1s2.txt', int_prob)
-        np.savetxt(folder + 'int_prob_sup_s1s2.txt', int_prob_sup)
+        np.savetxt(folder + 'O11_sigmas_s1s2.txt', sigmas)
+        np.savetxt(folder + 'O11_int_prob_s1s2.txt', int_prob)
+        np.savetxt(folder + 'O11_int_prob_sup_s1s2.txt', int_prob_sup)
     else:
         print('pre-computed')
-        sigmas = np.loadtxt(folder + 'sigmas_s1s2.txt')
-        int_prob = np.loadtxt(folder + 'int_prob_s1s2.txt')
-        int_prob_sup = np.loadtxt(folder + 'int_prob_sup_s1s2.txt')
+        sigmas = np.loadtxt(folder + 'O11_sigmas_s1s2.txt')
+        int_prob = np.loadtxt(folder + 'O11_int_prob_s1s2.txt')
+        int_prob_sup = np.loadtxt(folder + 'O11_int_prob_sup_s1s2.txt')
 
         sigmas_full.append(sigmas)
         int_prob_full.append(int_prob)
@@ -2020,7 +1953,7 @@ ax[1,1].set_xlabel('m [GeV]')
 
 ax[0,0].set_ylim(1e-49, 1e-43)
 
-#plt.savefig('../graph/contours_s1s2_m49.pdf')
+#plt.savefig('../graph/O11_contours_s1s2_m49.pdf')
 
 
 # +
@@ -2093,7 +2026,7 @@ ax[0,1].plot(masses, s1s2_90_CL_pi4, color = 'black', linestyle = '-.')
 ax[1,0].plot(masses, s1s2_90_CL_mpi2, color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, s1s2_90_CL_0, color = 'black', linestyle = '-.')
 
-#plt.savefig('../graph/contours_s1s1_int_prob_th49.pdf')
+#plt.savefig('../graph/O11_contours_s1s1_int_prob_th49.pdf')
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]
@@ -2167,7 +2100,7 @@ ax[0,1].plot(masses, s1s2_90_CL_pi4, color = 'black', linestyle = '-.')
 ax[1,0].plot(masses, s1s2_90_CL_mpi2, color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, s1s2_90_CL_0, color = 'black', linestyle = '-.')
 
-#plt.savefig('../graph/contours_s1s2_int_prob_sup_th49.pdf')
+#plt.savefig('../graph/O11_contours_s1s2_int_prob_sup_th49.pdf')
 # -
 # # Some other plots
 
@@ -2277,7 +2210,7 @@ for itest in bps_ind:
     cbar = fig.colorbar(fig00, cax=cbar_ax)
     cbar.ax.set_title('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
     
-    plt.savefig('../graph/gif_plot_m_84/' + str(c) + '.jpg')    
+    plt.savefig('../graph/O11_gif_plot_m_84/' + str(c) + '.jpg')    
 # +
 folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2/',
            '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v2/',
@@ -2344,7 +2277,7 @@ custom_lines = [Line2D([0],[0], color = 'black', label = 'Rec'),
                 Line2D([0],[0], color = 'red', label = 'Non-Rec')]
 ax.legend(handles = custom_lines, loc = 'upper left')
 
-plt.savefig('../graph/plot_1Dposteriors_m_84.pdf') 
+plt.savefig('../graph/O11_plot_1Dposteriors_m_84.pdf') 
 # -
 
 
