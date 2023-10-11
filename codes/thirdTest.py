@@ -562,6 +562,14 @@ h1       = np.array(h1)
 edges = torch.linspace(v.min(), v.max(), bins + 1)
 x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
 #x     = 10**(x)
+# -
+
+x
+
+cr_th = np.argmin(np.abs(x - (-49)))
+trapezoid(h1[cr_th:] * (10**x[cr_th:]), x[cr_th:]) / trapezoid(h1 * (10**x), x)
+
+trapezoid(h1[cr_th:], x[cr_th:]) / trapezoid(h1, x)
 
 # +
 cross_section_th = -49
@@ -760,17 +768,17 @@ else:
 
 # ### Let's make the contour plot
 
-# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-0/
+# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv4
 
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v5/'
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv4/SI-slices01-minuspidiv4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv4/SI-slices01-minuspidiv4-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv4/SI-slices01-minuspidiv4-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv4/SI-slices01-minuspidiv4-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv4/SI-slices01-minuspidiv4-v5/'
          ]
 
 
@@ -781,9 +789,9 @@ int_prob_sup_full = []
 for folder in folders:
     pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
     
-    if (os.path.exists(folder + 'sigmas_rate.txt') & 
-        os.path.exists(folder + 'int_prob_rate.txt') &
-        os.path.exists(folder + 'int_prob_sup_rate.txt')) == False:
+    if (os.path.exists(folder + 'sigmas_rate_full.txt') & 
+        os.path.exists(folder + 'int_prob_rate_full.txt') &
+        os.path.exists(folder + 'int_prob_sup_rate_full.txt')) == False:
         # Let's normalize testset between 0 and 1
         
         pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
@@ -791,10 +799,6 @@ for folder in folders:
         x_rate = np.log10(rate_slices)
         x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
         x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
-    
-        #res_1sigma = np.ones(len(pars_norm)) * -99
-        #res_2sigma = np.ones(len(pars_norm)) * -99
-        #res_3sigma = np.ones(len(pars_norm)) * -99
         
         sigmas = np.ones((len(pars_slices), 6))
     
@@ -837,22 +841,22 @@ for folder in folders:
             sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             
             cr_th = np.argmin(np.abs(x - (-49)))
-            int_prob[itest] = trapezoid(h1[:cr_th],x[:cr_th]) / trapezoid(h1,x)
-            int_prob_sup[itest] = trapezoid(h1[cr_th:],x[cr_th:]) / trapezoid(h1,x)
+            int_prob[itest]     = trapezoid(h1[:cr_th] * (10**x[:cr_th]), x[:cr_th]) / trapezoid(h1 * (10**x), x)
+            int_prob_sup[itest] = trapezoid(h1[cr_th:] * (10**x[cr_th:]), x[cr_th:]) / trapezoid(h1 * (10**x), x)
 
         sigmas_full.append(sigmas)
         int_prob_full.append(int_prob)
         int_prob_sup_full.append(int_prob_sup)
             
-        np.savetxt(folder + 'sigmas_rate.txt', sigmas)
-        np.savetxt(folder + 'int_prob_rate.txt', int_prob)
-        np.savetxt(folder + 'int_prob_sup_rate.txt', int_prob_sup)
+        np.savetxt(folder + 'sigmas_rate_full.txt', sigmas)
+        np.savetxt(folder + 'int_prob_rate_full.txt', int_prob)
+        np.savetxt(folder + 'int_prob_sup_rate_full.txt', int_prob_sup)
     else:
         print('pre-computed')
                 
-        sigmas = np.loadtxt(folder + 'sigmas_rate.txt')
-        int_prob = np.loadtxt(folder + 'int_prob_rate.txt')
-        int_prob_sup = np.loadtxt(folder + 'int_prob_sup_rate.txt')
+        sigmas = np.loadtxt(folder + 'sigmas_rate_full.txt')
+        int_prob = np.loadtxt(folder + 'int_prob_rate_full.txt')
+        int_prob_sup = np.loadtxt(folder + 'int_prob_sup_rate_full.txt')
         
         sigmas_full.append(sigmas)
         int_prob_full.append(int_prob)
@@ -862,20 +866,20 @@ for folder in folders:
 cross_section_th = -49
 
 if len(int_prob_full) > 1:
-    int_prob_0     = np.mean(np.asarray(int_prob_full), axis = 0)
-    int_prob_sup_0 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
+    int_prob_mpi_4     = np.mean(np.asarray(int_prob_full), axis = 0)
+    int_prob_sup_mpi_4 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
     sigmas = np.mean(np.asarray(sigmas_full), axis = 0)
 else:
-    int_prob_0 = int_prob
-    int_prob_sup_0 = int_prob_sup
+    int_prob_mpi_4 = int_prob
+    int_prob_sup_mpi_4 = int_prob_sup
 
-rate_1sigma_0 = np.ones(900) * -99
-rate_2sigma_0 = np.ones(900) * -99
-rate_3sigma_0 = np.ones(900) * -99
+rate_1sigma_mpi_4 = np.ones(900) * -99
+rate_2sigma_mpi_4 = np.ones(900) * -99
+rate_3sigma_mpi_4 = np.ones(900) * -99
 
-rate_1sigma_0[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
-rate_2sigma_0[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
-rate_3sigma_0[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
+rate_1sigma_mpi_4[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
+rate_2sigma_mpi_4[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
+rate_3sigma_mpi_4[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
 
 # +
 #rate_1sigma_pi_2 = rate_1sigma_pi_2.reshape(5,30,30)
@@ -1121,7 +1125,7 @@ ax[1,1].plot(masses, rate_90_CL_0, color = 'black', linestyle = '-.')
 #plt.savefig('../graph/contours_rate_int_prob_sup_th49.pdf')
 # -
 
-# ## Only using the total diff_rate (without background)
+# ## Only using the total diff_rate (NOT IMPLEMENTED)
 
 x_drate = np.log10(diff_rate_trainset + 1) # Observable. Input data. 
 
@@ -2228,6 +2232,7 @@ for itest in bps_ind:
     h1       = torchist.histogramdd(predictions_s1s2[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
     h1      /= len(predictions_s1s2[0].params[:,1,:]) * (upp - low) / bins
     h1       = np.array(h1)
+    vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
     
     edges = torch.linspace(v.min(), v.max(), bins + 1)
     x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
@@ -2286,6 +2291,11 @@ folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-sl
            '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v5/'
          ]
 
+pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folders[0]])
+pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
+    
+x_norm_s1s2 = x_s1s2 = s1s2_slices[:,:-1,:-1]
+    
 bps_ind = np.where(np.round(pars_slices[:,0], 4) == np.round(np.log10(m_vals[15]), 4))[0]
 c = 0
 
@@ -2318,24 +2328,19 @@ for itest in bps_ind:
     
     edges = torch.linspace(v.min(), v.max(), bins + 1)
     x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
+    vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
 
     low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
     up_1sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
     
     cr_th    = np.argmin(np.abs(x - (-49)))
-    int_prob = trapezoid(h1[cr_th:],x[cr_th:]) / trapezoid(h1,x)
+    int_prob = trapezoid(h1[cr_th:] * (10**x[cr_th:]), x[cr_th:]) / trapezoid(h1 * (10**x), x)
     
-    levels = [0.67, 0.76, 0.84, 0.9, 1]
-    
-    sigma = 1.41 # this depends on how noisy your data is, play with it!
-    
-    int_prob_sup_pi_2_g = gaussian_filter(int_prob_sup_pi_2, sigma)
-    
-
+    print(int_prob)
     if int_prob > 0.9:
-        im = plot_1dpost(x,h1, ax, color = 'black', alpha = 0.3, real_val = False)
+        im = plot_1dpost(x, h1 * (10**x), ax, color = 'black', alpha = 0.3, real_val = False)
     else:
-        im = plot_1dpost(x,h1, ax, color = 'red', alpha = 0.3, real_val = False)
+        im = plot_1dpost(x, h1 * (10**x), ax, color = 'red', alpha = 0.3, real_val = False)
         
 
 ax.set_ylabel('$P(\sigma|x)$')
@@ -2344,8 +2349,11 @@ custom_lines = [Line2D([0],[0], color = 'black', label = 'Rec'),
                 Line2D([0],[0], color = 'red', label = 'Non-Rec')]
 ax.legend(handles = custom_lines, loc = 'upper left')
 
-plt.savefig('../graph/plot_1Dposteriors_m_84.pdf') 
+#plt.savefig('../graph/plot_1Dposteriors_m_84.pdf') 
 # -
+x[np.where(np.array(h1) > np.array(vals[2]))[0]]
 
+fig, ax = plt.subplots(1)
+plot_1dpost(x, h1 * (10**x), ax, color = 'black', alpha = 0.3, real_val = False)
 
 
