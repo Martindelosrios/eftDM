@@ -528,14 +528,24 @@ if real_val < 2930:
 else:
     flag = 'disc'
 print(flag)
+# -
 
+
+B = (pars_max[1] - pars_min[1])
+A = pars_min[1]
 
 # +
 # We have to put this "observation" into a swyft.Sample object
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior    = np.random.uniform(low = 0, high = 1, size = (1_000_000, 3))
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+#pars_prior = np.random.uniform(low = pars_min, high = pars_max, size = (100_000, 3))
+#pars_prior = np.random.uniform(low = [6, 1e-50, -1.57], high = [1000, 1e-45, 1.57], size = (100_000, 3))
+#pars_prior[:,0] = np.log10(pars_prior[:,0])
+#pars_prior[:,1] = np.log10(pars_prior[:,1])
+#pars_prior = (pars_prior - pars_min) / (pars_max - pars_min)
+
 prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
@@ -560,16 +570,29 @@ h1      /= len(predictions_rate[0].params[:,1,:]) * (upp - low) / bins
 h1       = np.array(h1)
 
 edges = torch.linspace(v.min(), v.max(), bins + 1)
-x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
+x     = np.array((edges[1:] + edges[:-1]) / 2) #* (pars_max[1] - pars_min[1]) + pars_min[1]
 #x     = 10**(x)
 # -
 
-x
+x * B + A
 
-cr_th = np.argmin(np.abs(x - (-49)))
-trapezoid(h1[cr_th:] * (10**x[cr_th:]), x[cr_th:]) / trapezoid(h1 * (10**x), x)
+A
 
-trapezoid(h1[cr_th:], x[cr_th:]) / trapezoid(h1, x)
+plt.plot(x * B + A + 45, h1)
+plt.plot(x * B + A + 45, 10**(x * B + A + 45), linestyle = ':')
+plt.yscale('log')
+#plt.xscale('log')
+#plt.xlim(1e-49, 1e-44)
+plt.axvline(x=(-46.5 - A) / B)
+
+offset = 45
+th = (-47.5 - A) / B
+cr_th = np.argmin(np.abs(x - th))
+x_aux = x[cr_th:] * B + A + offset
+trapezoid(h1[cr_th:] * (10**x_aux), x_aux)
+
+x_aux = x * B + A + offset
+trapezoid(h1 * (10 ** x_aux), x_aux)
 
 # +
 cross_section_th = -49
@@ -768,17 +791,17 @@ else:
 
 # ### Let's make the contour plot
 
-# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv4
+# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-0
 
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv4/SI-slices01-minuspidiv4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv4/SI-slices01-minuspidiv4-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv4/SI-slices01-minuspidiv4-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv4/SI-slices01-minuspidiv4-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv4/SI-slices01-minuspidiv4-v5/'
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v5/'
          ]
 
 
@@ -789,7 +812,7 @@ int_prob_sup_full = []
 for folder in folders:
     pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
     
-    if (os.path.exists(folder + 'sigmas_rate_full.txt') & 
+    if (os.path.exists(folder + 'sigma_rate_ful.txt') & 
         os.path.exists(folder + 'int_prob_rate_full.txt') &
         os.path.exists(folder + 'int_prob_sup_rate_full.txt')) == False:
         # Let's normalize testset between 0 and 1
@@ -840,9 +863,10 @@ for folder in folders:
             sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             
-            cr_th = np.argmin(np.abs(x - (-49)))
-            int_prob[itest]     = trapezoid(h1[:cr_th] * (10**x[:cr_th]), x[:cr_th]) / trapezoid(h1 * (10**x), x)
-            int_prob_sup[itest] = trapezoid(h1[cr_th:] * (10**x[cr_th:]), x[cr_th:]) / trapezoid(h1 * (10**x), x)
+            cr_th = np.argmin(np.abs(x - (-47)))
+            x_aux = x + 45
+            int_prob[itest]     = trapezoid(h1[:cr_th] * (10**x_aux[:cr_th]), x_aux[:cr_th]) / trapezoid(h1 * (10**x_aux), x_aux)
+            int_prob_sup[itest] = trapezoid(h1[cr_th:] * (10**x_aux[cr_th:]), x_aux[cr_th:]) / trapezoid(h1 * (10**x_aux), x_aux)
 
         sigmas_full.append(sigmas)
         int_prob_full.append(int_prob)
@@ -866,20 +890,20 @@ for folder in folders:
 cross_section_th = -49
 
 if len(int_prob_full) > 1:
-    int_prob_mpi_4     = np.mean(np.asarray(int_prob_full), axis = 0)
-    int_prob_sup_mpi_4 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
+    int_prob_0     = np.mean(np.asarray(int_prob_full), axis = 0)
+    int_prob_sup_0 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
     sigmas = np.mean(np.asarray(sigmas_full), axis = 0)
 else:
-    int_prob_mpi_4 = int_prob
-    int_prob_sup_mpi_4 = int_prob_sup
+    int_prob_0 = int_prob
+    int_prob_sup_0 = int_prob_sup
 
-rate_1sigma_mpi_4 = np.ones(900) * -99
-rate_2sigma_mpi_4 = np.ones(900) * -99
-rate_3sigma_mpi_4 = np.ones(900) * -99
+rate_1sigma_0 = np.ones(900) * -99
+rate_2sigma_0 = np.ones(900) * -99
+rate_3sigma_0 = np.ones(900) * -99
 
-rate_1sigma_mpi_4[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
-rate_2sigma_mpi_4[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
-rate_3sigma_mpi_4[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
+rate_1sigma_0[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
+rate_2sigma_0[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
+rate_3sigma_0[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
 
 # +
 #rate_1sigma_pi_2 = rate_1sigma_pi_2.reshape(5,30,30)
@@ -982,7 +1006,7 @@ ax[0,0].set_ylim(1e-49, 1e-43)
 #plt.savefig('../graph/contours_rate_m49.pdf')
 
 # +
-levels = [0, 0.1, 0.16, 0.24, 0.32]
+levels = 5#[0, 0.1, 0.16, 0.24, 0.32]
 
 sigma = 1.81 # this depends on how noisy your data is, play with it!
 
@@ -1053,7 +1077,7 @@ ax[1,1].plot(masses, rate_90_CL_0, color = 'black', linestyle = '-.')
 #plt.savefig('../graph/contours_rate_int_prob_th49.pdf')
 
 # +
-levels = [0.67, 0.76, 0.84, 0.9, 1] 
+levels = 5#[0.67, 0.76, 0.84, 0.9, 1] 
 
 sigma = 1.21 # this depends on how noisy your data is, play with it!
 

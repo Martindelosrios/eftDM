@@ -480,7 +480,7 @@ print(flag)
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior    = np.random.uniform(low = 0, high = 1, size = (1_000_000, 3))
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
 prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
@@ -707,11 +707,13 @@ else:
 
 # !ls ../data/andresData/O11-full/
 
+pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(['../data/andresData/O11-full/O11-slices01-theta0/'])
+
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-folders = ['../data/andresData/O11-full/O11-slices01-theta0/'#,
+folders = ['../data/andresData/O11-full/O11-slices01-pluspidiv2/'#,
            #'../data/andresData/O11-full/O11-slices01-minuspidiv2/',
            #'../data/andresData/O11-full/O11-slices01-minuspidiv2/',
            #'../data/andresData/O11-full/O11-slices01-minuspidiv2/',
@@ -778,7 +780,7 @@ for folder in folders:
             sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             
-            cr_th = np.argmin(np.abs(x - (-49)))
+            cr_th = np.argmin(np.abs(x - (-46)))
             int_prob[itest]     = trapezoid(h1[:cr_th], x[:cr_th]) / trapezoid(h1, x)
             int_prob_sup[itest] = trapezoid(h1[cr_th:], x[cr_th:]) / trapezoid(h1, x)
 
@@ -801,33 +803,35 @@ for folder in folders:
         int_prob_sup_full.append(int_prob_sup)
 
 # +
-cross_section_th = -49
+cross_section_th = -46
 
 if len(int_prob_full) > 1:
-    int_prob_0     = np.mean(np.asarray(int_prob_full), axis = 0)
-    int_prob_sup_0 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
+    int_prob_pi_2     = np.mean(np.asarray(int_prob_full), axis = 0)
+    int_prob_sup_pi_2 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
     sigmas = np.mean(np.asarray(sigmas_full), axis = 0)
 else:
-    int_prob_0 = int_prob
-    int_prob_sup_0 = int_prob_sup
+    int_prob_pi_2 = int_prob
+    int_prob_sup_pi_2 = int_prob_sup
 
-rate_1sigma_0 = np.ones(900) * -99
-rate_2sigma_0 = np.ones(900) * -99
-rate_3sigma_0 = np.ones(900) * -99
+rate_1sigma_pi_2 = np.ones(900) * -99
+rate_2sigma_pi_2 = np.ones(900) * -99
+rate_3sigma_pi_2 = np.ones(900) * -99
 
-rate_1sigma_0[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
-rate_2sigma_0[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
-rate_3sigma_0[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
+rate_1sigma_pi_2[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
+rate_2sigma_pi_2[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
+rate_3sigma_pi_2[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
 # -
 
 sbn.kdeplot(int_prob_sup_0, label = '$\\theta = 0$')
-#sbn.kdeplot(int_prob_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$')
-#sbn.kdeplot(int_prob_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$')
-#sbn.kdeplot(int_prob_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$')
-#sbn.kdeplot(int_prob_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$')
+sbn.kdeplot(int_prob_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$')
+sbn.kdeplot(int_prob_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$')
+sbn.kdeplot(int_prob_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$')
+sbn.kdeplot(int_prob_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$')
 plt.legend()
 plt.xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
 plt.title('Total Rate')
+
+np.min(cross_vals)
 
 # +
 sigma = 0.2 # this depends on how noisy your data is, play with it!
@@ -857,9 +861,6 @@ ax[0,0].contour(m_vals, cross_vals, rate_2sigma_pi_2_g.reshape(30,30).T, levels=
 ax[0,0].contourf(m_vals, cross_vals, rate_3sigma_pi_2_g.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
 ax[0,0].contour(m_vals, cross_vals, rate_3sigma_pi_2_g.reshape(30,30).T, levels=[0])
 
-ax[0,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-ax[0,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[0,0].set_yscale('log')
 ax[0,0].set_xscale('log')
 ax[0,0].grid(which='both')
@@ -871,9 +872,6 @@ ax[0,1].contour(m_vals, cross_vals, rate_2sigma_pi_4_g.reshape(30,30).T, levels=
 ax[0,1].contourf(m_vals, cross_vals, rate_3sigma_pi_4_g.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
 ax[0,1].contour(m_vals, cross_vals, rate_3sigma_pi_4_g.reshape(30,30).T, levels=[0])
 
-ax[0,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
-ax[0,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
-ax[0,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,1].grid(which='both')
 ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
 ax[0,1].legend(loc = 'lower right')
@@ -884,9 +882,6 @@ ax[1,0].contour(m_vals, cross_vals, rate_2sigma_mpi_2_g.reshape(30,30).T, levels
 ax[1,0].contourf(m_vals, cross_vals, rate_3sigma_mpi_2_g.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
 ax[1,0].contour(m_vals, cross_vals, rate_3sigma_mpi_2_g.reshape(30,30).T, levels=[0])
 
-ax[1,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-ax[1,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-ax[1,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,0].grid(which='both')
 ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
 
@@ -895,9 +890,6 @@ ax[1,1].contour(m_vals, cross_vals, rate_2sigma_0_g.reshape(30,30).T, levels=[0]
 ax[1,1].contourf(m_vals, cross_vals, rate_3sigma_0_g.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
 ax[1,1].contour(m_vals, cross_vals, rate_3sigma_0_g.reshape(30,30).T, levels=[0])
 
-ax[1,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-ax[1,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-ax[1,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
 
@@ -906,12 +898,13 @@ ax[1,0].set_ylabel('$\sigma$ []')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
-ax[0,0].set_ylim(1e-49, 1e-43)
+ax[0,0].set_ylim(np.min(cross_vals), np.max(cross_vals))
+ax[0,0].set_xlim(np.min(m_vals), np.max(m_vals))
 
-#plt.savefig('../graph/O11_contours_rate_m49.pdf')
+plt.savefig('../graph/O11_contours_rate_th46.pdf')
 
 # +
-levels = [0, 0.1, 0.16, 0.24, 0.32]
+levels = 5#[0, 0.1, 0.16, 0.24, 0.32]
 
 sigma = 1.81 # this depends on how noisy your data is, play with it!
 
@@ -926,41 +919,29 @@ fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
 fig00 = ax[0,0].contourf(m_vals, cross_vals, int_prob_pi_2_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,0].contour(m_vals, cross_vals, int_prob_pi_2_g.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 
-
-#ax[0,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[0,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
+#ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,0].set_yscale('log')
 ax[0,0].set_xscale('log')
 ax[0,0].grid(which='both')
 ax[0,0].text(3e2, 1e-44, '$\\theta = \pi/2$')
-ax[0,0].plot(masses, rate_90_CL_pi2, color = 'black', linestyle = '-.', label = 'Bin. Lik. [90%]')
+#ax[0,0].plot(masses, rate_90_CL_pi2, color = 'black', linestyle = '-.', label = 'Bin. Lik. [90%]')
 ax[0,0].legend(loc = 'lower left')
 
 ax[0,1].contourf(m_vals, cross_vals, int_prob_pi_4_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,1].contour(m_vals, cross_vals, int_prob_pi_4_g.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 
-#ax[0,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
-#ax[0,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
-#ax[0,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,1].grid(which='both')
 ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
 
 ax[1,0].contourf(m_vals, cross_vals, int_prob_mpi_2_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,0].contour(m_vals, cross_vals, int_prob_mpi_2_g.reshape(30,30).T, levels=levels)
 
-#ax[1,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,0].grid(which='both')
 ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
 
 ax[1,1].contourf(m_vals, cross_vals, int_prob_0_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,1].contour(m_vals, cross_vals, int_prob_0_g.reshape(30,30).T, levels=levels)
 
-#ax[1,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
 
@@ -969,20 +950,17 @@ ax[1,0].set_ylabel('$\sigma [cm^{2}]$')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
-ax[0,0].set_ylim(1e-49, 1e-43)
+ax[0,0].set_ylim(np.min(cross_vals), np.max(cross_vals))
+ax[0,0].set_xlim(np.min(m_vals), np.max(m_vals))
 fig.subplots_adjust(right = 0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
 cbar    = fig.colorbar(fig00, cax=cbar_ax)
 cbar.ax.set_title('$\int_{-\inf}^{\sigma_{th}} P(\sigma|x)$')
 
-ax[0,1].plot(masses, rate_90_CL_pi4, color = 'black', linestyle = '-.')
-ax[1,0].plot(masses, rate_90_CL_mpi2, color = 'black', linestyle = '-.')
-ax[1,1].plot(masses, rate_90_CL_0, color = 'black', linestyle = '-.')
-
-#plt.savefig('../graph/O11_contours_rate_int_prob_th49.pdf')
+plt.savefig('../graph/O11_contours_rate_int_prob_th46.pdf')
 
 # +
-levels = [0.67, 0.76, 0.84, 0.9, 1] 
+levels = 5#[0.67, 0.76, 0.84, 0.9, 1] 
 
 sigma = 1.21 # this depends on how noisy your data is, play with it!
 
@@ -997,41 +975,29 @@ fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
 fig00 = ax[0,0].contourf(m_vals, cross_vals, int_prob_sup_pi_2_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,0].contour(m_vals, cross_vals, int_prob_sup_pi_2_g.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 
-
-#ax[0,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[0,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
+#ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,0].set_yscale('log')
 ax[0,0].set_xscale('log')
 ax[0,0].grid(which='both')
 ax[0,0].text(3e2, 1e-44, '$\\theta = \pi/2$')
-ax[0,0].plot(masses, rate_90_CL_pi2, color = 'black', linestyle = '-.', label = 'Bin. Lik. [90%]')
+#ax[0,0].plot(masses, rate_90_CL_pi2, color = 'black', linestyle = '-.', label = 'Bin. Lik. [90%]')
 ax[0,0].legend(loc = 'lower left')
 
 ax[0,1].contourf(m_vals, cross_vals, int_prob_sup_pi_4_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,1].contour(m_vals, cross_vals, int_prob_sup_pi_4_g.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 
-#ax[0,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
-#ax[0,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
-#ax[0,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,1].grid(which='both')
 ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
 
 ax[1,0].contourf(m_vals, cross_vals, int_prob_sup_mpi_2_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,0].contour(m_vals, cross_vals, int_prob_sup_mpi_2_g.reshape(30,30).T, levels=levels)
 
-#ax[1,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,0].grid(which='both')
 ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
 
 ax[1,1].contourf(m_vals, cross_vals, int_prob_sup_0_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,1].contour(m_vals, cross_vals, int_prob_sup_0_g.reshape(30,30).T, levels=levels)
 
-#ax[1,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
 
@@ -1040,18 +1006,19 @@ ax[1,0].set_ylabel('$\sigma [cm^{2}]$')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
-ax[0,0].set_ylim(1e-49, 1e-43)
+ax[0,0].set_ylim(np.min(cross_vals), np.max(cross_vals))
+ax[0,0].set_xlim(np.min(m_vals), np.max(m_vals))
 
 fig.subplots_adjust(right = 0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
 cbar    = fig.colorbar(fig00, cax = cbar_ax)
 cbar.ax.set_title('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
 
-ax[0,1].plot(masses, rate_90_CL_pi4, color = 'black', linestyle = '-.')
-ax[1,0].plot(masses, rate_90_CL_mpi2, color = 'black', linestyle = '-.')
-ax[1,1].plot(masses, rate_90_CL_0, color = 'black', linestyle = '-.')
+#ax[0,1].plot(masses, rate_90_CL_pi4, color = 'black', linestyle = '-.')
+#ax[1,0].plot(masses, rate_90_CL_mpi2, color = 'black', linestyle = '-.')
+#ax[1,1].plot(masses, rate_90_CL_0, color = 'black', linestyle = '-.')
 
-#plt.savefig('../graph/O11_contours_rate_int_prob_sup_th49.pdf')
+plt.savefig('../graph/O11_contours_rate_int_prob_sup_th46.pdf')
 # -
 
 # ## Only using the total diff_rate (NOT IMPLEMENTED)
@@ -1486,7 +1453,7 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
     checkpoint_callback.to_yaml("./logs/O11_s1s2.yaml") 
@@ -1744,19 +1711,19 @@ else:
 # -
 # ### Let's make the contour plot
 
-# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv4
+# !ls ../data/andresData/O11-full/
+
+pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(['../data/andresData/O11-full/O11-slices01-theta0/'])
 
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
-pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/'])
-
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v5/'
+folders = ['../data/andresData/O11-full/O11-slices01-pluspidiv2/'#,
+           #'../data/andresData/O11-full/',
+           #'../data/andresData/O11-full/',
+           #'../data/andresData/O11-full/',
+           #'../data/andresData/O11-full/'
          ]
 
 sigmas_full       = []
@@ -1766,9 +1733,9 @@ int_prob_sup_full = []
 for folder in folders:
     pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
  
-    if (os.path.exists(folder + 'sigmas_s1s2.txt') & 
-        os.path.exists(folder + 'int_prob_s1s2.txt') &
-        os.path.exists(folder + 'int_prob_sup_s1s2.txt')) == False:
+    if (os.path.exists(folder + 'O11_sigmas_s1s2.txt') & 
+        os.path.exists(folder + 'O11_int_prob_s1s2.txt') &
+        os.path.exists(folder + 'O11_int_prob_sup_s1s2.txt')) == False:
         # Let's normalize testset between 0 and 1
         
         pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
@@ -1819,7 +1786,7 @@ for folder in folders:
             sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             
-            cr_th               = np.argmin(np.abs(x - (-49)))
+            cr_th               = np.argmin(np.abs(x - (-46)))
             int_prob[itest]     = trapezoid(h1[:cr_th],x[:cr_th]) / trapezoid(h1,x)
             int_prob_sup[itest] = trapezoid(h1[cr_th:],x[cr_th:]) / trapezoid(h1,x)
         
@@ -1839,29 +1806,26 @@ for folder in folders:
         sigmas_full.append(sigmas)
         int_prob_full.append(int_prob)
         int_prob_sup_full.append(int_prob_sup)
-# -
 
-
-len(pars_norm)
 
 # +
-cross_section_th = -49
+cross_section_th = -46
 
 if len(int_prob_full) > 1:
-    int_prob_mpi_2     = np.mean(np.asarray(int_prob_full), axis = 0)
-    int_prob_sup_mpi_2 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
+    int_prob_pi_2     = np.mean(np.asarray(int_prob_full), axis = 0)
+    int_prob_sup_pi_2 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
     sigmas = np.mean(np.asarray(sigmas_full), axis = 0)
 else:
-    int_prob_mpi_2 = int_prob
-    int_prob_sup_mpi_2 = int_prob_sup
+    int_prob_pi_2 = int_prob
+    int_prob_sup_pi_2 = int_prob_sup
 
-s1s2_1sigma_mpi_2 = np.ones(900) * -99
-s1s2_2sigma_mpi_2 = np.ones(900) * -99
-s1s2_3sigma_mpi_2 = np.ones(900) * -99
+s1s2_1sigma_pi_2 = np.ones(900) * -99
+s1s2_2sigma_pi_2 = np.ones(900) * -99
+s1s2_3sigma_pi_2 = np.ones(900) * -99
 
-s1s2_1sigma_mpi_2[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
-s1s2_2sigma_mpi_2[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
-s1s2_3sigma_mpi_2[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
+s1s2_1sigma_pi_2[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
+s1s2_2sigma_pi_2[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
+s1s2_3sigma_pi_2[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
 # -
 
 sbn.kdeplot(int_prob_sup_0, label = '$\\theta = 0$')
@@ -1902,36 +1866,25 @@ ax[0,0].contour(m_vals, cross_vals, s1s2_2sigma_pi_2_g.reshape(30,30).T, levels=
 ax[0,0].contourf(m_vals, cross_vals, s1s2_3sigma_pi_2_g.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
 ax[0,0].contour(m_vals, cross_vals, s1s2_3sigma_pi_2_g.reshape(30,30).T, levels=[0])
 
-ax[0,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-ax[0,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[0,0].set_yscale('log')
 ax[0,0].set_xscale('log')
 ax[0,0].grid(which='both')
 ax[0,0].text(3e2, 1e-44, '$\\theta = \pi/2$')
-#ax[0,0].legend(loc = 'lower right')
 
 ax[0,1].contour(m_vals, cross_vals, s1s2_1sigma_pi_4_g.reshape(30,30).T, levels=[0], linewidths = 2, zorder = 4, linestyles = '--')
 ax[0,1].contour(m_vals, cross_vals, s1s2_2sigma_pi_4_g.reshape(30,30).T, levels=[0], linestyles = ':')
 ax[0,1].contourf(m_vals, cross_vals, s1s2_3sigma_pi_4_g.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
 ax[0,1].contour(m_vals, cross_vals, s1s2_3sigma_pi_4_g.reshape(30,30).T, levels=[0])
 
-ax[0,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
-ax[0,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
-ax[0,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,1].grid(which='both')
 ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
 ax[0,1].legend(loc = 'lower right')
 
-#ax[1,0].contour(m_vals, cross_vals, int_prob_0.reshape(30,30).T, levels=10, linewidths = 2, zorder = 4, linestyles = '--')
 ax[1,0].contour(m_vals, cross_vals, s1s2_1sigma_mpi_2_g.reshape(30,30).T, levels=[0], linewidths = 2, zorder = 4, linestyles = '--')
 ax[1,0].contour(m_vals, cross_vals, s1s2_2sigma_mpi_2_g.reshape(30,30).T, levels=[0], linestyles = ':')
 ax[1,0].contourf(m_vals, cross_vals, s1s2_3sigma_mpi_2_g.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
 ax[1,0].contour(m_vals, cross_vals, s1s2_3sigma_mpi_2_g.reshape(30,30).T, levels=[0])
 
-ax[1,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-ax[1,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-ax[1,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,0].grid(which='both')
 ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
 
@@ -1940,9 +1893,6 @@ ax[1,1].contour(m_vals, cross_vals, s1s2_2sigma_0_g.reshape(30,30).T, levels=[0]
 ax[1,1].contourf(m_vals, cross_vals, s1s2_3sigma_0_g.reshape(30,30).T, levels=[-1, 0, 1], alpha = 0.6, zorder = 1)
 ax[1,1].contour(m_vals, cross_vals, s1s2_3sigma_0_g.reshape(30,30).T, levels=[0])
 
-ax[1,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-ax[1,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-ax[1,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
 
@@ -1951,13 +1901,14 @@ ax[1,0].set_ylabel('$\sigma [cm^{2}]$')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
-ax[0,0].set_ylim(1e-49, 1e-43)
+ax[0,0].set_ylim(np.min(cross_vals), np.max(cross_vals))
+ax[0,0].set_xlim(np.min(m_vals), np.max(m_vals))
 
-#plt.savefig('../graph/O11_contours_s1s2_m49.pdf')
+plt.savefig('../graph/O11_contours_s1s2_m49.pdf')
 
 
 # +
-levels = [0,0.1,0.16,0.24,0.32]
+levels = 5#[0,0.1,0.16,0.24,0.32]
 
 sigma = 1.41 # this depends on how noisy your data is, play with it!
 
@@ -1973,40 +1924,29 @@ fig.subplots_adjust(hspace = 0, wspace = 0)
 fig00 = ax[0,0].contourf(m_vals, cross_vals, int_prob_pi_2_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,0].contour(m_vals, cross_vals, int_prob_pi_2_g.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 
-#ax[0,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[0,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
+#ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[0,0].set_yscale('log')
 ax[0,0].set_xscale('log')
 ax[0,0].grid(which='both')
 ax[0,0].text(3e2, 1e-44, '$\\theta = \pi/2$')
-ax[0,0].plot(masses, s1s2_90_CL_pi2, color = 'black', linestyle = '-.', label = 'Bin. Lik. [90%]')
+#ax[0,0].plot(masses, s1s2_90_CL_pi2, color = 'black', linestyle = '-.', label = 'Bin. Lik. [90%]')
 ax[0,0].legend(loc = 'lower left')
 
 ax[0,1].contourf(m_vals, cross_vals, int_prob_pi_4_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,1].contour(m_vals, cross_vals, int_prob_pi_4_g.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 
-#ax[0,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
-#ax[0,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
-#ax[0,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,1].grid(which='both')
 ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
 
 ax[1,0].contourf(m_vals, cross_vals, int_prob_mpi_2_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,0].contour(m_vals, cross_vals, int_prob_mpi_2_g.reshape(30,30).T, levels=levels)
 
-#ax[1,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,0].grid(which='both')
 ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
 
 ax[1,1].contourf(m_vals, cross_vals, int_prob_0_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,1].contour(m_vals, cross_vals, int_prob_0_g.reshape(30,30).T, levels=levels)
 
-#ax[1,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
 
@@ -2015,21 +1955,18 @@ ax[1,0].set_ylabel('$\sigma [cm^{2}]$')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
-ax[0,0].set_ylim(1e-49, 1e-43)
+ax[0,0].set_ylim(np.min(cross_vals), np.max(cross_vals))
+ax[0,0].set_xlim(np.min(m_vals), np.max(m_vals))
 
 fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
 cbar = fig.colorbar(fig00, cax=cbar_ax)
 cbar.ax.set_title('$\int_{-\inf}^{\sigma_{th}} P(\sigma|x)$')
 
-ax[0,1].plot(masses, s1s2_90_CL_pi4, color = 'black', linestyle = '-.')
-ax[1,0].plot(masses, s1s2_90_CL_mpi2, color = 'black', linestyle = '-.')
-ax[1,1].plot(masses, s1s2_90_CL_0, color = 'black', linestyle = '-.')
-
-#plt.savefig('../graph/O11_contours_s1s1_int_prob_th49.pdf')
+plt.savefig('../graph/O11_contours_s1s1_int_prob_th49.pdf')
 
 # +
-levels = [0.67, 0.76, 0.84, 0.9, 1]
+levels = 5#[0.67, 0.76, 0.84, 0.9, 1]
 
 sigma = 1.41 # this depends on how noisy your data is, play with it!
 
@@ -2045,42 +1982,29 @@ fig.subplots_adjust(hspace = 0, wspace = 0)
 fig00 = ax[0,0].contourf(m_vals, cross_vals, int_prob_sup_pi_2_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,0].contour(m_vals, cross_vals, int_prob_sup_pi_2_g.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 
-
-#ax[0,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
-#ax[0,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
-ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
+#ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,0].set_yscale('log')
 ax[0,0].set_xscale('log')
 ax[0,0].grid(which='both')
 ax[0,0].text(3e2, 1e-44, '$\\theta = \pi/2$')
-ax[0,0].plot(masses, s1s2_90_CL_pi2, color = 'black', linestyle = '-.', label = 'Bin. Lik. [90%]')
+#ax[0,0].plot(masses, s1s2_90_CL_pi2, color = 'black', linestyle = '-.', label = 'Bin. Lik. [90%]')
 ax[0,0].legend(loc = 'lower left')
 
 ax[0,1].contourf(m_vals, cross_vals, int_prob_sup_pi_4_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,1].contour(m_vals, cross_vals, int_prob_sup_pi_4_g.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 
-#ax[0,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
-#ax[0,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
-#ax[0,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,1].grid(which='both')
 ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
-#ax[0,1].legend()
 
 ax[1,0].contourf(m_vals, cross_vals, int_prob_sup_mpi_2_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,0].contour(m_vals, cross_vals, int_prob_sup_mpi_2_g.reshape(30,30).T, levels=levels)
 
-#ax[1,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,0].grid(which='both')
 ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
 
 ax[1,1].contourf(m_vals, cross_vals, int_prob_sup_0_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,1].contour(m_vals, cross_vals, int_prob_sup_0_g.reshape(30,30).T, levels=levels)
 
-#ax[1,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
 
@@ -2089,7 +2013,8 @@ ax[1,0].set_ylabel('$\sigma [cm^{2}]$')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
-ax[0,0].set_ylim(1e-49, 1e-43)
+ax[0,0].set_ylim(np.min(cross_vals), np.max(cross_vals))
+ax[0,0].set_xlim(np.min(m_vals), np.max(m_vals))
 
 fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
@@ -2100,7 +2025,7 @@ ax[0,1].plot(masses, s1s2_90_CL_pi4, color = 'black', linestyle = '-.')
 ax[1,0].plot(masses, s1s2_90_CL_mpi2, color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, s1s2_90_CL_0, color = 'black', linestyle = '-.')
 
-#plt.savefig('../graph/O11_contours_s1s2_int_prob_sup_th49.pdf')
+plt.savefig('../graph/O11_contours_s1s2_int_prob_sup_th49.pdf')
 # -
 # # Some other plots
 
@@ -2168,7 +2093,7 @@ for itest in bps_ind:
     low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
     up_1sigma = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
     
-    cr_th    = np.argmin(np.abs(x - (-49)))
+    cr_th    = np.argmin(np.abs(x - (-46)))
     int_prob = trapezoid(h1[cr_th:],x[cr_th:]) / trapezoid(h1,x)
     
     levels = [0.67, 0.76, 0.84, 0.9, 1]
@@ -2255,7 +2180,7 @@ for itest in bps_ind:
     low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
     up_1sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
     
-    cr_th    = np.argmin(np.abs(x - (-49)))
+    cr_th    = np.argmin(np.abs(x - (-46)))
     int_prob = trapezoid(h1[cr_th:],x[cr_th:]) / trapezoid(h1,x)
     
     levels = [0.67, 0.76, 0.84, 0.9, 1]
