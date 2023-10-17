@@ -15,6 +15,7 @@ import json
 import os
 from chainconsumer import ChainConsumer
 from scipy import stats
+import matplotlib.pyplot as plt
 
 import time
 
@@ -33,8 +34,8 @@ def log_prob(x, ndim = 3, nparams = 3):
     -----------
         x: Np array.
             Contain the values of a point in the parameter space.
-            x[0] = Log10 of DM mass [GeV]
-            x[1] = Log10 of Cross-section [cm^2]
+            x[0] = DM mass [GeV]
+            x[1] = Cross-section [cm^2]
             x[2] = theta 
             
         forwardModel: Function, optional
@@ -62,7 +63,7 @@ def log_prob(x, ndim = 3, nparams = 3):
     return log_prob_val
 
 
-def forwardModel(x):
+def forwardModel(x, which = 'rate'):
     '''
     This function computes the observable corresponding to a point
       in the parameters space that we are analyzing. 
@@ -72,8 +73,8 @@ def forwardModel(x):
     -----------
         x: Np array.
             Contain the values of a point in the parameter space.
-            x[0] = Log10 of DM mass [GeV]
-            x[1] = Log10 of Cross-section [cm^2]
+            x[0] = DM mass [GeV]
+            x[1] = Cross-section [cm^2]
             x[2] = theta 
             
     Returns:
@@ -81,7 +82,29 @@ def forwardModel(x):
         Np array
             Theoretical Observable.
     '''
+
+    s1_bck = np.random.uniform(1, 100, 3000)
+    s2_bck = np.log(s1_bck) + np.random.normal(0,0.5,3000)
+
+    nsig = int(x[1] * x[2] * 1e50) # Toy model
+
+    if nsig > 0:
+        s1_dm = np.random.uniform(1, 10 * x[0], nsig)
+        s2_dm = np.log(s1_dm) + np.random.normal(0,0.5,nsig)
+
+        s1_tot = np.hstack((s1_bck, s1_dm))
+        s2_tot = np.hstack((s2_bck, s2_dm))
+    else:
+        s1_tot = s1_bck
+        s2_tot = s2_bck
     
+    if which == 'rate':
+        th_observable = 3000 + nsig
+    elif which == 'drate':
+        th_observable, _ = np.histogram(s1_tot, bins = 30)
+    elif which == 's1s2':
+        th_observable,_,_ = np.histogram2d(s1_tot, s2_tot, bins = 35)
+
     return th_observable
 
 
@@ -103,9 +126,9 @@ def log_lik(th_observable, real_observable):
             Logarithmic likelihood.
     '''
 
-    lik = np.sqrt(np.mean( (th_observable - real_observable)**2 )) # Just a chi-square
+    log_lik = np.sqrt(np.mean( (th_observable - real_observable)**2 )) # Just a chi-square
  
-    return lik
+    return - log_lik/2
 
 def log_prior(x, ndim = 3, nparams = 3):
     '''
@@ -133,24 +156,24 @@ def log_prior(x, ndim = 3, nparams = 3):
 #}}}
 
 # Let's choose the benchmark point
-m_dm  = 0 # []
-sigma = 4e-3 # [cm^2]
-theta = 5e-2
+m_dm  = 50 # m_{DM} []
+sigma = 1e-47 # sigma [cm^2]
+theta = 0.1
 
 real_observable = forwardModel([m_dm, sigma, theta])
 
-folder = 'analysis'
+folder = '../data/MultinestAnalysis/BP1'
 
 try:
     os.mkdir(folder)
 except:
     pass
 
-Name = folder + 'chains4000_'
+Name = folder + '/chains100_'
  
-pymultinest.run(log_prob, Prior = log_prior, n_dims = 3, verbose = True, outputfiles_basename= Name, n_live_points = 4000)
+pymultinest.run(log_prob, Prior = log_prior, n_dims = 3, verbose = True, outputfiles_basename= Name, n_live_points = 100)
 
-parameters = [r'$m_{DM}$', r'$\\sigma$', r'$\\theta$']
+parameters = [r'$m_{DM}$', r'$\sigma$', r'$\theta$']
 n_params = len(parameters)
 
 json.dump(parameters, open(Name + 'params.json', 'w')) # save parameter names
@@ -190,10 +213,9 @@ chain.configure(kde = 1.5,
                 shade = [True, True, True])
 
 chain.analysis.get_summary ()
-chain.diagnostic.gelman_rubin()
 chain.plotter.plot(figsize = (10,10), 
                    log_scales = True,
-                   extents = [(1e1, 1e3), (1e-49, 1e-45), (-1.6, 1.6)],
+                   #extents = [(1e1, 1e3), (1e-49, 1e-45), (-1.6, 1.6)],
                    filename = folder + 'multinest_posterior2.pdf',
                    truth = truth)
 
@@ -219,7 +241,7 @@ plt.xscale('log')
 plt.yscale('log')
 plt.xlim(1e1, 1e3)
 plt.xlabel(r'$m_{DM}$ [GeV]')
-plt.ylabel(r'$\\sigma [cm^{2}]$')
+plt.ylabel(r'$\sigma [cm^{2}]$')
 plt.savefig(folder + 'LogLik_BP1.pdf')
 plt.clf()
 #}}}
