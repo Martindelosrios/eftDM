@@ -26,6 +26,10 @@ pallete = np.flip(sns.color_palette("tab20c", 8), axis = 0)
 cross_sec_th = -49
 # -
 
+from playsound import playsound
+
+playsound('/home/martinrios/Downloads/mario.mp3')
+
 from torchsummary import summary
 
 # It is usefull to print the versions of the package that we are using
@@ -457,7 +461,7 @@ dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1],
 trainer_rate.test(network_rate, dm_test_rate)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_rate.fit(network_rate, dm_rate)
     checkpoint_callback.to_yaml("./logs/rate.yaml") 
@@ -525,7 +529,7 @@ A = pars_min[1]
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
 #pars_prior = np.random.uniform(low = pars_min, high = pars_max, size = (100_000, 3))
 #pars_prior = np.random.uniform(low = [6, 1e-50, -1.57], high = [1000, 1e-45, 1.57], size = (100_000, 3))
 #pars_prior[:,0] = np.log10(pars_prior[:,0])
@@ -555,26 +559,18 @@ ratios = ratios[ind_sort]
 cross_sec = cross_sec[ind_sort]
 # -
 
-# trial
-fac = 1e42
-plt.scatter(cross_sec, fac * ratios * (10 ** cross_sec), c = 'blue')
-#plt.scatter(cross_sec0, fac * ratios0 * (10 ** cross_sec0), c = 'red')
-#plt.plot(cross_sec0, ratios0, c = 'red')
 plt.plot(cross_sec, ratios, c = 'blue')
-plt.yscale('log')
+plt.xlabel('$\log_{10}(\sigma)$')
+plt.ylabel('$P(\sigma|x)\ /\ P(\sigma)$')
+#plt.yscale('log')
 #plt.xscale('log')
 
+trapezoid(ratios, cross_sec)
+
 # +
-# trial
 cr_th = np.argmin(np.abs(cross_sec + 49))
 
-trapezoid(fac * ratios[cr_th:] * (10 ** cross_sec[cr_th:]), cross_sec[cr_th:]) / trapezoid(fac * ratios * (10 ** cross_sec), cross_sec)
-
-# +
-# trial
-cr_th = np.argmin(np.abs(cross_sec0 + 49))
-
-trapezoid(fac * ratios0[cr_th:] * (10 ** cross_sec0[cr_th:]), cross_sec0[cr_th:]) / trapezoid(fac * ratios0 * (10 ** cross_sec0), cross_sec0)
+trapezoid(ratios[cr_th:], cross_sec[cr_th:]) / trapezoid(ratios, cross_sec)
 
 # +
 bins = 50
@@ -589,33 +585,6 @@ h1       = np.array(h1)
 edges = torch.linspace(v.min(), v.max(), bins + 1)
 x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
 #x     = 10**(x)
-# -
-
-# trial
-x * B + A
-
-A
-
-# trial
-plt.plot(x * B + A + 45, h1)
-plt.plot(x * B + A + 45, 10**(x * B + A + 45), linestyle = ':')
-plt.yscale('log')
-#plt.xscale('log')
-#plt.xlim(1e-49, 1e-44)
-plt.axvline(x=(-46.5 - A) / B)
-
-# trial
-offset = 45
-th = (-47.5 - A) / B
-cr_th = np.argmin(np.abs(x - th))
-x_aux = x[cr_th:] * B + A + offset
-trapezoid(h1[cr_th:] * (10**x_aux), x_aux)
-
-# +
-# trial
-
-x_aux = x * B + A + offset
-trapezoid(h1 * (10 ** x_aux), x_aux)
 
 # +
 cross_section_th = -49
@@ -660,17 +629,12 @@ plt.ylabel('$P(\sigma|x)$')
 plt.text(-50,3, '$m = {:.2e}$'.format(10**(pars_true[0])))
 plt.text(-50,2.8, '$\sigma = {:.2e}$'.format(10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])))
 plt.text(-50,2.5, '$\\theta = {:.2f}$'.format(pars_true[0]))
+plt.plot(cross_sec, ratios, c = 'blue')
+
 if flag == 'exc':
     plt.savefig('../graph/1Dposterior_rate_exc_' + str(i) + '.pdf')
 else:
     plt.savefig('../graph/1Dposterior_rate_' + str(i) + '.pdf')
-
-# +
-swyft.plot_1d(predictions_rate, "pars_norm[1]", bins = 50, smooth = 1)
-plt.plot(x, h1, c = 'blue')
-#plt.plot(zm, v, c = 'magenta', linestyle = '--')
-
-#swyft.plot.plot2.contour1d(x, h1, vals, linestyle = ':', alpha = 0.2, color = 'magenta')
 # -
 
 parameters_rate = np.asarray(predictions_rate[0].params[:,:,0])
@@ -817,17 +781,19 @@ else:
 
 # ### Let's make the contour plot
 
-# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-0
+# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2
+
+pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/'])
 
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v5/'
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v5/'
          ]
 
 
@@ -838,9 +804,9 @@ int_prob_sup_full = []
 for folder in folders:
     pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
     
-    if (os.path.exists(folder + 'sigma_rate_ful.txt') & 
-        os.path.exists(folder + 'int_prob_rate_full.txt') &
-        os.path.exists(folder + 'int_prob_sup_rate_full.txt')) == False:
+    if (os.path.exists(folder + 'sigmas_rate.txt') & 
+        os.path.exists(folder + 'int_prob_rate.txt') &
+        os.path.exists(folder + 'int_prob_sup_rate.txt')) == False:
         # Let's normalize testset between 0 and 1
         
         pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
@@ -889,24 +855,23 @@ for folder in folders:
             sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             
-            cr_th = np.argmin(np.abs(x - (-47)))
-            x_aux = x + 45
-            int_prob[itest]     = trapezoid(h1[:cr_th] * (10**x_aux[:cr_th]), x_aux[:cr_th]) / trapezoid(h1 * (10**x_aux), x_aux)
-            int_prob_sup[itest] = trapezoid(h1[cr_th:] * (10**x_aux[cr_th:]), x_aux[cr_th:]) / trapezoid(h1 * (10**x_aux), x_aux)
+            cr_th = np.argmin(np.abs(x - (-49)))
+            int_prob[itest]     = trapezoid(h1[:cr_th], x[:cr_th]) / trapezoid(h1, x)
+            int_prob_sup[itest] = trapezoid(h1[cr_th:], x[cr_th:]) / trapezoid(h1, x)
 
         sigmas_full.append(sigmas)
         int_prob_full.append(int_prob)
         int_prob_sup_full.append(int_prob_sup)
             
-        np.savetxt(folder + 'sigmas_rate_full.txt', sigmas)
-        np.savetxt(folder + 'int_prob_rate_full.txt', int_prob)
-        np.savetxt(folder + 'int_prob_sup_rate_full.txt', int_prob_sup)
+        np.savetxt(folder + 'sigmas_rate.txt', sigmas)
+        np.savetxt(folder + 'int_prob_rate.txt', int_prob)
+        np.savetxt(folder + 'int_prob_sup_rate.txt', int_prob_sup)
     else:
         print('pre-computed')
                 
-        sigmas = np.loadtxt(folder + 'sigmas_rate_full.txt')
-        int_prob = np.loadtxt(folder + 'int_prob_rate_full.txt')
-        int_prob_sup = np.loadtxt(folder + 'int_prob_sup_rate_full.txt')
+        sigmas = np.loadtxt(folder + 'sigmas_rate.txt')
+        int_prob = np.loadtxt(folder + 'int_prob_rate.txt')
+        int_prob_sup = np.loadtxt(folder + 'int_prob_sup_rate.txt')
         
         sigmas_full.append(sigmas)
         int_prob_full.append(int_prob)
@@ -916,20 +881,20 @@ for folder in folders:
 cross_section_th = -49
 
 if len(int_prob_full) > 1:
-    int_prob_0     = np.mean(np.asarray(int_prob_full), axis = 0)
-    int_prob_sup_0 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
+    int_prob_pi_2     = np.mean(np.asarray(int_prob_full), axis = 0)
+    int_prob_sup_pi_2 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
     sigmas = np.mean(np.asarray(sigmas_full), axis = 0)
 else:
-    int_prob_0 = int_prob
-    int_prob_sup_0 = int_prob_sup
+    int_prob_pi_2 = int_prob
+    int_prob_sup_pi_2 = int_prob_sup
 
-rate_1sigma_0 = np.ones(900) * -99
-rate_2sigma_0 = np.ones(900) * -99
-rate_3sigma_0 = np.ones(900) * -99
+rate_1sigma_pi_2 = np.ones(900) * -99
+rate_2sigma_pi_2 = np.ones(900) * -99
+rate_3sigma_pi_2 = np.ones(900) * -99
 
-rate_1sigma_0[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
-rate_2sigma_0[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
-rate_3sigma_0[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
+rate_1sigma_pi_2[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
+rate_2sigma_pi_2[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
+rate_3sigma_pi_2[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
 
 # +
 #rate_1sigma_pi_2 = rate_1sigma_pi_2.reshape(5,30,30)
@@ -1032,7 +997,7 @@ ax[0,0].set_ylim(1e-49, 1e-43)
 #plt.savefig('../graph/contours_rate_m49.pdf')
 
 # +
-levels = 5#[0, 0.1, 0.16, 0.24, 0.32]
+levels = [0, 0.1, 0.16, 0.24, 0.32]
 
 sigma = 1.81 # this depends on how noisy your data is, play with it!
 
@@ -1103,7 +1068,7 @@ ax[1,1].plot(masses, rate_90_CL_0, color = 'black', linestyle = '-.')
 #plt.savefig('../graph/contours_rate_int_prob_th49.pdf')
 
 # +
-levels = 5#[0.67, 0.76, 0.84, 0.9, 1] 
+levels = [0.67, 0.76, 0.84, 0.9, 1] 
 
 sigma = 1.21 # this depends on how noisy your data is, play with it!
 
@@ -1230,17 +1195,49 @@ dm_drate = swyft.SwyftDataModule(samples_drate, fractions = [0.7, 0.25, 0.05], b
 
 # Now let's define a network that estimates all the 1D and 2D marginal posteriors
 class Network(swyft.SwyftModule):
-    def __init__(self):
+    def __init__(self, lr = 1e-3, gamma = 1.):
         super().__init__()
+        self.optimizer_init = swyft.OptimizerInit(torch.optim.Adam, dict(lr = lr, weight_decay=1e-5),
+              torch.optim.lr_scheduler.ExponentialLR, dict(gamma = gamma))
+        self.net = torch.nn.Sequential(
+          torch.nn.Linear(58, 500),
+          torch.nn.ReLU(),
+          torch.nn.Linear(500, 1000),
+          torch.nn.ReLU(),
+          torch.nn.Linear(1000, 500),
+          torch.nn.ReLU(),
+          torch.nn.Linear(500, 50),
+          torch.nn.ReLU(),
+          #torch.nn.Dropout(0.2),
+          torch.nn.Linear(50, 5)
+        )
         marginals = ((0, 1), (0, 2), (1, 2))
-        self.logratios1 = swyft.LogRatioEstimator_1dim(num_features = 58, num_params = 3, varnames = 'pars_norm')
-        self.logratios2 = swyft.LogRatioEstimator_Ndim(num_features = 58, marginals = marginals, varnames = 'pars_norm')
+        self.logratios1 = swyft.LogRatioEstimator_1dim(num_features = 5, num_params = 3, varnames = 'pars_norm')
+        self.logratios2 = swyft.LogRatioEstimator_Ndim(num_features = 5, marginals = marginals, varnames = 'pars_norm')
 
     def forward(self, A, B):
-        logratios1 = self.logratios1(A['x'], B['z'])
-        logratios2 = self.logratios2(A['x'], B['z'])
+        img = torch.tensor(A['x'])
+        #z   = torch.tensor(B['z'])
+        f   = self.net(img)
+        logratios1 = self.logratios1(f, B['z'])
+        logratios2 = self.logratios2(f, B['z'])
         return logratios1, logratios2
 
+
+# +
+### Now let's define a network that estimates all the 1D and 2D marginal posteriors
+###class Network(swyft.SwyftModule):
+###    def __init__(self):
+###        super().__init__()
+###        marginals = ((0, 1), (0, 2), (1, 2))
+###        self.logratios1 = swyft.LogRatioEstimator_1dim(num_features = 58, num_params = 3, varnames = 'pars_norm')
+###        self.logratios2 = swyft.LogRatioEstimator_Ndim(num_features = 58, marginals = marginals, varnames = 'pars_norm')
+###
+###    def forward(self, A, B):
+###        logratios1 = self.logratios1(A['x'], B['z'])
+###        logratios2 = self.logratios2(A['x'], B['z'])
+###        return logratios1, logratios2
+# -
 
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
@@ -1290,7 +1287,7 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate, ckpt_path = ckpt_path)
 
 # ---------------------------------------------- 
-# It converges to -0.6 @ testset
+# It converges to -1.46 @ testset
 # ---------------------------------------------- 
 # -
 
@@ -1558,17 +1555,17 @@ else:
 
 # ### Let's make the contour plot
 
-# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2
+# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv4
 
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2/'#,
-           #'../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v2/',
-           #'../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v3/',
-           #'../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v4/',
-           #'../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v5/'
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v5/'
          ]
 
 
@@ -1579,9 +1576,9 @@ int_prob_sup_full = []
 for folder in folders:
     pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
     
-    if (os.path.exists(folder + 'sigma_rate_ful.txt') & 
-        os.path.exists(folder + 'int_prob_rate_full.txt') &
-        os.path.exists(folder + 'int_prob_sup_rate_full.txt')) == False:
+    if (os.path.exists(folder + 'sigmas_drat.txt') & 
+        os.path.exists(folder + 'int_prob_drate.txt') &
+        os.path.exists(folder + 'int_prob_sup_drate.txt')) == False:
         # Let's normalize testset between 0 and 1
         
         pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
@@ -1628,10 +1625,9 @@ for folder in folders:
             sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             
-            cr_th = np.argmin(np.abs(x - (-47)))
-            x_aux = x + 45
-            int_prob[itest]     = trapezoid(h1[:cr_th] * (10**x_aux[:cr_th]), x_aux[:cr_th]) / trapezoid(h1 * (10**x_aux), x_aux)
-            int_prob_sup[itest] = trapezoid(h1[cr_th:] * (10**x_aux[cr_th:]), x_aux[cr_th:]) / trapezoid(h1 * (10**x_aux), x_aux)
+            cr_th = np.argmin(np.abs(x - (-49)))
+            int_prob[itest]     = trapezoid(h1[:cr_th], x[:cr_th]) / trapezoid(h1, x)
+            int_prob_sup[itest] = trapezoid(h1[cr_th:], x[cr_th:]) / trapezoid(h1, x)
 
         sigmas_full.append(sigmas)
         int_prob_full.append(int_prob)
@@ -1649,26 +1645,26 @@ for folder in folders:
         
         sigmas_full.append(sigmas)
         int_prob_full.append(int_prob)
-        int_prob_sup_full.append(int_prob_su2)
+        int_prob_sup_full.append(int_prob_sup)
 
 # +
 cross_section_th = -49
 
 if len(int_prob_full) > 1:
-    int_prob_mpi_2     = np.mean(np.asarray(int_prob_full), axis = 0)
-    int_prob_sup_mpi_2 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
+    int_prob_0     = np.mean(np.asarray(int_prob_full), axis = 0)
+    int_prob_sup_0 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
     sigmas = np.mean(np.asarray(sigmas_full), axis = 0)
 else:
-    int_prob_mpi_2 = int_prob
-    int_prob_sup_mpi_2 = int_prob_sup
+    int_prob_0 = int_prob
+    int_prob_sup_0 = int_prob_sup
 
-rate_1sigma_mpi_2 = np.ones(900) * -99
-rate_2sigma_mpi_2 = np.ones(900) * -99
-rate_3sigma_mpi_2 = np.ones(900) * -99
+rate_1sigma_0 = np.ones(900) * -99
+rate_2sigma_0 = np.ones(900) * -99
+rate_3sigma_0 = np.ones(900) * -99
 
-rate_1sigma_mpi_2[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
-rate_2sigma_mpi_2[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
-rate_3sigma_mpi_2[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
+rate_1sigma_0[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
+rate_2sigma_0[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
+rate_3sigma_0[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
 # -
 
 sbn.kdeplot(int_prob_sup_0, label = '$\\theta = 0$')
@@ -1681,7 +1677,7 @@ plt.xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
 plt.title('Total Rate')
 
 # +
-levels = 5#[0.67, 0.76, 0.84, 0.9, 1] 
+levels = [0.67, 0.76, 0.84, 0.9, 1] 
 
 sigma = 1.21 # this depends on how noisy your data is, play with it!
 
@@ -1695,6 +1691,7 @@ fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
 
 fig00 = ax[0,0].contourf(m_vals, cross_vals, int_prob_sup_pi_2_drate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,0].contour(m_vals, cross_vals, int_prob_sup_pi_2_drate.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
+ax[0,0].contour(m_vals, cross_vals, int_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
 
 ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,0].set_yscale('log')
@@ -1706,18 +1703,21 @@ ax[0,0].legend(loc = 'lower left')
 
 ax[0,1].contourf(m_vals, cross_vals, int_prob_sup_pi_4_drate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,1].contour(m_vals, cross_vals, int_prob_sup_pi_4_drate.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
+ax[0,1].contour(m_vals, cross_vals, int_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
 
 ax[0,1].grid(which='both')
 ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
 
 ax[1,0].contourf(m_vals, cross_vals, int_prob_sup_mpi_2_drate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,0].contour(m_vals, cross_vals, int_prob_sup_mpi_2_drate.reshape(30,30).T, levels=levels)
+ax[1,0].contour(m_vals, cross_vals, int_prob_sup_mpi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
 
 ax[1,0].grid(which='both')
 ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
 
 ax[1,1].contourf(m_vals, cross_vals, int_prob_sup_0_drate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,1].contour(m_vals, cross_vals, int_prob_sup_0_drate.reshape(30,30).T, levels=levels)
+ax[1,1].contour(m_vals, cross_vals, int_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
 
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
@@ -1866,7 +1866,7 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
     checkpoint_callback.to_yaml("./logs/s1s2.yaml") 
@@ -1892,7 +1892,7 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2, ckpt_path = ckpt_path)
 
 # ---------------------------------------
-# Min val loss value at 7 epochs. -1.24 @ testset
+# Min val loss value at 7 epochs. -1.42 @ testset
 # ---------------------------------------
 
 # -
@@ -2135,7 +2135,7 @@ else:
 # -
 # ### Let's make the contour plot
 
-# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-0
+# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-
 
 pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/'])
 
@@ -2254,9 +2254,9 @@ s1s2_3sigma_0[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
 
 sbn.kdeplot(int_prob_sup_0, label = '$\\theta = 0$')
 sbn.kdeplot(int_prob_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$')
-#sbn.kdeplot(int_prob_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$')
+sbn.kdeplot(int_prob_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$')
 sbn.kdeplot(int_prob_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$')
-#sbn.kdeplot(int_prob_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$')
+sbn.kdeplot(int_prob_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$')
 plt.legend()
 plt.xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
 plt.title('S1-S2')
@@ -2418,8 +2418,6 @@ ax[1,1].plot(masses, s1s2_90_CL_0, color = 'black', linestyle = '-.')
 #plt.savefig('../graph/contours_s1s1_int_prob_th49.pdf')
 
 # +
-levels = [0.67, 0.76, 0.84, 0.9, 1]
-
 sigma = 1.41 # this depends on how noisy your data is, play with it!
 
 int_prob_sup_0_s1s2 = gaussian_filter(int_prob_sup_0, sigma)
@@ -2428,12 +2426,16 @@ int_prob_sup_pi_4_s1s2 = gaussian_filter(int_prob_sup_pi_4, sigma)
 int_prob_sup_mpi_2_s1s2 = gaussian_filter(int_prob_sup_mpi_2, sigma)
 int_prob_sup_mpi_4_s1s2 = gaussian_filter(int_prob_sup_mpi_4, sigma)
 
+# +
+levels = [0.67, 0.76, 0.84, 0.9, 1]
+
 fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
 fig.subplots_adjust(hspace = 0, wspace = 0)
 
 fig00 = ax[0,0].contourf(m_vals, cross_vals, int_prob_sup_pi_2_s1s2.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,0].contour(m_vals, cross_vals, int_prob_sup_pi_2_s1s2.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
-
+ax[0,0].contour(m_vals, cross_vals, int_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
+ax[0,0].contour(m_vals, cross_vals, int_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
 
 #ax[0,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
 #ax[0,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
@@ -2447,6 +2449,8 @@ ax[0,0].legend(loc = 'lower left')
 
 ax[0,1].contourf(m_vals, cross_vals, int_prob_sup_pi_4_s1s2.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,1].contour(m_vals, cross_vals, int_prob_sup_pi_4_s1s2.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
+ax[0,1].contour(m_vals, cross_vals, int_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
+ax[0,1].contour(m_vals, cross_vals, int_prob_sup_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
 
 #ax[0,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
 #ax[0,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
@@ -2457,6 +2461,8 @@ ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
 
 ax[1,0].contourf(m_vals, cross_vals, int_prob_sup_mpi_2_s1s2.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,0].contour(m_vals, cross_vals, int_prob_sup_mpi_2_s1s2.reshape(30,30).T, levels=levels)
+ax[1,0].contour(m_vals, cross_vals, int_prob_sup_mpi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
+ax[1,0].contour(m_vals, cross_vals, int_prob_sup_mpi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
 
 #ax[1,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
 #ax[1,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
@@ -2466,6 +2472,8 @@ ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
 
 ax[1,1].contourf(m_vals, cross_vals, int_prob_sup_0_s1s2.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,1].contour(m_vals, cross_vals, int_prob_sup_0_s1s2.reshape(30,30).T, levels=levels)
+ax[1,1].contour(m_vals, cross_vals, int_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
+ax[1,1].contour(m_vals, cross_vals, int_prob_sup_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
 
 #ax[1,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
 #ax[1,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
@@ -2490,7 +2498,67 @@ ax[1,0].plot(masses, s1s2_90_CL_mpi2, color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, s1s2_90_CL_0, color = 'black', linestyle = '-.')
 
 #plt.savefig('../graph/contours_s1s2_int_prob_sup_th49.pdf')
+# +
+levels = [0.67, 0.76, 0.84, 0.9, 1]
+
+color_rate = "#d55e00"
+color_drate = "#0072b2"
+color_s1s2 = "#009e73"
+
+fig, ax = plt.subplots(1,3, sharex = True, sharey = True, figsize = (12,5))
+fig.subplots_adjust(hspace = 0, wspace = 0)
+
+ax[0].contour(m_vals, cross_vals, int_prob_sup_pi_2_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_s1s2)
+ax[0].contour(m_vals, cross_vals, int_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
+ax[0].contour(m_vals, cross_vals, int_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '-.', colors = color_drate)
+
+ax[0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]', linestyle = ':')
+ax[0].plot(masses, s1s2_90_CL_pi2, color = 'black', linestyle = ':', label = 'Bin. Lik. [90%]')
+ax[0].set_yscale('log')
+ax[0].set_xscale('log')
+ax[0].grid(which='both')
+ax[0].text(3e2, 1e-44, '$\\theta = \pi/2$')
+ax[0].legend(loc = 'lower left')
+
+ax[1].contour(m_vals, cross_vals, int_prob_sup_pi_4_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_s1s2)
+ax[1].contour(m_vals, cross_vals, int_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
+ax[1].contour(m_vals, cross_vals, int_prob_sup_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '-.', colors = color_drate)
+ax[1].plot(masses, s1s2_90_CL_pi4, color = 'black', linestyle = ':')
+
+ax[1].grid(which='both')
+ax[1].text(3e2, 1e-44, '$\\theta = \pi/4$')
+
+ax[2].contour(m_vals, cross_vals, int_prob_sup_0_s1s2.reshape(30,30).T, levels = [0.9], colors = color_s1s2)
+ax[2].contour(m_vals, cross_vals, int_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
+ax[2].contour(m_vals, cross_vals, int_prob_sup_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '-.', colors = color_drate)
+ax[2].plot(masses, s1s2_90_CL_0, color = 'black', linestyle = ':')
+
+ax[2].grid(which='both')
+ax[2].text(3e2, 1e-44, '$\\theta = 0$')
+
+ax[0].set_ylabel('$\sigma \ [cm^{2}]$')
+ax[0].set_xlabel('m [GeV]')
+ax[1].set_xlabel('m [GeV]')
+ax[2].set_xlabel('m [GeV]')
+
+ax[0].set_ylim(1e-49, 1e-43)
+ax[0].set_xlim(6, 1.2e3)
+
+fig.subplots_adjust(right=0.8)
+
+custom_lines = []
+labels = ['Total Rate', 'Dif. Rate', 'S1-S2']
+markers = ['--','-.', 'solid']
+colors = [color_rate, color_drate, color_s1s2]
+for i in range(3):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+            label = labels[i]) )
+    
+ax[1].legend(handles = custom_lines, loc = 'lower left')
+
+plt.savefig('../graph/contours_all_int_prob_sup_th49.pdf')
 # -
+
 # # Some other plots
 
 
