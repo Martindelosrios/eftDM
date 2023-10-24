@@ -61,12 +61,12 @@ def read_slice(datFolder):
             pars_slices      = np.loadtxt(folder + 'pars.txt') # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
             rate_raw_slices  = np.loadtxt(folder + 'rate.txt') # rate[:,0] = total expected events ; rate[:,1] = expected signal ; rate[:,2] = # events pseudo-experiment ; rate[:,3] = # signal events pseudo-experiment 
             
-            diff_rate_WIMP     = np.loadtxt(folder + 'diff_rate_WIMP.txt')
-            diff_rate_er       = np.loadtxt(folder + 'diff_rate_er.txt')
-            diff_rate_ac       = np.loadtxt(folder + 'diff_rate_ac.txt')
-            diff_rate_cevns_SM = np.loadtxt(folder + 'diff_rate_CEVNS-SM.txt')
-            diff_rate_radio    = np.loadtxt(folder + 'diff_rate_radiogenics.txt')
-            diff_rate_wall     = np.loadtxt(folder + 'diff_rate_wall.txt')
+            #diff_rate_WIMP     = np.loadtxt(folder + 'diff_rate_WIMP.txt')
+            #diff_rate_er       = np.loadtxt(folder + 'diff_rate_er.txt')
+            #diff_rate_ac       = np.loadtxt(folder + 'diff_rate_ac.txt')
+            #diff_rate_cevns_SM = np.loadtxt(folder + 'diff_rate_CEVNS-SM.txt')
+            #diff_rate_radio    = np.loadtxt(folder + 'diff_rate_radiogenics.txt')
+            #diff_rate_wall     = np.loadtxt(folder + 'diff_rate_wall.txt')
             
             s1s2_WIMP_slices     = np.loadtxt(folder + 's1s2_WIMP.txt')
             s1s2_er_slices       = np.loadtxt(folder + 's1s2_er.txt')
@@ -78,12 +78,12 @@ def read_slice(datFolder):
             pars_slices      = np.vstack((pars_slices, np.loadtxt(folder + 'pars.txt'))) # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
             rate_raw_slices  = np.vstack((rate_raw_slices, np.loadtxt(folder + 'rate.txt'))) # rate[:,0] = total expected events ; rate[:,1] = expected signal ; rate[:,2] = # events pseudo-experiment ; rate[:,3] = # signal events pseudo-experiment 
             
-            diff_rate_WIMP     = np.vstack((diff_rate_WIMP, np.loadtxt(folder + 'diff_rate_WIMP.txt') ))
-            diff_rate_er       = np.vstack((diff_rate_er, np.loadtxt(folder + 'diff_rate_er.txt') ))
-            diff_rate_ac       = np.vstack((diff_rate_ac, np.loadtxt(folder + 'diff_rate_ac.txt') ))
-            diff_rate_cevns_SM = np.vstack((diff_rate_cevns_SM, np.loadtxt(folder + 'diff_rate_CEVNS-SM.txt') ))
-            diff_rate_radio    = np.vstack((diff_rate_radio, np.loadtxt(folder + 'diff_rate_radiogenics.txt') ))
-            diff_rate_wall     = np.vstack((diff_rate_wall, np.loadtxt(folder + 'diff_rate_wall.txt') ))
+            #diff_rate_WIMP     = np.vstack((diff_rate_WIMP, np.loadtxt(folder + 'diff_rate_WIMP.txt') ))
+            #diff_rate_er       = np.vstack((diff_rate_er, np.loadtxt(folder + 'diff_rate_er.txt') ))
+            #diff_rate_ac       = np.vstack((diff_rate_ac, np.loadtxt(folder + 'diff_rate_ac.txt') ))
+            #diff_rate_cevns_SM = np.vstack((diff_rate_cevns_SM, np.loadtxt(folder + 'diff_rate_CEVNS-SM.txt') ))
+            #diff_rate_radio    = np.vstack((diff_rate_radio, np.loadtxt(folder + 'diff_rate_radiogenics.txt') ))
+            #diff_rate_wall     = np.vstack((diff_rate_wall, np.loadtxt(folder + 'diff_rate_wall.txt') ))
             
             s1s2_WIMP_slices     = np.vstack((s1s2_WIMP_slices, np.loadtxt(folder + 's1s2_WIMP.txt')))
             s1s2_er_slices       = np.vstack((s1s2_er_slices, np.loadtxt(folder + 's1s2_er.txt')))
@@ -100,7 +100,7 @@ def read_slice(datFolder):
     rate_slices = np.sum(s1s2_slices, axis = 1) # Just to have the same as on the other notebooks. This already includes the backgrounds
     s1s2_slices = s1s2_slices.reshape(nobs_slices, 97, 97)
 
-    diff_rate_slices = diff_rate_WIMP + diff_rate_er + diff_rate_ac + diff_rate_cevns_SM + diff_rate_radio + diff_rate_wall
+    diff_rate_slices = 0#diff_rate_WIMP + diff_rate_er + diff_rate_ac + diff_rate_cevns_SM + diff_rate_radio + diff_rate_wall
     
     # Let's work with the log of the mass and cross-section
     
@@ -134,12 +134,11 @@ def plot_1dpost(x, h1, ax, low_1sigma = None, up_1sigma = None, alpha = 1, color
 
 # # Let's load the data
 
-# !ls ../data/andresData/SI-run0and1/SI-run01
+# !ls ../data/andresData/O4-fulldata/O4/O4-run01
 
 # +
 # where are your files?
-datFolder = ['../data/andresData/SI-run0and1/SI-run01/', 
-             '../data/andresData/SI-run0and1/SI-run02/']
+datFolder = ['../data/andresData/O4-fulldata/O4/O4-run01/']
 nobs = 0
 for i, folder in enumerate(datFolder):
     print(i)
@@ -147,12 +146,12 @@ for i, folder in enumerate(datFolder):
         pars      = np.loadtxt(folder + 'pars.txt') # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
         rate_raw  = np.loadtxt(folder + 'rate.txt') # rate[:,0] = total expected events ; rate[:,1] = expected signal ; rate[:,2] = # events pseudo-experiment ; rate[:,3] = # signal events pseudo-experiment 
         
-        diff_rate_WIMP     = np.loadtxt(folder + 'diff_rate_WIMP.txt')
-        diff_rate_er       = np.loadtxt(folder + 'diff_rate_er.txt')
-        diff_rate_ac       = np.loadtxt(folder + 'diff_rate_ac.txt')
-        diff_rate_cevns_SM = np.loadtxt(folder + 'diff_rate_CEVNS-SM.txt')
-        diff_rate_radio    = np.loadtxt(folder + 'diff_rate_radiogenics.txt')
-        diff_rate_wall     = np.loadtxt(folder + 'diff_rate_wall.txt')
+        #diff_rate_WIMP     = np.loadtxt(folder + 'diff_rate_WIMP.txt')
+        #diff_rate_er       = np.loadtxt(folder + 'diff_rate_er.txt')
+        #diff_rate_ac       = np.loadtxt(folder + 'diff_rate_ac.txt')
+        #diff_rate_cevns_SM = np.loadtxt(folder + 'diff_rate_CEVNS-SM.txt')
+        #diff_rate_radio    = np.loadtxt(folder + 'diff_rate_radiogenics.txt')
+        #diff_rate_wall     = np.loadtxt(folder + 'diff_rate_wall.txt')
         
         s1s2_WIMP     = np.loadtxt(folder + 's1s2_WIMP.txt')
         s1s2_er       = np.loadtxt(folder + 's1s2_er.txt')
@@ -164,12 +163,12 @@ for i, folder in enumerate(datFolder):
         pars      = np.vstack((pars, np.loadtxt(folder + 'pars.txt'))) # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
         rate_raw  = np.vstack((rate_raw, np.loadtxt(folder + 'rate.txt'))) # rate[:,0] = total expected events ; rate[:,1] = expected signal ; rate[:,2] = # events pseudo-experiment ; rate[:,3] = # signal events pseudo-experiment 
         
-        diff_rate_WIMP     = np.vstack(( diff_rate_WIMP, np.loadtxt(folder + 'diff_rate_WIMP.txt')))
-        diff_rate_er       = np.vstack(( diff_rate_er, np.loadtxt(folder + 'diff_rate_er.txt')))
-        diff_rate_ac       = np.vstack(( diff_rate_ac, np.loadtxt(folder + 'diff_rate_ac.txt')))
-        diff_rate_cevns_SM = np.vstack(( diff_rate_cevns_SM, np.loadtxt(folder + 'diff_rate_CEVNS-SM.txt')))
-        diff_rate_radio    = np.vstack(( diff_rate_radio, np.loadtxt(folder + 'diff_rate_radiogenics.txt')))
-        diff_rate_wall     = np.vstack(( diff_rate_wall, np.loadtxt(folder + 'diff_rate_wall.txt')))
+        #diff_rate_WIMP     = np.vstack(( diff_rate_WIMP, np.loadtxt(folder + 'diff_rate_WIMP.txt')))
+        #diff_rate_er       = np.vstack(( diff_rate_er, np.loadtxt(folder + 'diff_rate_er.txt')))
+        #diff_rate_ac       = np.vstack(( diff_rate_ac, np.loadtxt(folder + 'diff_rate_ac.txt')))
+        #diff_rate_cevns_SM = np.vstack(( diff_rate_cevns_SM, np.loadtxt(folder + 'diff_rate_CEVNS-SM.txt')))
+        #diff_rate_radio    = np.vstack(( diff_rate_radio, np.loadtxt(folder + 'diff_rate_radiogenics.txt')))
+        #diff_rate_wall     = np.vstack(( diff_rate_wall, np.loadtxt(folder + 'diff_rate_wall.txt')))
         
         s1s2_WIMP     = np.vstack((s1s2_WIMP, np.loadtxt(folder + 's1s2_WIMP.txt')))
         s1s2_er       = np.vstack((s1s2_er, np.loadtxt(folder + 's1s2_er.txt')))
@@ -182,7 +181,7 @@ for i, folder in enumerate(datFolder):
 nobs = len(pars) # Total number of observations
 print('We have ' + str(nobs) + ' observations...')
 
-diff_rate = diff_rate_WIMP + diff_rate_er + diff_rate_ac + diff_rate_cevns_SM + diff_rate_radio + diff_rate_wall
+#diff_rate = diff_rate_WIMP + diff_rate_er + diff_rate_ac + diff_rate_cevns_SM + diff_rate_radio + diff_rate_wall
 
 s1s2 = s1s2_WIMP + s1s2_er + s1s2_ac + s1s2_cevns_SM + s1s2_radio + s1s2_wall
 rate = np.sum(s1s2, axis = 1) # Just to have the same as on the other notebooks. This already includes the backgrounds
@@ -201,7 +200,7 @@ pars[:,1] = np.log10(pars[:,1])
 # This should be always zero
 i = np.random.randint(nobs)
 rate_raw[i,2] - rate[i]
-rate_raw[i,2] - np.sum(diff_rate[i,:])
+#rate_raw[i,2] - np.sum(diff_rate[i,:])
 
 # +
 ###################
@@ -211,7 +210,7 @@ rate_raw[i,2] - np.sum(diff_rate[i,:])
 
 print(pars.shape)
 print(rate.shape)
-print(diff_rate.shape)
+#print(diff_rate.shape)
 
 # these are heavy guys:
 # signal:
@@ -233,7 +232,7 @@ print(np.loadtxt(folder+'s1s2_EVES-SM.txt').shape)
 
 print(pars.shape)
 print(rate.shape)
-print(diff_rate.shape)
+#print(diff_rate.shape)
 print(s1s2.shape)
 
 # +
@@ -258,15 +257,17 @@ rate_trainset = rate[train_ind]
 rate_valset   = rate[val_ind]
 rate_testset  = rate[test_ind]
 
-diff_rate_trainset = diff_rate[train_ind,:]
-diff_rate_valset   = diff_rate[val_ind,:]
-diff_rate_testset  = diff_rate[test_ind,:]
+#diff_rate_trainset = diff_rate[train_ind,:]
+#diff_rate_valset   = diff_rate[val_ind,:]
+#diff_rate_testset  = diff_rate[test_ind,:]
 
 s1s2_trainset = s1s2[train_ind,:,:]
 s1s2_valset   = s1s2[val_ind,:,:]
 s1s2_testset  = s1s2[test_ind,:,:]
 
 # -
+
+neutrino_fog = np.loadtxt('../data/neutrino_fog.csv', skiprows = 1, delimiter = ',')
 
 # ## Xenon data
 #
@@ -276,97 +277,34 @@ xenon_nt_5s   = np.loadtxt('../data/xenon_nt_5sigma.csv', skiprows = 1, delimite
 xenon_nt_3s   = np.loadtxt('../data/xenon_nt_3sigma.csv', skiprows = 1, delimiter = ',')
 xenon_nt_90cl = np.loadtxt('../data/xenon_nt_90cl.csv', skiprows = 1, delimiter = ',')
 
-# !ls ../data/andresData/BL-constraints-PARAO1/BL-constraints/
-
-rate_90_CL_pi2.shape
+# !ls ../data/andresData/BL-constraints-PARAO4/BL-constraints/
 
 # +
-masses = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/masses.txt')
+masses = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/masses.txt')[:30]
 
-rate_90_CL_pi2  = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-rate-thetapi2.txt')
-rate_90_CL_pi4  = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-rate-thetapi4.txt')
-rate_90_CL_0    = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-rate-theta0.txt')
-rate_90_CL_mpi2 = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-rate-thetampi2.txt')
-rate_90_CL_mpi4 = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-rate-thetampi4.txt')
+rate_90_CL_pi2  = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-rate-thetapi2.txt')
+rate_90_CL_pi4  = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-rate-thetapi4.txt')
+rate_90_CL_0    = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-rate-theta0.txt')
+rate_90_CL_mpi2 = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-rate-thetampi2.txt')
+rate_90_CL_mpi4 = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-rate-thetampi4.txt')
 
-rate_current_pi2  = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-rate-thetapi2-current.txt')
-rate_current_pi4  = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-rate-thetapi4-current.txt')
-rate_current_0    = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-rate-theta0-current.txt')
-rate_current_mpi2 = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-rate-thetampi2-current.txt')
-rate_current_mpi4 = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-rate-thetampi4-current.txt')
+rate_current_pi2  = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-rate-thetapi2-current.txt')
+rate_current_pi4  = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-rate-thetapi4-current.txt')
+rate_current_0    = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-rate-theta0-current.txt')
+rate_current_mpi2 = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-rate-thetampi2-current.txt')
+rate_current_mpi4 = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-rate-thetampi4-current.txt')
 
-s1s2_90_CL_pi2  = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-s1s2-thetapi2.txt')
-s1s2_90_CL_pi4  = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-s1s2-thetapi4.txt')
-s1s2_90_CL_0    = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-s1s2-theta0.txt')
-s1s2_90_CL_mpi2 = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-s1s2-thetampi2.txt')
-s1s2_90_CL_mpi4 = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-s1s2-thetampi4.txt')
+s1s2_90_CL_pi2  = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-s1s2-thetapi2.txt')
+s1s2_90_CL_pi4  = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-s1s2-thetapi4.txt')
+s1s2_90_CL_0    = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-s1s2-theta0.txt')
+s1s2_90_CL_mpi2 = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-s1s2-thetampi2.txt')
+s1s2_90_CL_mpi4 = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-s1s2-thetampi4.txt')
 
-s1s2_current_pi2  = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-s1s2-thetapi2-current.txt')
-s1s2_current_pi4  = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-s1s2-thetapi4-current.txt')
-s1s2_current_0    = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-s1s2-theta0-current.txt')
-s1s2_current_mpi2 = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-s1s2-thetampi2-current.txt')
-s1s2_current_mpi4 = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-constraints/BL-s1s2-thetampi4-current.txt')
-
-# +
-#masses = [   6.,            7.15758847,    8.53851211,   10.1858593,    12.1510315,
-#   14.49534716,   17.29195494,   20.6281162,    24.60792777,   29.35557,
-#   35.01918154,   41.77548165,   49.83528427,   59.45007598,   70.91986302,
-#   84.60253227,  100.9250182,   120.39662436,  143.62491499,  171.33467249,
-#  204.39051261,  243.82386261,  290.86514447,  346.98216721,  413.92592634,
-#  493.78523936,  589.05192234,  702.69854089,  838.27116191, 1000.        ]
-#
-#rate_90_CL_mpi2 = [1e-30, 9.910290834505643e-45, 1.9764046437241126e-45, 5.919108497192993e-46, 2.3766605492517762e-46, 1.1827198265296277e-46, 6.94952214737333e-47, 4.676316696444454e-47, 3.4984774788038983e-47, 2.8626303132543127e-47, 2.5187706622571404e-47, 2.353437548525283e-47, 2.317572577446609e-47, 2.380382461207293e-47, 2.5265487056090517e-47, 2.7540737082463723e-47, 3.072100827596053e-47, 3.476925670955084e-47, 3.98848218247829e-47, 4.609004079813401e-47, 5.369516100367399e-47, 6.284251076018573e-47, 7.388202827083679e-47, 8.710326915475426e-47, 1.0296908522138497e-46, 1.2191933553266653e-46, 1.445121614289286e-46, 1.7172094991573469e-46, 2.0399753907649344e-46, 2.4242470582926507e-46]
-#rate_3sigma_CL_mpi2 = [1e-30, 1.8282154417109256e-44, 3.645993085526049e-45, 1.0919325367889005e-45, 4.384355586517443e-46, 2.181823039946922e-46, 1.2820201409104695e-46, 8.626669685448377e-47, 6.453878358979698e-47, 5.28086641074437e-47, 4.646496172619808e-47, 4.3415080833868634e-47, 4.2753490139218856e-47, 4.391212710567875e-47, 4.660844375259439e-47, 5.080599855740955e-47, 5.667308269811642e-47, 6.414121390798629e-47, 7.357792603604449e-47, 8.502492862460597e-47, 9.905504665854631e-47, 1.1592973305972363e-46, 1.3629443844477e-46, 1.6068466079486477e-46, 1.8995420810427556e-46, 2.249105941433231e-46, 2.665886187727732e-46, 3.1678436584611554e-46, 3.763267028005681e-46, 4.472140983650492e-46]
-#rate_5sigma_CL_mpi2 = [1e-30, 3.084860640421453e-44, 6.15210325934557e-45, 1.8424999524306333e-45, 7.397922366813523e-46, 3.681528781130952e-46, 2.163231768195962e-46, 1.455617508252734e-46, 1.0890094382530603e-46, 8.91064644557344e-47, 7.84026560152357e-47, 7.325677730289659e-47, 7.214052091553618e-47, 7.409540933285479e-47, 7.864474677087234e-47, 8.572724903355606e-47, 9.56274150099759e-47, 1.0823008813916151e-46, 1.2415257043512687e-46, 1.4346651650929384e-46, 1.6714073354983725e-46, 1.956165459409317e-46, 2.299769770645324e-46, 2.7113058065940438e-46, 3.2052313728875645e-46, 3.7950481921138885e-46, 4.498270674476589e-46, 5.345302762546376e-46, 6.3499904813924996e-46, 7.546041438689659e-46]
-#s1s2_90_CL_mpi2 = [1.0619419081102384e-44, 9.976302661413967e-46, 1.9461656000344537e-46, 5.759528655521897e-47, 2.328921334780173e-47, 1.1734622993389403e-47, 7.050120801611516e-48, 4.8676143706645146e-48, 3.742859805173811e-48, 3.1450746527405807e-48, 2.841471041666698e-48, 2.7179182161081923e-48, 2.7312911599894027e-48, 2.8533001667322844e-48, 3.0648285767816883e-48, 3.372686514513663e-48, 3.7895766192183405e-48, 4.30723242583275e-48, 4.963874828345563e-48, 5.745722005776048e-48, 6.708786336062602e-48, 7.859356477951912e-48, 9.260694662337173e-48, 1.0913295066182416e-47, 1.2919112970054339e-47, 1.530400000932227e-47, 1.8171992399636867e-47, 2.1569466085019325e-47, 2.563437751948877e-47, 3.044550959289485e-47]
-#
-#s1s2_3sigma_CL_mpi2 = [2.1459962062700256e-44, 2.0281327126893962e-45, 3.993545030213811e-46, 1.190445600956618e-46, 4.811837752564172e-47, 2.4201793526866577e-47, 1.4475225175585887e-47, 9.952119183971967e-48, 7.630419297056005e-48, 6.399513208075681e-48, 5.76759539362942e-48, 5.507149356009182e-48, 5.524663245804412e-48, 5.765086562435588e-48, 6.187875971556214e-48, 6.805040681946083e-48, 7.636831383194547e-48, 8.675394228028093e-48, 9.993857959129346e-48, 1.1571700881364655e-47, 1.3503419323986558e-47, 1.5811952677650325e-47, 1.8632854494309163e-47, 2.196503491800532e-47, 2.5983215365391114e-47, 3.0785718904904683e-47, 3.656240215368193e-47, 4.3377217578682767e-47, 5.155362982358702e-47, 6.126604566223954e-47]
-#
-#s1s2_5sigma_CL_mpi2 = [4.08103752331147e-44, 3.8728582352232607e-45, 7.6749453724152e-46, 2.2975988969221325e-46, 9.288997446135513e-47, 4.664935622870835e-47, 2.782878649228596e-47, 1.9095180953326634e-47, 1.4594221461508327e-47, 1.222298847466356e-47, 1.0995347246562162e-47, 1.047606356704776e-47, 1.0489241738296843e-47, 1.0933045131046113e-47, 1.1721516337816972e-47, 1.2873092696940238e-47, 1.443004318368611e-47, 1.6385958732743452e-47, 1.887680081811898e-47, 2.1849135296206085e-47, 2.548145522834008e-47, 2.9833902123045253e-47, 3.5167347974486045e-47, 4.14419793643973e-47, 4.900072164200674e-47, 5.809726041596581e-47, 6.895739696510738e-47, 8.1791181513169555e-47, 9.725433988761545e-47, 1.1558035478070863e-46]
-
-
-#rate_90_CL_mpi4 = [1e-30, 1.43825216090322e-44, 2.8699821414076195e-45, 8.6401933958261e-46, 3.4682217023765245e-46, 1.7239280743434108e-46, 1.017451325301827e-46, 6.859557695523621e-47, 5.144456092649627e-47, 4.225699773888627e-47, 3.7350857749433793e-47, 3.5017202563560774e-47, 3.4573090458003934e-47, 3.560098691734027e-47, 3.7928759107690453e-47, 4.1550883699140577e-47, 4.629402021528735e-47, 5.247328428794538e-47, 6.023040304018992e-47, 6.96643929921065e-47, 8.124598274404164e-47, 9.51241986405831e-47, 1.1189834410612705e-46, 1.319444500308371e-46, 1.560587023962522e-46, 1.8476324867487353e-46, 2.1908366232616337e-46, 2.6036959364350005e-46, 3.0911276531609846e-46, 3.676034482964511e-46]
-#rate_3sigma_CL_mpi4 = [1e-30, 2.6532392408048125e-44, 5.2944594095527764e-45, 1.59391381873503e-45, 6.398033616234805e-46, 3.180237961439163e-46, 1.876963404590438e-46, 1.2654243291028962e-46, 9.490299908821703e-47, 7.79539222059149e-47, 6.890351191752662e-47, 6.459860358546562e-47, 6.377934236020872e-47, 6.567551740632349e-47, 6.996956762320059e-47, 7.665133580107009e-47, 8.540122470423635e-47, 9.680084344059601e-47, 1.1111114620486086e-46, 1.2851408639216373e-46, 1.4987912203892635e-46, 1.7548212641058267e-46, 2.064261281339446e-46, 2.4340414944156763e-46, 2.8788988555856844e-46, 3.408440103870903e-46, 4.041560892271134e-46, 4.803185034987173e-46, 5.702406834960865e-46, 6.7813847028770745e-46]
-#rate_5sigma_CL_mpi4 = [1e-30, 4.4770579269580073e-44, 8.933707923201575e-45, 2.6894935738883364e-45, 1.0795848399001583e-45, 5.366219421389376e-46, 3.1671302724026788e-46, 2.135230712315799e-46, 1.6013433157789002e-46, 1.3153589207748542e-46, 1.1626565904658753e-46, 1.0900188310485612e-46, 1.0761946426548247e-46, 1.1081903029699763e-46, 1.1806438311485e-46, 1.2933812440927907e-46, 1.4410143865219537e-46, 1.6333682940370094e-46, 1.874858201187061e-46, 2.1684971576897497e-46, 2.5289793740325873e-46, 2.9610056361028905e-46, 3.483175639574182e-46, 4.1070833436235776e-46, 4.8577022634871454e-46, 5.751306880452453e-46, 6.819540385182175e-46, 8.104622650397802e-46, 9.622065396457924e-46, 1.1442661264776677e-45]
-#
-#s1s2_90_CL_mpi4 = [1.5477413501073623e-44, 1.4466175002958687e-45, 2.8232228684707058e-46, 8.386878352787113e-47, 3.385337158438867e-47, 1.71132122237464e-47, 1.031634995313122e-47, 7.137543765053557e-48, 5.487970537050901e-48, 4.638448820153851e-48, 4.205247096196908e-48, 4.031492243311884e-48, 4.0636633268858154e-48, 4.2483396468809285e-48, 4.5818084859795295e-48, 5.0587099036861876e-48, 5.683715371588287e-48, 6.464603190105587e-48, 7.453528378858146e-48, 8.64802790945283e-48, 1.0095230226517636e-47, 1.1824685229688134e-47, 1.3965580938403128e-47, 1.6464141594975775e-47, 1.9494809440369615e-47, 2.3114081509129643e-47, 2.738649210668812e-47, 3.252684034789243e-47, 3.866683418694712e-47, 4.603862141786373e-47]
-#
-#s1s2_3sigma_CL_mpi4 = [3.128546255846256e-44, 2.9428529340905316e-45, 5.79925318493001e-46, 1.7343403794790734e-46, 7.003197494415542e-47, 3.5298794686133123e-47, 2.1189623962859752e-47, 1.459336683842081e-47, 1.119873309049649e-47, 9.432221299369674e-48, 8.53459749259063e-48, 8.171069303319607e-48, 8.221955530491628e-48, 8.585153913678582e-48, 9.248453820073871e-48, 1.0207654434324311e-47, 1.1465160664510788e-47, 1.3031958655872847e-47, 1.5011819271746491e-47, 1.7414408354718562e-47, 2.0337237282472676e-47, 2.381126283365761e-47, 2.8105161339048157e-47, 3.3149011906000035e-47, 3.9239179190462322e-47, 4.650072682653817e-47, 5.5117733233030245e-47, 6.548392712052427e-47, 7.779921195033683e-47, 9.262894245959301e-47]
-#
-#s1s2_5sigma_CL_mpi4 = [5.946443217992828e-44, 5.623918737770394e-45, 1.1151312752319629e-45, 3.351666958438074e-46, 1.3522679806266494e-46, 6.805150653466494e-47, 4.073788083953823e-47, 2.7979930466652327e-47, 2.1441991875866932e-47, 1.8011014273253216e-47, 1.6258255906053823e-47, 1.5540369591779803e-47, 1.560761999703445e-47, 1.6276362085429184e-47, 1.7514661658349695e-47, 1.9329024458531643e-47, 2.1685467619021242e-47, 2.463076937031817e-47, 2.835373553501041e-47, 3.289997826070074e-47, 3.841073072432922e-47, 4.495557746048668e-47, 5.304835891514678e-47, 6.259612317282813e-47, 7.404400197556772e-47, 8.772576411246788e-47, 1.0407222478429901e-46, 1.2358237957979001e-46, 1.4677954258754814e-46, 1.748359361237009e-46]
-#
-#
-#rate_90_CL_0 = [1e-30, 1e-30, 1e-30, 1.9903219062814267e-44, 8.065968877867656e-45, 4.0630262452460636e-45, 2.425856293096977e-45, 1.6595650341176398e-45, 1.2698131517119861e-45, 1.0627244843443503e-45, 9.563797345536075e-46, 9.165552515821799e-46, 9.232228803005497e-46, 9.676631190674436e-46, 1.0459874246930938e-45, 1.1560565425831849e-45, 1.3044093220561576e-45, 1.4901011363780166e-45, 1.7208527347577682e-45, 2.001088064105342e-45, 2.3403007034244858e-45, 2.749002300258578e-45, 3.2402891039592816e-45, 3.834173264090879e-45, 4.531102356842308e-45, 5.3739231721476476e-45, 6.380533028693007e-45, 7.591370667978488e-45, 9.016779356231514e-45, 1.0723240162469789e-44]
-#rate_3sigma_CL_0 = [1e-30, 1e-30, 1e-30, 3.671673714326486e-44, 1.4879865128498246e-44, 7.495305144984484e-45, 4.47512520423837e-45, 3.0615157662232174e-45, 2.3424970761262072e-45, 1.9604750025552174e-45, 1.7642996720895458e-45, 1.6908337006005942e-45, 1.7031338741047514e-45, 1.7851144257310098e-45, 1.9296000881834623e-45, 2.1326455896714858e-45, 2.406319128079929e-45, 2.74888809841544e-45, 3.174574578069321e-45, 3.691526998253023e-45, 4.3172913401608883e-45, 5.0712809459224126e-45, 5.977569401096031e-45, 7.073122491978654e-45, 8.35882701929173e-45, 9.913637440477221e-45, 1.1770547521040635e-44, 1.4004292607775532e-44, 1.6633893960786995e-44, 1.9781800758962873e-44]
-#rate_5sigma_CL_0 = [1e-30, 1e-30, 1e-30, 6.19529785198132e-44, 2.510745449636043e-44, 1.2647176377056927e-44, 7.551081007969723e-45, 5.165912068913874e-45, 3.952607181775532e-45, 3.3080425290215894e-45, 2.977028114241646e-45, 2.853053394324923e-45, 2.8738107956481675e-45, 3.0121516312372613e-45, 3.2559481376161545e-45, 3.598535740665291e-45, 4.0602933304561427e-45, 4.6383380569711346e-45, 5.3566892396091635e-45, 6.228929439159464e-45, 7.284760030436621e-45, 8.557082367391114e-45, 1.0086354663324128e-44, 1.193482536563794e-44, 1.4104289255663506e-44, 1.6728011911748207e-44, 1.986104745390008e-44, 2.3629999237688835e-44, 2.8067397487335247e-44, 3.337899617073794e-44]
-#
-#s1s2_90_CL_0 = [1e-30, 3.2872084630794357e-44, 6.457499178981217e-45, 1.9351001877190904e-45, 7.88621675250456e-46, 4.027690268443309e-46, 2.4534211515178562e-46, 1.7193160144891477e-46, 1.3470622090062517e-46, 1.1524199341173035e-46, 1.0588143677562598e-46, 1.0332340790642102e-46, 1.0572677981383817e-46, 1.120832488632681e-46, 1.2238101275754417e-46, 1.3619451067538243e-46, 1.5458903221052447e-46, 1.7732784244892818e-46, 2.0513824940266443e-46, 2.3930966014928976e-46, 2.798533021775021e-46, 3.2956315991865383e-46, 3.891938767421522e-46, 4.6072664351003716e-46, 5.449089651347666e-46, 6.474201419276107e-46, 7.678472255301389e-46, 9.133057781680382e-46, 1.0853088240500258e-45, 1.2909059414625752e-45]
-#
-#s1s2_3sigma_CL_0 = [1e-30, 6.678231140729928e-44, 1.3255539797230196e-44, 3.9974395804332914e-45, 1.631660131816534e-45, 8.303973350300836e-46, 5.039473448001447e-46, 3.519129284399025e-46, 2.747639328381017e-46, 2.3460139472045995e-46, 2.152508157755323e-46, 2.0979122498368626e-46, 2.143910159634823e-46, 2.270789825313152e-46, 2.4765873108902876e-46, 2.755072896246727e-46, 3.127550014453438e-46, 3.585507191862626e-46, 4.145237351602713e-46, 4.834777701547619e-46, 5.658187076757489e-46, 6.657558679135044e-46, 7.859080845007184e-46, 9.309313225640506e-46, 1.1007127304224335e-45, 1.3070365627159282e-45, 1.5508176240748815e-45, 1.845263970010331e-45, 2.1916672731410636e-45, 2.6068618698132625e-45]
-#
-#s1s2_5sigma_CL_0 = [1e-30, 1e-30, 2.5498662437384414e-44, 7.716089018379301e-45, 3.152769764241796e-45, 1.6016613728679506e-45, 9.699551832363556e-46, 6.75048949961619e-46, 5.262315278688925e-46, 4.482493814028965e-46, 4.106473127806106e-46, 3.996913702204314e-46, 4.079118020170734e-46, 4.3166275524990576e-46, 4.703425084635579e-46, 5.231799011567827e-46, 5.9365404166859754e-46, 6.7996833553637675e-46, 7.85838697677591e-46, 9.168318164076503e-46, 1.072999784928511e-45, 1.2614678946366554e-45, 1.4891279360912298e-45, 1.7648972789547108e-45, 2.0852467432029457e-45, 2.475554629535603e-45, 2.939865126738766e-45, 3.496207273491527e-45, 4.15173964265213e-45, 4.941137225161864e-45]
-#
-#
-#rate_90_CL_pi4 = [1e-30, 2.906182300415843e-44, 5.759730032806367e-45, 1.7245285666975144e-45, 6.916225863745588e-46, 3.4243847435710445e-46, 2.0127028087532424e-46, 1.348158983087235e-46, 1.0059613486124065e-46, 8.176210262061704e-47, 7.169095845003212e-47, 6.658134287925807e-47, 6.524068902449704e-47, 6.662610839642606e-47, 7.054986456995876e-47, 7.679599520848893e-47, 8.531504371874938e-47, 9.652449201093244e-47, 1.1049471468662936e-46, 1.2750694262569281e-46, 1.4843782226582946e-46, 1.735202428356784e-46, 2.039062572692539e-46, 2.402422560842984e-46, 2.838583052129327e-46, 3.3621468928031022e-46, 3.982408419310285e-46, 4.7291779167543874e-46, 5.618388021527719e-46, 6.680972554559102e-46]
-#rate_3sigma_CL_pi4 = [1e-30, 5.361253237039604e-44, 1.0625338113887795e-44, 3.181355438695762e-45, 1.2758710256742852e-45, 6.317167917387456e-46, 3.712957477932563e-46, 2.487012382453642e-46, 1.8557673570447926e-46, 1.5083125074083405e-46, 1.3225251966908947e-46, 1.228267671210296e-46, 1.203536603789018e-46, 1.2290934617715881e-46, 1.3014752592944346e-46, 1.4166994613181789e-46, 1.5738570875206362e-46, 1.7806544833447335e-46, 2.0383684805935737e-46, 2.3521814073980474e-46, 2.738306799957099e-46, 3.2010365700453595e-46, 3.76158315809293e-46, 4.431880090802511e-46, 5.23651317496297e-46, 6.2023581631757155e-46, 7.346556382222748e-46, 8.72418067608579e-46, 1.0364586857807796e-45, 1.2324734169003432e-45]
-#rate_5sigma_CL_pi4 = [1e-30, 9.045992863359626e-44, 1.792883891440869e-44, 5.3681310690127374e-45, 2.1528513870912262e-45, 1.0659404567094088e-45, 6.265104966603683e-46, 4.19645866253001e-46, 3.1313615782903165e-46, 2.545044698271001e-46, 2.231573179681139e-46, 2.0725382581966794e-46, 2.0308103696083186e-46, 2.0739315788158628e-46, 2.196057076442122e-46, 2.39046777294079e-46, 2.6556402356936665e-46, 3.0046011012247647e-46, 3.439487649899176e-46, 3.968965754216182e-46, 4.620468839111134e-46, 5.401318810484916e-46, 6.3471493557730445e-46, 7.478109615853301e-46, 8.835834919814091e-46, 1.0465685071693913e-45, 1.2396243923479842e-45, 1.4720751669097812e-45, 1.748896128449018e-45, 2.0796289166601098e-45]
-#
-#s1s2_90_CL_pi4 = [3.094470692702348e-44, 2.92785922204475e-45, 5.662111643353509e-46, 1.6772827224150381e-46, 6.766047273634877e-47, 3.400336435985329e-47, 2.042812360485882e-47, 1.4030506936780068e-47, 1.0783923451920157e-47, 9.006228853147484e-48, 8.110828455132255e-48, 7.724422861303692e-48, 7.736412969119341e-48, 8.041002079193982e-48, 8.623077880689494e-48, 9.46445515838474e-48, 1.0581311705828464e-47, 1.2053174178425845e-47, 1.382785349334657e-47, 1.6004344852597067e-47, 1.8668619168381222e-47, 2.1875401660106343e-47, 2.5711783560108646e-47, 3.028203742788492e-47, 3.5830128530557754e-47, 4.247131148374275e-47, 5.029380597656903e-47, 5.974925680735205e-47, 7.111506787448957e-47, 8.4478888423148975e-47]
-#
-#s1s2_3sigma_CL_pi4 = [6.250510452424507e-44, 5.950211352854165e-45, 1.1627459740378695e-45, 3.468633891920919e-46, 1.3986375319896517e-46, 7.011326161033591e-47, 4.1938518324433076e-47, 2.868213866101341e-47, 2.198677771002682e-47, 1.8318414552664468e-47, 1.6456625682946943e-47, 1.5644109415130988e-47, 1.5642290430127536e-47, 1.6232349528487527e-47, 1.7391744943843227e-47, 1.9081592722742711e-47, 2.1322579910270791e-47, 2.425691555255151e-47, 2.7818386825702904e-47, 3.2200118813749195e-47, 3.756393564536732e-47, 4.397649707793579e-47, 5.168952948233552e-47, 6.091526419468587e-47, 7.203824955608382e-47, 8.535744898954386e-47, 1.0115203274387183e-46, 1.201321671020857e-46, 1.4291231627088409e-46, 1.6981859982417085e-46]
-#
-#s1s2_5sigma_CL_pi4 = [1e-30, 1.1359870791025666e-44, 2.2352699296688696e-45, 6.697135370707352e-46, 2.700373874588386e-46, 1.3512628620008139e-46, 8.061613814853833e-47, 5.501296009811277e-47, 4.205063210243301e-47, 3.4992732278431447e-47, 3.135040671156521e-47, 2.973536142140724e-47, 2.9675952931579204e-47, 3.0744698818713833e-47, 3.2914806132537186e-47, 3.6083663935191013e-47, 4.027859066273931e-47, 4.576853975248807e-47, 5.24847156235881e-47, 6.076984830142735e-47, 7.084991335821603e-47, 8.288717392618537e-47, 9.746524194975366e-47, 1.148778150584972e-46, 1.3578141755941634e-46, 1.608778058879897e-46, 1.9077618755964205e-46, 2.26429655632897e-46, 2.6929202887539607e-46, 3.202184949233211e-46]
-#
-#
-#rate_90_CL_pi2 = [1e-30, 9.910290834505643e-45, 1.9764046437241126e-45, 5.919108497192993e-46, 2.3766605492517762e-46, 1.1827198265296277e-46, 6.94952214737333e-47, 4.676316696444454e-47, 3.4984774788038983e-47, 2.8626303132543127e-47, 2.5187706622571404e-47, 2.353437548525283e-47, 2.317572577446609e-47, 2.380382461207293e-47, 2.5265487056090517e-47, 2.7540737082463723e-47, 3.072100827596053e-47, 3.476925670955084e-47, 3.98848218247829e-47, 4.609004079813401e-47, 5.369516100367399e-47, 6.284251076018573e-47, 7.388202827083679e-47, 8.710326915475426e-47, 1.0296908522138497e-46, 1.2191933553266653e-46, 1.445121614289286e-46, 1.7172094991573469e-46, 2.0399753907649344e-46, 2.4242470582926507e-46]
-#rate_3sigma_CL_pi2 = [1e-30, 1.8282154417109256e-44, 3.645993085526049e-45, 1.0919325367889005e-45, 4.384355586517443e-46, 2.181823039946922e-46, 1.2820201409104695e-46, 8.626669685448377e-47, 6.453878358979698e-47, 5.28086641074437e-47, 4.646496172619808e-47, 4.3415080833868634e-47, 4.2753490139218856e-47, 4.391212710567875e-47, 4.660844375259439e-47, 5.080599855740955e-47, 5.667308269811642e-47, 6.414121390798629e-47, 7.357792603604449e-47, 8.502492862460597e-47, 9.905504665854631e-47, 1.1592973305972363e-46, 1.3629443844477e-46, 1.6068466079486477e-46, 1.8995420810427556e-46, 2.249105941433231e-46, 2.665886187727732e-46, 3.1678436584611554e-46, 3.763267028005681e-46, 4.472140983650492e-46]
-#rate_5sigma_CL_pi2 = [1e-30, 3.084860640421453e-44, 6.15210325934557e-45, 1.8424999524306333e-45, 7.397922366813523e-46, 3.681528781130952e-46, 2.163231768195962e-46, 1.455617508252734e-46, 1.0890094382530603e-46, 8.91064644557344e-47, 7.84026560152357e-47, 7.325677730289659e-47, 7.214052091553618e-47, 7.409540933285479e-47, 7.864474677087234e-47, 8.572724903355606e-47, 9.56274150099759e-47, 1.0823008813916151e-46, 1.2415257043512687e-46, 1.4346651650929384e-46, 1.6714073354983725e-46, 1.956165459409317e-46, 2.299769770645324e-46, 2.7113058065940438e-46, 3.2052313728875645e-46, 3.7950481921138885e-46, 4.498270674476589e-46, 5.345302762546376e-46, 6.3499904813924996e-46, 7.546041438689659e-46]
-#
-#s1s2_90_CL_pi2 = [1.0619419081102384e-44, 9.976302661413967e-46, 1.9461656000344537e-46, 5.759528655521897e-47, 2.328921334780173e-47, 1.1734622993389403e-47, 7.050120801611516e-48, 4.8676143706645146e-48, 3.742859805173811e-48, 3.1450746527405807e-48, 2.841471041666698e-48, 2.7179182161081923e-48, 2.7312911599894027e-48, 2.8533001667322844e-48, 3.0648285767816883e-48, 3.372686514513663e-48, 3.7895766192183405e-48, 4.30723242583275e-48, 4.963874828345563e-48, 5.745722005776048e-48, 6.708786336062602e-48, 7.859356477951912e-48, 9.260694662337173e-48, 1.0913295066182416e-47, 1.2919112970054339e-47, 1.530400000932227e-47, 1.8171992399636867e-47, 2.1569466085019325e-47, 2.563437751948877e-47, 3.044550959289485e-47]
-#
-#s1s2_3sigma_CL_pi2 = [2.1459962062700256e-44, 2.0281327126893962e-45, 3.993545030213811e-46, 1.190445600956618e-46, 4.811837752564172e-47, 2.4201793526866577e-47, 1.4475225175585887e-47, 9.952119183971967e-48, 7.630419297056005e-48, 6.399513208075681e-48, 5.76759539362942e-48, 5.507149356009182e-48, 5.524663245804412e-48, 5.765086562435588e-48, 6.187875971556214e-48, 6.805040681946083e-48, 7.636831383194547e-48, 8.675394228028093e-48, 9.993857959129346e-48, 1.1571700881364655e-47, 1.3503419323986558e-47, 1.5811952677650325e-47, 1.8632854494309163e-47, 2.196503491800532e-47, 2.5983215365391114e-47, 3.0785718904904683e-47, 3.656240215368193e-47, 4.3377217578682767e-47, 5.155362982358702e-47, 6.126604566223954e-47]
-#
-#s1s2_5sigma_CL_pi2 = [4.08103752331147e-44, 3.8728582352232607e-45, 7.6749453724152e-46, 2.2975988969221325e-46, 9.288997446135513e-47, 4.664935622870835e-47, 2.782878649228596e-47, 1.9095180953326634e-47, 1.4594221461508327e-47, 1.222298847466356e-47, 1.0995347246562162e-47, 1.047606356704776e-47, 1.0489241738296843e-47, 1.0933045131046113e-47, 1.1721516337816972e-47, 1.2873092696940238e-47, 1.443004318368611e-47, 1.6385958732743452e-47, 1.887680081811898e-47, 2.1849135296206085e-47, 2.548145522834008e-47, 2.9833902123045253e-47, 3.5167347974486045e-47, 4.14419793643973e-47, 4.900072164200674e-47, 5.809726041596581e-47, 6.895739696510738e-47, 8.1791181513169555e-47, 9.725433988761545e-47, 1.1558035478070863e-46]
+s1s2_current_pi2  = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-s1s2-thetapi2-current.txt')
+s1s2_current_pi4  = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-s1s2-thetapi4-current.txt')
+s1s2_current_0    = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-s1s2-theta0-current.txt')
+s1s2_current_mpi2 = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-s1s2-thetampi2-current.txt')
+s1s2_current_mpi4 = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-constraints/BL-s1s2-thetampi4-current.txt')
 # -
 
 # ## Let's make some exploratory plots
@@ -430,6 +368,11 @@ x_min_rate = np.min(x_rate, axis = 0)
 x_max_rate = np.max(x_rate, axis = 0)
 
 x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+# -
+
+pars_min
+
+pars_max
 
 # +
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
@@ -499,7 +442,7 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=100, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_rate = Network_rate()
 
@@ -518,16 +461,16 @@ dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1],
 trainer_rate.test(network_rate, dm_test_rate)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_rate.fit(network_rate, dm_rate)
-    checkpoint_callback.to_yaml("./logs/rate_temp.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/rate_temp.yaml")
+    checkpoint_callback.to_yaml("./logs/O4_rate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_rate.yaml")
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/rate_temp.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_rate.yaml")
 
 # ---------------------------------------------- 
-# It converges to val_loss = -1.18 at epoch ~50
+# It converges to val_loss =  at epoch ~50
 # ---------------------------------------------- 
 
 # +
@@ -544,7 +487,7 @@ dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1],
 trainer_rate.test(network_rate, dm_test_rate, ckpt_path = ckpt_path)
 
 # ---------------------------------------------- 
-# It converges to val_loss = -1. in testset
+# It converges to val_loss = -1.42 in testset
 # ---------------------------------------------- 
 # -
 
@@ -571,7 +514,7 @@ x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = 502 #np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
+i = np.random.randint(ntest) 
 print(i)
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_rate[i,:]
@@ -612,9 +555,9 @@ predictions_rate = trainer_rate.infer(network_rate, obs, prior_samples)
 # Let's plot the results
 swyft.corner(predictions_rate, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
 if flag == 'exc':
-    plt.savefig('../graph/cornerplot_rate_exc.pdf')
+    plt.savefig('../graph/04_cornerplot_rate_exc.pdf')
 else:
-    plt.savefig('../graph/cornerplot_rate.pdf')
+    plt.savefig('../graph/04_cornerplot_rate.pdf')
 
 # +
 # trial
@@ -635,7 +578,7 @@ plt.ylabel('$P(\sigma|x)\ /\ P(\sigma)$')
 trapezoid(ratios, cross_sec)
 
 # +
-cr_th = np.argmin(np.abs(cross_sec + 49))
+cr_th = np.argmin(np.abs(cross_sec + 41))
 
 trapezoid(ratios[cr_th:], cross_sec[cr_th:]) / trapezoid(ratios, cross_sec)
 
@@ -654,7 +597,7 @@ x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + p
 #x     = 10**(x)
 
 # +
-cross_section_th = -49
+cross_section_th = -41
 vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
 
 low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
@@ -693,15 +636,15 @@ if up_3sigma > cross_section_th: plt.axvline(up_3sigma, c = 'black', linestyle =
 #plt.xscale('log')
 plt.xlabel('$log(\sigma)$')
 plt.ylabel('$P(\sigma|x)$')
-plt.text(-50,3, '$m = {:.2e}$'.format(10**(pars_true[0])))
-plt.text(-50,2.8, '$\sigma = {:.2e}$'.format(10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])))
-plt.text(-50,2.5, '$\\theta = {:.2f}$'.format(pars_true[0]))
+plt.text(-43,3, '$m = {:.2e}$'.format(10**(pars_true[0])))
+plt.text(-43,2.8, '$\sigma = {:.2e}$'.format(10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])))
+plt.text(-43,2.5, '$\\theta = {:.2f}$'.format(pars_true[0]))
 plt.plot(cross_sec, ratios, c = 'blue')
 
 if flag == 'exc':
-    plt.savefig('../graph/1Dposterior_rate_exc_' + str(i) + '.pdf')
+    plt.savefig('../graph/04_1Dposterior_rate_exc_' + str(i) + '.pdf')
 else:
-    plt.savefig('../graph/1Dposterior_rate_' + str(i) + '.pdf')
+    plt.savefig('../graph/04_1Dposterior_rate_' + str(i) + '.pdf')
 # -
 
 parameters_rate = np.asarray(predictions_rate[0].params[:,:,0])
@@ -725,9 +668,9 @@ ax[2].set_xlabel(r'$g$')
 ax[2].axvline(x = pars_testset[i,2])
 
 if flag == 'exc':
-    plt.savefig('../graph/loglikratio_rate_exc.pdf')
+    plt.savefig('../graph/04_loglikratio_rate_exc.pdf')
 else:
-    plt.savefig('../graph/loglikratio_rate.pdf')
+    plt.savefig('../graph/04_loglikratio_rate.pdf')
 # -
 
 10**(pars_true * (pars_max - pars_min) + pars_min)
@@ -747,7 +690,7 @@ m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
 sigma_results = 10**(results_pars_rate[:,0,1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_rate[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-48.2, -41, 15)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_rate[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-43.2, -35, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -759,7 +702,7 @@ im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, 
 clb = plt.colorbar(im20, ax = ax[0])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-48.2, -41, 10)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-43.2, -35, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -814,7 +757,7 @@ sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 theta_results = results_pars_rate[:,2,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
 theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_rate[:,2], 'max', bins = [np.logspace(-48.2, -41, 15), np.linspace(-1.6, 1.6, 15)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_rate[:,2], 'max', bins = [np.logspace(-43.2, -35, 15), np.linspace(-1.6, 1.6, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -826,7 +769,7 @@ im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, 
 clb = plt.colorbar(im22, ax = ax[2])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-48.2, -41, 10), np.linspace(-1.6, 1.6, 10)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-43.2, -35, 10), np.linspace(-1.6, 1.6, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -841,26 +784,26 @@ ax[2].set_ylabel('$\\theta$')
 ax[2].set_xscale('log')
 
 if flag == 'exc':
-    plt.savefig('../graph/pars_rate_exc.pdf')
+    plt.savefig('../graph/04_pars_rate_exc.pdf')
 else:
-    plt.savefig('../graph/pars_rate.pdf')
+    plt.savefig('../graph/04_pars_rate.pdf')
 # -
 
 # ### Let's make the contour plot
 
-# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2
+# !ls ../data/andresData/O4-fulldata/O4/theta-minuspidiv2
 
-pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/'])
+pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(['../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2/'])
 
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v5/'
+folders = ['../data/andresData/O4-fulldata/O4/theta-pluspidiv2/O4-slices01-pluspidiv2/',
+           '../data/andresData/O4-fulldata/O4/theta-pluspidiv2/O4-slices01-pluspidiv2-v2/',
+           '../data/andresData/O4-fulldata/O4/theta-pluspidiv2/O4-slices01-pluspidiv2-v3/',
+           '../data/andresData/O4-fulldata/O4/theta-pluspidiv2/O4-slices01-pluspidiv2-v4/',
+           '../data/andresData/O4-fulldata/O4/theta-pluspidiv2/O4-slices01-pluspidiv2-v5/'
          ]
 
 
@@ -922,7 +865,7 @@ for folder in folders:
             sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             
-            cr_th = np.argmin(np.abs(x - (-49)))
+            cr_th = np.argmin(np.abs(x - (-41)))
             int_prob[itest]     = trapezoid(h1[:cr_th], x[:cr_th]) / trapezoid(h1, x)
             int_prob_sup[itest] = trapezoid(h1[cr_th:], x[cr_th:]) / trapezoid(h1, x)
 
@@ -945,32 +888,23 @@ for folder in folders:
         int_prob_sup_full.append(int_prob_sup)
 
 # +
-cross_section_th = -49
+cross_section_th = -41
 
 if len(int_prob_full) > 1:
-    int_prob_0     = np.mean(np.asarray(int_prob_full), axis = 0)
-    int_prob_sup_0 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
+    int_prob_pi_2     = np.mean(np.asarray(int_prob_full), axis = 0)
+    int_prob_sup_pi_2 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
     sigmas = np.mean(np.asarray(sigmas_full), axis = 0)
 else:
-    int_prob_0 = int_prob
-    int_prob_sup_0 = int_prob_sup
+    int_prob_pi_2 = int_prob
+    int_prob_sup_pi_2 = int_prob_sup
 
-rate_1sigma_0 = np.ones(900) * -99
-rate_2sigma_0 = np.ones(900) * -99
-rate_3sigma_0 = np.ones(900) * -99
+rate_1sigma_pi_2 = np.ones(900) * -99
+rate_2sigma_pi_2 = np.ones(900) * -99
+rate_3sigma_pi_2 = np.ones(900) * -99
 
-rate_1sigma_0[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
-rate_2sigma_0[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
-rate_3sigma_0[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
-
-# +
-#rate_1sigma_pi_2 = rate_1sigma_pi_2.reshape(5,30,30)
-#rate_2sigma_pi_2 = rate_2sigma_pi_2.reshape(5,30,30)
-#rate_3sigma_pi_2 = rate_3sigma_pi_2.reshape(5,30,30)
-#int_prob_pi_2 = int_prob_pi_2.reshape(5,30,30)
-#int_prob_sup_pi_2 = int_prob_sup_pi_2.reshape(5,30,30)
-
-#rate_3sigma_pi_2 = np.mean(rate_3sigma_pi_2, axis = 2)
+rate_1sigma_pi_2[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
+rate_2sigma_pi_2[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
+rate_3sigma_pi_2[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
 # -
 
 sbn.kdeplot(int_prob_sup_0, label = '$\\theta = 0$')
@@ -1059,9 +993,9 @@ ax[1,0].set_ylabel('$\sigma$ []')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
-ax[0,0].set_ylim(1e-49, 1e-43)
+ax[0,0].set_ylim(1e-43, 1e-35)
 
-#plt.savefig('../graph/contours_rate_m49.pdf')
+#plt.savefig('../graph/O4_contours_rate_m49.pdf')
 
 # +
 levels = [0, 0.1, 0.16, 0.24, 0.32]
@@ -1079,41 +1013,29 @@ fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
 fig00 = ax[0,0].contourf(m_vals, cross_vals, int_prob_pi_2_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,0].contour(m_vals, cross_vals, int_prob_pi_2_g.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 
-
-#ax[0,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[0,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
 ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,0].set_yscale('log')
 ax[0,0].set_xscale('log')
 ax[0,0].grid(which='both')
 ax[0,0].text(3e2, 1e-44, '$\\theta = \pi/2$')
-ax[0,0].plot(masses, rate_90_CL_pi2, color = 'black', linestyle = '-.', label = 'Bin. Lik. [90%]')
+ax[0,0].plot(masses, rate_90_CL_pi2[2,:], color = 'black', linestyle = '-.', label = 'Bin. Lik. [90%]')
 ax[0,0].legend(loc = 'lower left')
 
 ax[0,1].contourf(m_vals, cross_vals, int_prob_pi_4_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,1].contour(m_vals, cross_vals, int_prob_pi_4_g.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 
-#ax[0,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
-#ax[0,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
-#ax[0,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,1].grid(which='both')
 ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
 
 ax[1,0].contourf(m_vals, cross_vals, int_prob_mpi_2_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,0].contour(m_vals, cross_vals, int_prob_mpi_2_g.reshape(30,30).T, levels=levels)
 
-#ax[1,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,0].grid(which='both')
 ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
 
 ax[1,1].contourf(m_vals, cross_vals, int_prob_0_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,1].contour(m_vals, cross_vals, int_prob_0_g.reshape(30,30).T, levels=levels)
 
-#ax[1,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
 
@@ -1122,17 +1044,17 @@ ax[1,0].set_ylabel('$\sigma [cm^{2}]$')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
-ax[0,0].set_ylim(1e-49, 1e-43)
+ax[0,0].set_ylim(1e-43, 1e-35)
 fig.subplots_adjust(right = 0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
 cbar    = fig.colorbar(fig00, cax=cbar_ax)
 cbar.ax.set_title('$\int_{-\inf}^{\sigma_{th}} P(\sigma|x)$')
 
-ax[0,1].plot(masses, rate_90_CL_pi4, color = 'black', linestyle = '-.')
-ax[1,0].plot(masses, rate_90_CL_mpi2, color = 'black', linestyle = '-.')
-ax[1,1].plot(masses, rate_90_CL_0, color = 'black', linestyle = '-.')
+ax[0,1].plot(masses, rate_90_CL_pi4[2,:], color = 'black', linestyle = '-.')
+ax[1,0].plot(masses, rate_90_CL_mpi2[2,:], color = 'black', linestyle = '-.')
+ax[1,1].plot(masses, rate_90_CL_0[2,:], color = 'black', linestyle = '-.')
 
-#plt.savefig('../graph/contours_rate_int_prob_th49.pdf')
+plt.savefig('../graph/O4_contours_rate_int_prob_th49.pdf')
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1] 
@@ -1150,9 +1072,6 @@ fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
 fig00 = ax[0,0].contourf(m_vals, cross_vals, int_prob_sup_pi_2_rate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,0].contour(m_vals, cross_vals, int_prob_sup_pi_2_rate.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 
-
-#ax[0,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[0,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
 ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,0].set_yscale('log')
 ax[0,0].set_xscale('log')
@@ -1164,27 +1083,18 @@ ax[0,0].legend(loc = 'lower left')
 ax[0,1].contourf(m_vals, cross_vals, int_prob_sup_pi_4_rate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,1].contour(m_vals, cross_vals, int_prob_sup_pi_4_rate.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 
-#ax[0,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
-#ax[0,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
-#ax[0,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,1].grid(which='both')
 ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
 
 ax[1,0].contourf(m_vals, cross_vals, int_prob_sup_mpi_2_rate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,0].contour(m_vals, cross_vals, int_prob_sup_mpi_2_rate.reshape(30,30).T, levels=levels)
 
-#ax[1,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,0].grid(which='both')
 ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
 
 ax[1,1].contourf(m_vals, cross_vals, int_prob_sup_0_rate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,1].contour(m_vals, cross_vals, int_prob_sup_0_rate.reshape(30,30).T, levels=levels)
 
-#ax[1,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
 
@@ -1193,7 +1103,7 @@ ax[1,0].set_ylabel('$\sigma [cm^{2}]$')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
-ax[0,0].set_ylim(1e-49, 1e-43)
+ax[0,0].set_ylim(1e-43, 1e-35)
 
 fig.subplots_adjust(right = 0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
@@ -1204,10 +1114,10 @@ ax[0,1].plot(masses, rate_90_CL_pi4[2,:], color = 'black', linestyle = '-.')
 ax[1,0].plot(masses, rate_90_CL_mpi2[2,:], color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, rate_90_CL_0[2,:], color = 'black', linestyle = '-.')
 
-#plt.savefig('../graph/contours_rate_int_prob_sup_th49.pdf')
+plt.savefig('../graph/O4_contours_rate_int_prob_sup_th49.pdf')
 # -
 
-# ## Only using the total diff_rate
+# ## Only using the total diff_rate (NOT IMPLEMENTED)
 
 # ### Training
 
@@ -1292,20 +1202,6 @@ class Network(swyft.SwyftModule):
 
 
 # +
-### Now let's define a network that estimates all the 1D and 2D marginal posteriors
-###class Network(swyft.SwyftModule):
-###    def __init__(self):
-###        super().__init__()
-###        marginals = ((0, 1), (0, 2), (1, 2))
-###        self.logratios1 = swyft.LogRatioEstimator_1dim(num_features = 58, num_params = 3, varnames = 'pars_norm')
-###        self.logratios2 = swyft.LogRatioEstimator_Ndim(num_features = 58, marginals = marginals, varnames = 'pars_norm')
-###
-###    def forward(self, A, B):
-###        logratios1 = self.logratios1(A['x'], B['z'])
-###        logratios2 = self.logratios2(A['x'], B['z'])
-###        return logratios1, logratios2
-
-# +
 from pytorch_lightning.callbacks import Callback
 
 class MetricTracker(Callback):
@@ -1328,7 +1224,7 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=30, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 200, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
 
@@ -1350,13 +1246,13 @@ trainer_drate.test(network_drate, dm_test_drate)
 fit = False
 if fit:
     trainer_drate.fit(network_drate, dm_drate)
-    checkpoint_callback.to_yaml("./logs/drate_O1.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/drate_O1.yaml")
+    checkpoint_callback.to_yaml("./logs/O4_drate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_drate.yaml")
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/drate_O1.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_drate.yaml")
 
 # ---------------------------------------------- 
-# It converges to val_loss = -1.8 @ epoch 20
+# It converges to val_loss =  @ epoch 20
 # ---------------------------------------------- 
 
 # +
@@ -1373,7 +1269,7 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate, ckpt_path = ckpt_path)
 
 # ---------------------------------------------- 
-# It converges to -1.46 @ testset
+# It converges to  @ testset
 # ---------------------------------------------- 
 # -
 
@@ -1433,9 +1329,9 @@ predictions_drate = trainer_drate.infer(network_drate, obs, prior_samples)
 swyft.corner(predictions_drate, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
 
 if flag == 'exc':
-    plt.savefig('../graph/cornerplot_drate_exc.pdf')
+    plt.savefig('../graph/O4_cornerplot_drate_exc.pdf')
 else:
-    plt.savefig('../graph/cornerplot_drate.pdf')
+    plt.savefig('../graph/O4_cornerplot_drate.pdf')
 
 # +
 bins = 50
@@ -1462,9 +1358,9 @@ up_2sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
 low_3sigma = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
 up_3sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
 
-if low_1sigma > -47.8: print('Distinguish at 1 $\sigma$')
-if low_2sigma > -47.8: print('Distinguish at 2 $\sigma$')
-if low_3sigma > -47.8: print('Distinguish at 3 $\sigma$')
+if low_1sigma > -41: print('Distinguish at 1 $\sigma$')
+if low_2sigma > -41: print('Distinguish at 2 $\sigma$')
+if low_3sigma > -41: print('Distinguish at 3 $\sigma$')
 
 # +
 plt.plot(x, h1, c = 'blue')
@@ -1475,14 +1371,14 @@ plt.plot(x, h1, c = 'blue')
 #plt.fill_between(x, y0, y1, where = h1 > vals[1], color='red', alpha=0.2)
 #plt.fill_between(x, y0, y1, where = h1 > vals[2], color='red', alpha=0.3)
 
-if low_1sigma > -47.8: plt.axvline(low_1sigma, c = 'green')
-if up_1sigma > -47.8: plt.axvline(up_1sigma, c = 'green')
+if low_1sigma > -41: plt.axvline(low_1sigma, c = 'green')
+if up_1sigma > -41: plt.axvline(up_1sigma, c = 'green')
 
-if low_2sigma > -47.8: plt.axvline(low_2sigma, c = 'green', linestyle = '--')
-if up_2sigma > -47.8: plt.axvline(up_2sigma, c = 'green', linestyle = '--')
+if low_2sigma > -41: plt.axvline(low_2sigma, c = 'green', linestyle = '--')
+if up_2sigma > -41: plt.axvline(up_2sigma, c = 'green', linestyle = '--')
 
-if low_3sigma > -47.8: plt.axvline(low_3sigma, c = 'green', linestyle = ':')
-if up_3sigma > -47.8: plt.axvline(up_3sigma, c = 'green', linestyle = ':')
+if low_3sigma > -41: plt.axvline(low_3sigma, c = 'green', linestyle = ':')
+if up_3sigma > -41: plt.axvline(up_3sigma, c = 'green', linestyle = ':')
 
 # +
 plt.plot(x, h1, c = 'black')
@@ -1500,13 +1396,13 @@ if up_3sigma > cross_section_th: plt.axvline(up_3sigma, c = 'black', linestyle =
 #plt.xscale('log')
 plt.xlabel('$log(\sigma)$')
 plt.ylabel('$P(\sigma|x)$')
-plt.text(-50,3, '$m = {:.2e}$'.format(10**(pars_true[0])))
-plt.text(-50,2.8, '$\sigma = {:.2e}$'.format(10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])))
-plt.text(-50,2.5, '$\\theta = {:.2f}$'.format(pars_true[0]))
+plt.text(-43,3, '$m = {:.2e}$'.format(10**(pars_true[0])))
+plt.text(-43,2.8, '$\sigma = {:.2e}$'.format(10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])))
+plt.text(-43,2.5, '$\\theta = {:.2f}$'.format(pars_true[0]))
 if flag == 'exc':
-    plt.savefig('../graph/1Dposterior_drate_exc_' + str(i) + '.pdf')
+    plt.savefig('../graph/O4_1Dposterior_drate_exc_' + str(i) + '.pdf')
 else:
-    plt.savefig('../graph/1Dposterior_drate_' + str(i) + '.pdf')
+    plt.savefig('../graph/O4_1Dposterior_drate_' + str(i) + '.pdf')
 # -
 
 parameters_drate = np.asarray(predictions_drate[0].params[:,:,0])
@@ -1530,9 +1426,9 @@ ax[2].set_xlabel(r'$g$')
 ax[2].axvline(x = pars_testset[i,2])
 
 if flag == 'exc':
-    plt.savefig('../graph/loglikratio_drate_exc.pdf')
+    plt.savefig('../graph/O4_loglikratio_drate_exc.pdf')
 else:
-    plt.savefig('../graph/loglikratio_drate.pdf')
+    plt.savefig('../graph/O4_loglikratio_drate.pdf')
 # -
 
 results_pars_drate = np.asarray(predictions_drate[1].params)
@@ -1550,7 +1446,7 @@ m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
 sigma_results = 10**(results_pars_drate[:,0,1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_drate[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-48.2, -41, 15)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_drate[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-43, -35, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -1562,7 +1458,7 @@ im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, 
 clb = plt.colorbar(im20, ax = ax[0])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-48.2, -41, 10)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-43, -35, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -1617,7 +1513,7 @@ sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 theta_results = results_pars_drate[:,2,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
 theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_drate[:,2], 'max', bins = [np.logspace(-48.2, -41, 15), np.linspace(-1.6, 1.6, 15)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_drate[:,2], 'max', bins = [np.logspace(-43, -35, 15), np.linspace(-1.6, 1.6, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -1629,7 +1525,7 @@ im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, 
 clb = plt.colorbar(im22, ax = ax[2])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-48.2, -41, 10), np.linspace(-1.6, 1.6, 10)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-43, -35, 10), np.linspace(-1.6, 1.6, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -1644,24 +1540,24 @@ ax[2].set_ylabel('$\\theta$')
 ax[2].set_xscale('log')
 
 if flag == 'exc':
-    plt.savefig('../graph/pars_drate_exc.pdf')
+    plt.savefig('../graph/O4_pars_drate_exc.pdf')
 else:
-    plt.savefig('../graph/pars_drate.pdf')
+    plt.savefig('../graph/O4_pars_drate.pdf')
 # -
 
 # ### Let's make the contour plot
 
-# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv4
+# !ls ../data/andresData/O4-fulldata/O4
 
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v5/'
+folders = ['../data/andresData/O4-fulldata/O4/theta-pluspidiv2/O4-slices01-pluspidiv2/',
+           '../data/andresData/O4-fulldata/O4/theta-pluspidiv2/O4-slices01-pluspidiv2-v2/',
+           '../data/andresData/O4-fulldata/O4/theta-pluspidiv2/O4-slices01-pluspidiv2-v3/',
+           '../data/andresData/O4-fulldata/O4/theta-pluspidiv2/O4-slices01-pluspidiv2-v4/',
+           '../data/andresData/O4-fulldata/O4/theta-pluspidiv2/O4-slices01-pluspidiv2-v5/'
          ]
 
 
@@ -1721,7 +1617,7 @@ for folder in folders:
             sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             
-            cr_th = np.argmin(np.abs(x - (-49)))
+            cr_th = np.argmin(np.abs(x - (-41)))
             int_prob[itest]     = trapezoid(h1[:cr_th], x[:cr_th]) / trapezoid(h1, x)
             int_prob_sup[itest] = trapezoid(h1[cr_th:], x[cr_th:]) / trapezoid(h1, x)
 
@@ -1744,7 +1640,7 @@ for folder in folders:
         int_prob_sup_full.append(int_prob_sup)
 
 # +
-cross_section_th = -49
+cross_section_th = -41
 
 if len(int_prob_full) > 1:
     int_prob_drate_pi_2     = np.mean(np.asarray(int_prob_full), axis = 0)
@@ -1834,7 +1730,7 @@ ax[0,1].plot(masses, rate_90_CL_pi4[2,:], color = 'black', linestyle = '-.')
 ax[1,0].plot(masses, rate_90_CL_mpi2[2,:], color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, rate_90_CL_0[2,:], color = 'black', linestyle = '-.')
 
-#plt.savefig('../graph/contours_drate_int_prob_sup_th49.pdf')
+#plt.savefig('../graph/O4_contours_drate_int_prob_sup_th49.pdf')
 # -
 
 # ## Using s1s2
@@ -1943,7 +1839,7 @@ cb = MetricTracker()
 torch.manual_seed(28891)
 cb = MetricTracker()
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=35, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 250, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_s1s2 = Network()
 
@@ -1960,16 +1856,16 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
-    checkpoint_callback.to_yaml("./logs/s1s2.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/s1s2.yaml")
+    checkpoint_callback.to_yaml("./logs/O4_s1s2.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_s1s2.yaml")
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/s1s2.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_s1s2.yaml")
 
 # ---------------------------------------
-# Min val loss value at 48 epochs. -3.31
+# Min val loss value at  epochs. 
 # ---------------------------------------
 
 
@@ -1986,7 +1882,7 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2, ckpt_path = ckpt_path)
 
 # ---------------------------------------
-# Min val loss value at 7 epochs. -1.42 @ testset
+# Min val loss value  -2.1 @ testset
 # ---------------------------------------
 
 # -
@@ -2037,9 +1933,9 @@ predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
 swyft.corner(predictions_s1s2, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
 
 if flag == 'exc':
-    plt.savefig('../graph/cornerplot_s1s2_exc.pdf')
+    plt.savefig('../graph/O4_cornerplot_s1s2_exc.pdf')
 else:
-    plt.savefig('../graph/cornerplot_s1s2.pdf')
+    plt.savefig('../graph/O4_cornerplot_s1s2.pdf')
 
 # +
 bins = 50
@@ -2086,13 +1982,13 @@ if up_3sigma > cross_section_th: plt.axvline(up_3sigma, c = 'black', linestyle =
 #plt.xscale('log')
 plt.xlabel('$log(\sigma)$')
 plt.ylabel('$P(\sigma|x)$')
-plt.text(-50,2, '$m = {:.2e}$'.format(10**(pars_true[0])))
-plt.text(-50,1.8, '$\sigma = {:.2e}$'.format(10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])))
-plt.text(-50,1.5, '$\\theta = {:.2f}$'.format(pars_true[0]))
+plt.text(-43,2, '$m = {:.2e}$'.format(10**(pars_true[0])))
+plt.text(-43,1.8, '$\sigma = {:.2e}$'.format(10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])))
+plt.text(-43,1.5, '$\\theta = {:.2f}$'.format(pars_true[0]))
 if flag == 'exc':
-    plt.savefig('../graph/1Dposterior_s1s2_exc_' + str(i) + '.pdf')
+    plt.savefig('../graph/O4_1Dposterior_s1s2_exc_' + str(i) + '.pdf')
 else:
-    plt.savefig('../graph/1Dposterior_s1s2_disc_' + str(i) + '.pdf')
+    plt.savefig('../graph/O4_1Dposterior_s1s2_disc_' + str(i) + '.pdf')
 # -
 
 swyft.plot_1d(predictions_s1s2, "pars_norm[1]", bins = 50, smooth = 1)
@@ -2119,9 +2015,9 @@ ax[2].set_xlabel(r'$g$')
 ax[2].axvline(x = pars_testset[i,2])
 
 if flag == 'exc':
-    plt.savefig('../graph/loglikratio_s1s2_exc.pdf')
+    plt.savefig('../graph/O4_loglikratio_s1s2_exc.pdf')
 else:
-    plt.savefig('../graph/loglikratio_s1s2.pdf')
+    plt.savefig('../graph/O4_loglikratio_s1s2.pdf')
 # -
 
 results_pars_s1s2 = np.asarray(predictions_s1s2[1].params)
@@ -2139,7 +2035,7 @@ m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
 sigma_results = 10**(results_pars_s1s2[:,0,1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_s1s2[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-48.2, -41, 15)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_s1s2[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-43.2, -35, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -2151,7 +2047,7 @@ im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, 
 clb = plt.colorbar(im20, ax = ax[0])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-48.2, -41, 10)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-43.2, -35, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -2206,7 +2102,7 @@ sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 theta_results = results_pars_s1s2[:,2,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
 theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_s1s2[:,2], 'max', bins = [np.logspace(-48.2, -41, 15), np.linspace(-1.6, 1.6, 15)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_s1s2[:,2], 'max', bins = [np.logspace(-43.2, -35, 15), np.linspace(-1.6, 1.6, 15)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -2218,7 +2114,7 @@ im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, 
 clb = plt.colorbar(im22, ax = ax[2])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-48.2, -41, 10), np.linspace(-1.6, 1.6, 10)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-43.2, -35, 10), np.linspace(-1.6, 1.6, 10)])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -2233,25 +2129,25 @@ ax[2].set_ylabel('$\\theta$')
 ax[2].set_xscale('log')
 
 if flag == 'exc':
-    plt.savefig('../graph/pars_s1s2_exc.pdf')
+    plt.savefig('../graph/O4_pars_s1s2_exc.pdf')
 else:
-    plt.savefig('../graph/pars_s1s2.pdf')
+    plt.savefig('../graph/O4_pars_s1s2.pdf')
 # -
-# ### Let's make the contour plot
+# ### Let's make the contour plot ($\sigma$)
 
-# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-
+# !ls ../data/andresData/O4-fulldata/O4
 
-pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/'])
+pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(['../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0/'])
 
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v5/'
+folders = ['../data/andresData/O4-fulldata/O4/theta-minuspidiv4/O4-slices01-minuspidiv4/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv4/O4-slices01-minuspidiv4-v2/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv4/O4-slices01-minuspidiv4-v3/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv4/O4-slices01-minuspidiv4-v4/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv4/O4-slices01-minuspidiv4-v5/'
          ]
 
 sigmas_full       = []
@@ -2314,7 +2210,7 @@ for folder in folders:
             sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
             
-            cr_th               = np.argmin(np.abs(x - (-49)))
+            cr_th               = np.argmin(np.abs(x - (-41)))
             int_prob[itest]     = trapezoid(h1[:cr_th],x[:cr_th]) / trapezoid(h1,x)
             int_prob_sup[itest] = trapezoid(h1[cr_th:],x[cr_th:]) / trapezoid(h1,x)
         
@@ -2337,34 +2233,34 @@ for folder in folders:
 
 
 # +
-cross_section_th = -49
+cross_section_th = -41
 
 if len(int_prob_full) > 1:
-    int_prob_s1s2_pi_2     = np.mean(np.asarray(int_prob_full), axis = 0)
-    int_prob_sup_s1s2_pi_2 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
+    int_prob_s1s2_mpi_4     = np.mean(np.asarray(int_prob_full), axis = 0)
+    int_prob_sup_s1s2_mpi_4 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
     sigmas = np.mean(np.asarray(sigmas_full), axis = 0)
 else:
-    int_prob_s1s2_pi_2 = int_prob
-    int_prob_sup_s1s2_pi_2 = int_prob_sup
+    int_prob_s1s2_mpi_4 = int_prob
+    int_prob_sup_s1s2_mpi_4 = int_prob_sup
 
-s1s2_1sigma_pi_2 = np.ones(900) * -99
-s1s2_2sigma_pi_2 = np.ones(900) * -99
-s1s2_3sigma_pi_2 = np.ones(900) * -99
+s1s2_1sigma_mpi_4 = np.ones(900) * -99
+s1s2_2sigma_mpi_4 = np.ones(900) * -99
+s1s2_3sigma_mpi_4 = np.ones(900) * -99
 
-s1s2_1sigma_pi_2[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
-s1s2_2sigma_pi_2[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
-s1s2_3sigma_pi_2[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
+s1s2_1sigma_mpi_4[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
+s1s2_2sigma_mpi_4[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
+s1s2_3sigma_mpi_4[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
 # -
 
-sbn.kdeplot(int_prob_sup_s1s2_0, label = '$\\theta = 0$')
+#sbn.kdeplot(int_prob_sup_s1s2_0, label = '$\\theta = 0$')
 sbn.kdeplot(int_prob_sup_s1s2_pi_2, label = '$\\theta = \\frac{\pi}{2}$')
 sbn.kdeplot(int_prob_sup_s1s2_pi_4, label = '$\\theta = \\frac{\pi}{4}$')
-sbn.kdeplot(int_prob_sup_s1s2_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$')
+#sbn.kdeplot(int_prob_sup_s1s2_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$')
 sbn.kdeplot(int_prob_sup_s1s2_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$')
 plt.legend()
 plt.xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
 plt.title('S1-S2')
-plt.savefig('../graph/int_prob_distribution_s1s2.pdf')
+plt.savefig('../graph/O4_int_prob_distribution_s1s2.pdf')
 
 # +
 sigma = 0.2 # this depends on how noisy your data is, play with it!
@@ -2444,9 +2340,9 @@ ax[1,0].set_ylabel('$\sigma [cm^{2}]$')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
-ax[0,0].set_ylim(1e-49, 1e-43)
+ax[0,0].set_ylim(1e-43, 1e-35)
 
-#plt.savefig('../graph/contours_s1s2_m49.pdf')
+plt.savefig('../graph/O4_contours_s1s2_m49.pdf')
 
 
 # +
@@ -2454,11 +2350,11 @@ levels = [0,0.1,0.16,0.24,0.32]
 
 sigma = 1.41 # this depends on how noisy your data is, play with it!
 
-int_prob_0_g = gaussian_filter(int_prob_0, sigma)
-int_prob_pi_2_g = gaussian_filter(int_prob_pi_2, sigma)
-int_prob_pi_4_g = gaussian_filter(int_prob_pi_4, sigma)
-int_prob_mpi_2_g = gaussian_filter(int_prob_mpi_2, sigma)
-int_prob_mpi_4_g = gaussian_filter(int_prob_mpi_4, sigma)
+int_prob_0_g     = gaussian_filter(int_prob_s1s2_0, sigma)
+int_prob_pi_2_g  = gaussian_filter(int_prob_s1s2_pi_2, sigma)
+int_prob_pi_4_g  = gaussian_filter(int_prob_s1s2_pi_4, sigma)
+int_prob_mpi_2_g = gaussian_filter(int_prob_s1s2_mpi_2, sigma)
+int_prob_mpi_4_g = gaussian_filter(int_prob_s1s2_mpi_4, sigma)
 
 fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
 fig.subplots_adjust(hspace = 0, wspace = 0)
@@ -2466,40 +2362,29 @@ fig.subplots_adjust(hspace = 0, wspace = 0)
 fig00 = ax[0,0].contourf(m_vals, cross_vals, int_prob_pi_2_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,0].contour(m_vals, cross_vals, int_prob_pi_2_g.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 
-#ax[0,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[0,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
 ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[0,0].set_yscale('log')
 ax[0,0].set_xscale('log')
 ax[0,0].grid(which='both')
 ax[0,0].text(3e2, 1e-44, '$\\theta = \pi/2$')
-ax[0,0].plot(masses, s1s2_90_CL_pi2, color = 'black', linestyle = '-.', label = 'Bin. Lik. [90%]')
+ax[0,0].plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = '-.', label = 'Bin. Lik. [90%]')
 ax[0,0].legend(loc = 'lower left')
 
 ax[0,1].contourf(m_vals, cross_vals, int_prob_pi_4_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,1].contour(m_vals, cross_vals, int_prob_pi_4_g.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 
-#ax[0,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
-#ax[0,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
-#ax[0,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,1].grid(which='both')
 ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
 
 ax[1,0].contourf(m_vals, cross_vals, int_prob_mpi_2_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,0].contour(m_vals, cross_vals, int_prob_mpi_2_g.reshape(30,30).T, levels=levels)
 
-#ax[1,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,0].grid(which='both')
 ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
 
 ax[1,1].contourf(m_vals, cross_vals, int_prob_0_g.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,1].contour(m_vals, cross_vals, int_prob_0_g.reshape(30,30).T, levels=levels)
 
-#ax[1,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
 
@@ -2508,25 +2393,25 @@ ax[1,0].set_ylabel('$\sigma [cm^{2}]$')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
-ax[0,0].set_ylim(1e-49, 1e-43)
+ax[0,0].set_ylim(1e-43, 1e-35)
 
 fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
 cbar = fig.colorbar(fig00, cax=cbar_ax)
 cbar.ax.set_title('$\int_{-\inf}^{\sigma_{th}} P(\sigma|x)$')
 
-ax[0,1].plot(masses, s1s2_90_CL_pi4, color = 'black', linestyle = '-.')
-ax[1,0].plot(masses, s1s2_90_CL_mpi2, color = 'black', linestyle = '-.')
-ax[1,1].plot(masses, s1s2_90_CL_0, color = 'black', linestyle = '-.')
+ax[0,1].plot(masses, s1s2_90_CL_pi4[2,:], color = 'black', linestyle = '-.')
+ax[1,0].plot(masses, s1s2_90_CL_mpi2[2,:], color = 'black', linestyle = '-.')
+ax[1,1].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = '-.')
 
-#plt.savefig('../graph/contours_s1s1_int_prob_th49.pdf')
+plt.savefig('../graph/O4_contours_s1s1_int_prob_th49.pdf')
 
 # +
 sigma = 1.41 # this depends on how noisy your data is, play with it!
 
-int_prob_sup_0_s1s2 = gaussian_filter(int_prob_sup_s1s2_0, sigma)
-int_prob_sup_pi_2_s1s2 = gaussian_filter(int_prob_sup_s1s2_pi_2, sigma)
-int_prob_sup_pi_4_s1s2 = gaussian_filter(int_prob_sup_s1s2_pi_4, sigma)
+int_prob_sup_0_s1s2     = gaussian_filter(int_prob_sup_s1s2_0, sigma)
+int_prob_sup_pi_2_s1s2  = gaussian_filter(int_prob_sup_s1s2_pi_2, sigma)
+int_prob_sup_pi_4_s1s2  = gaussian_filter(int_prob_sup_s1s2_pi_4, sigma)
 int_prob_sup_mpi_2_s1s2 = gaussian_filter(int_prob_sup_s1s2_mpi_2, sigma)
 int_prob_sup_mpi_4_s1s2 = gaussian_filter(int_prob_sup_s1s2_mpi_4, sigma)
 
@@ -2541,8 +2426,6 @@ ax[0,0].contour(m_vals, cross_vals, int_prob_sup_pi_2_s1s2.reshape(30,30).T, lev
 ax[0,0].contour(m_vals, cross_vals, int_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
 ax[0,0].contour(m_vals, cross_vals, int_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
 
-#ax[0,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
-#ax[0,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
 ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,0].set_yscale('log')
 ax[0,0].set_xscale('log')
@@ -2556,9 +2439,6 @@ ax[0,1].contour(m_vals, cross_vals, int_prob_sup_pi_4_s1s2.reshape(30,30).T, lev
 ax[0,1].contour(m_vals, cross_vals, int_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
 ax[0,1].contour(m_vals, cross_vals, int_prob_sup_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
 
-#ax[0,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
-#ax[0,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':', label = 'XENON nT [$5\sigma$]')
-#ax[0,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,1].grid(which='both')
 ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
 #ax[0,1].legend()
@@ -2568,9 +2448,6 @@ ax[1,0].contour(m_vals, cross_vals, int_prob_sup_mpi_2_s1s2.reshape(30,30).T, le
 ax[1,0].contour(m_vals, cross_vals, int_prob_sup_mpi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
 ax[1,0].contour(m_vals, cross_vals, int_prob_sup_mpi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
 
-#ax[1,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,0].grid(which='both')
 ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
 
@@ -2579,9 +2456,6 @@ ax[1,1].contour(m_vals, cross_vals, int_prob_sup_0_s1s2.reshape(30,30).T, levels
 ax[1,1].contour(m_vals, cross_vals, int_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
 ax[1,1].contour(m_vals, cross_vals, int_prob_sup_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
 
-#ax[1,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
-#ax[1,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
-#ax[1,1].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue')
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
 
@@ -2590,7 +2464,7 @@ ax[1,0].set_ylabel('$\sigma [cm^{2}]$')
 ax[1,0].set_xlabel('m [GeV]')
 ax[1,1].set_xlabel('m [GeV]')
 
-ax[0,0].set_ylim(1e-49, 1e-43)
+ax[0,0].set_ylim(1e-43, 1e-35)
 
 fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
@@ -2601,7 +2475,7 @@ ax[0,1].plot(masses, s1s2_90_CL_pi4[2,:], color = 'black', linestyle = '-.')
 ax[1,0].plot(masses, s1s2_90_CL_mpi2[2,:], color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = '-.')
 
-#plt.savefig('../graph/contours_s1s2_int_prob_sup_th49.pdf')
+plt.savefig('../graph/O4_contours_s1s2_int_prob_sup_th49.pdf')
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]
 
@@ -2650,7 +2524,7 @@ ax[0].set_xlabel('m [GeV]')
 ax[1].set_xlabel('m [GeV]')
 ax[2].set_xlabel('m [GeV]')
 
-ax[0].set_ylim(1e-49, 1e-43)
+ax[0].set_ylim(1e-43, 1e-35)
 ax[0].set_xlim(6, 9.8e2)
 
 fig.subplots_adjust(right=0.8)
@@ -2665,10 +2539,12 @@ for i in range(3):
     
 ax[1].legend(handles = custom_lines, loc = 'lower left')
 
-plt.savefig('../graph/contours_all_int_prob_sup_th49.pdf')
+plt.savefig('../graph/O4_contours_all_int_prob_sup_th49.pdf')
 # -
 
-# # Some other plots
+
+
+# # Some other plots (NOT IMPLEMENTED)
 
 
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
@@ -2681,11 +2557,11 @@ m_vals[15]
 np.where(np.round(pars_slices[:,0], 4) == np.round(np.log10(m_vals[15]), 4))[0]
 
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v5/'
+folders = ['../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v2/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v3/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v4/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v5/'
          ]
 
 sigmas_full       = []
@@ -2735,7 +2611,7 @@ for itest in bps_ind:
     low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
     up_1sigma = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
     
-    cr_th    = np.argmin(np.abs(x - (-49)))
+    cr_th    = np.argmin(np.abs(x - (-41)))
     int_prob = trapezoid(h1[cr_th:],x[cr_th:]) / trapezoid(h1,x)
     
     levels = [0.67, 0.76, 0.84, 0.9, 1]
@@ -2777,13 +2653,13 @@ for itest in bps_ind:
     cbar = fig.colorbar(fig00, cax=cbar_ax)
     cbar.ax.set_title('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
     
-    plt.savefig('../graph/gif_plot_m_84/' + str(c) + '.jpg')    
+    plt.savefig('../graph/O4_gif_plot_m_84/' + str(c) + '.jpg')    
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v5/'
+folders = ['../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v2/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v3/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v4/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v5/'
          ]
 
 pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folders[0]])
@@ -2828,7 +2704,7 @@ for itest in bps_ind:
     low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
     up_1sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
     
-    cr_th    = np.argmin(np.abs(x - (-49)))
+    cr_th    = np.argmin(np.abs(x - (-41)))
     int_prob = trapezoid(h1[cr_th:] * (10**x[cr_th:]), x[cr_th:]) / trapezoid(h1 * (10**x), x)
     
     print(int_prob)
@@ -2844,25 +2720,25 @@ custom_lines = [Line2D([0],[0], color = 'black', label = 'Rec'),
                 Line2D([0],[0], color = 'red', label = 'Non-Rec')]
 ax.legend(handles = custom_lines, loc = 'upper left')
 
-#plt.savefig('../graph/plot_1Dposteriors_m_84.pdf') 
+#plt.savefig('../graph/O4_plot_1Dposteriors_m_84.pdf') 
 # -
 x[np.where(np.array(h1) > np.array(vals[2]))[0]]
 
 fig, ax = plt.subplots(1)
 plot_1dpost(x, h1 * (10**x), ax, color = 'black', alpha = 0.3, real_val = False)
 
-# # Paper plots
+# # Paper plots (NOT IMPLEMENTED)
 
 # ## Figure 1
 
 linestyle = ['solid','--',':','-.']
 
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v5/'
+folders = ['../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v2/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v3/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v4/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v5/'
          ]
 
 sigmas_full       = []
@@ -3061,14 +2937,10 @@ ax[0,1].plot(cross_sec, ratios_rate_mpi2[1,:], linestyle = linestyle[2], color =
 ax[1,0].plot(cross_sec, ratios_rate_mpi2[2,:], linestyle = linestyle[2], color = color_rate)
 ax[1,1].plot(cross_sec, ratios_rate_mpi2[3,:], linestyle = linestyle[2], color = color_rate)
 
-#ax[0,0].text(-50,7, '$m_{DM} = $' + '{:.2e}'.format(10**m_true[0]))
-ax[0,0].text(-50,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[0]))
-#ax[0,1].text(-50,7, '$m_{DM} = $' + '{:.2e}'.format(10**m_true[1]))
-ax[0,1].text(-50,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[1]))
-#ax[1,0].text(-50,7, '$m_{DM} = $' + '{:.2e}'.format(10**m_true[2]))
-ax[1,0].text(-50,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[2]))
-#ax[1,1].text(-50,7, '$m_{DM} = $' + '{:.2e}'.format(10**m_true[3]))
-ax[1,1].text(-50,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[3]))
+ax[0,0].text(-43,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[0]))
+ax[0,1].text(-43,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[1]))
+ax[1,0].text(-43,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[2]))
+ax[1,1].text(-43,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[3]))
 
 ax[0,0].legend(loc = 'upper right')
 
@@ -3083,7 +2955,7 @@ ax[1,0].set_ylabel('$P(\sigma|x)$')
 ax[1,0].set_xlabel('$\log_{10}(\sigma)$')
 ax[1,1].set_xlabel('$\log_{10}(\sigma)$')
 
-plt.savefig('../graph/PosteriorsExamples_fixSigma.pdf')
+plt.savefig('../graph/O4_PosteriorsExamples_fixSigma.pdf')
 
 # +
 plt.plot(cross_sec, ratios_s1s2_mpi2[1,:], linestyle = linestyle[0], color = color_s1s2, label = 'S1-S2')
@@ -3098,7 +2970,7 @@ plt.plot(cross_sec, ratios_s1s2_0[1,:], linestyle = linestyle[2], color = color_
 #plt.plot(cross_sec, ratios_rate_mpi4[1,:], linestyle = linestyle[1], color = color_rate)
 #plt.plot(cross_sec, ratios_rate_0[1,:], linestyle = linestyle[2], color = color_rate)
 
-plt.text(-44.5,4.3, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[1]))
+plt.text(-42.5,4.3, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[1]))
 
 legend0 = plt.legend(loc = 'upper left')
 
@@ -3121,7 +2993,7 @@ plt.axvline(x = sigma_true[1], color = 'black')
 plt.ylabel('$P(\sigma|x)$')
 plt.xlabel('$\log_{10}(\sigma)$')
 
-plt.savefig('../graph/PosteriorsExamples_varSigma.pdf')
+plt.savefig('../graph/O4_PosteriorsExamples_varSigma.pdf')
 # -
 
 
