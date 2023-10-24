@@ -2143,11 +2143,11 @@ m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-folders = ['../data/andresData/O4-fulldata/O4/theta-minuspidiv4/O4-slices01-minuspidiv4/',
-           '../data/andresData/O4-fulldata/O4/theta-minuspidiv4/O4-slices01-minuspidiv4-v2/',
-           '../data/andresData/O4-fulldata/O4/theta-minuspidiv4/O4-slices01-minuspidiv4-v3/',
-           '../data/andresData/O4-fulldata/O4/theta-minuspidiv4/O4-slices01-minuspidiv4-v4/',
-           '../data/andresData/O4-fulldata/O4/theta-minuspidiv4/O4-slices01-minuspidiv4-v5/'
+folders = ['../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v2/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v3/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v4/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v5/'
          ]
 
 sigmas_full       = []
@@ -2236,26 +2236,26 @@ for folder in folders:
 cross_section_th = -41
 
 if len(int_prob_full) > 1:
-    int_prob_s1s2_mpi_4     = np.mean(np.asarray(int_prob_full), axis = 0)
-    int_prob_sup_s1s2_mpi_4 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
+    int_prob_s1s2_0     = np.mean(np.asarray(int_prob_full), axis = 0)
+    int_prob_sup_s1s2_0 = np.mean(np.asarray(int_prob_sup_full), axis = 0)
     sigmas = np.mean(np.asarray(sigmas_full), axis = 0)
 else:
-    int_prob_s1s2_mpi_4 = int_prob
-    int_prob_sup_s1s2_mpi_4 = int_prob_sup
+    int_prob_s1s2_0 = int_prob
+    int_prob_sup_s1s2_0 = int_prob_sup
 
-s1s2_1sigma_mpi_4 = np.ones(900) * -99
-s1s2_2sigma_mpi_4 = np.ones(900) * -99
-s1s2_3sigma_mpi_4 = np.ones(900) * -99
+s1s2_1sigma_0 = np.ones(900) * -99
+s1s2_2sigma_0 = np.ones(900) * -99
+s1s2_3sigma_0 = np.ones(900) * -99
 
-s1s2_1sigma_mpi_4[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
-s1s2_2sigma_mpi_4[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
-s1s2_3sigma_mpi_4[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
+s1s2_1sigma_0[np.where(sigmas[:,0] > cross_section_th)[0]] = 1
+s1s2_2sigma_0[np.where(sigmas[:,1] > cross_section_th)[0]] = 1
+s1s2_3sigma_0[np.where(sigmas[:,2] > cross_section_th)[0]] = 1
 # -
 
-#sbn.kdeplot(int_prob_sup_s1s2_0, label = '$\\theta = 0$')
+sbn.kdeplot(int_prob_sup_s1s2_0, label = '$\\theta = 0$')
 sbn.kdeplot(int_prob_sup_s1s2_pi_2, label = '$\\theta = \\frac{\pi}{2}$')
 sbn.kdeplot(int_prob_sup_s1s2_pi_4, label = '$\\theta = \\frac{\pi}{4}$')
-#sbn.kdeplot(int_prob_sup_s1s2_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$')
+sbn.kdeplot(int_prob_sup_s1s2_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$')
 sbn.kdeplot(int_prob_sup_s1s2_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$')
 plt.legend()
 plt.xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
@@ -2416,7 +2416,7 @@ int_prob_sup_mpi_2_s1s2 = gaussian_filter(int_prob_sup_s1s2_mpi_2, sigma)
 int_prob_sup_mpi_4_s1s2 = gaussian_filter(int_prob_sup_s1s2_mpi_4, sigma)
 
 # +
-levels = [0.67, 0.76, 0.84, 0.9, 1]
+levels = [0.27, 0.66, 0.84, 0.9, 1]
 
 fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
 fig.subplots_adjust(hspace = 0, wspace = 0)
@@ -2424,7 +2424,7 @@ fig.subplots_adjust(hspace = 0, wspace = 0)
 fig00 = ax[0,0].contourf(m_vals, cross_vals, int_prob_sup_pi_2_s1s2.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,0].contour(m_vals, cross_vals, int_prob_sup_pi_2_s1s2.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 ax[0,0].contour(m_vals, cross_vals, int_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
-ax[0,0].contour(m_vals, cross_vals, int_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
+#ax[0,0].contour(m_vals, cross_vals, int_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
 
 ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,0].set_yscale('log')
@@ -2437,7 +2437,7 @@ ax[0,0].legend(loc = 'lower left')
 ax[0,1].contourf(m_vals, cross_vals, int_prob_sup_pi_4_s1s2.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,1].contour(m_vals, cross_vals, int_prob_sup_pi_4_s1s2.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 ax[0,1].contour(m_vals, cross_vals, int_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
-ax[0,1].contour(m_vals, cross_vals, int_prob_sup_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
+#ax[0,1].contour(m_vals, cross_vals, int_prob_sup_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
 
 ax[0,1].grid(which='both')
 ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
@@ -2446,7 +2446,7 @@ ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
 ax[1,0].contourf(m_vals, cross_vals, int_prob_sup_mpi_2_s1s2.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,0].contour(m_vals, cross_vals, int_prob_sup_mpi_2_s1s2.reshape(30,30).T, levels=levels)
 ax[1,0].contour(m_vals, cross_vals, int_prob_sup_mpi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
-ax[1,0].contour(m_vals, cross_vals, int_prob_sup_mpi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
+#ax[1,0].contour(m_vals, cross_vals, int_prob_sup_mpi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
 
 ax[1,0].grid(which='both')
 ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
@@ -2454,7 +2454,7 @@ ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
 ax[1,1].contourf(m_vals, cross_vals, int_prob_sup_0_s1s2.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,1].contour(m_vals, cross_vals, int_prob_sup_0_s1s2.reshape(30,30).T, levels=levels)
 ax[1,1].contour(m_vals, cross_vals, int_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
-ax[1,1].contour(m_vals, cross_vals, int_prob_sup_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
+#ax[1,1].contour(m_vals, cross_vals, int_prob_sup_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['purple'])
 
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
@@ -2488,43 +2488,43 @@ fig.subplots_adjust(hspace = 0, wspace = 0)
 
 ax[0].contour(m_vals, cross_vals, int_prob_sup_pi_2_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_s1s2)
 ax[0].contour(m_vals, cross_vals, int_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
-ax[0].contour(m_vals, cross_vals, int_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '-.', colors = color_drate)
+#ax[0].contour(m_vals, cross_vals, int_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '-.', colors = color_drate)
 
 ax[0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]', linestyle = ':')
 ax[0].plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = ':', label = 'Bin. Lik. [90%]')
-ax[0].fill_between(masses, s1s2_current_pi2[2,:], 1e-43, color = 'black', alpha = 0.2)
+ax[0].fill_between(masses, s1s2_current_pi2[2,:], 1e-34, color = 'black', alpha = 0.2)
 
 ax[0].set_yscale('log')
 ax[0].set_xscale('log')
 ax[0].grid(which='both')
-ax[0].text(3e2, 1e-44, '$\\theta = \pi/2$')
+ax[0].text(3e2, 1e-36, '$\\theta = \pi/2$')
 ax[0].legend(loc = 'lower left')
 
 ax[1].contour(m_vals, cross_vals, int_prob_sup_pi_4_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_s1s2)
 ax[1].contour(m_vals, cross_vals, int_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
-ax[1].contour(m_vals, cross_vals, int_prob_sup_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '-.', colors = color_drate)
+#ax[1].contour(m_vals, cross_vals, int_prob_sup_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '-.', colors = color_drate)
 ax[1].plot(masses, s1s2_90_CL_pi4[2,:], color = 'black', linestyle = ':')
-ax[1].fill_between(masses, s1s2_current_pi4[2,:], 1e-43, color = 'black', alpha = 0.2)
+ax[1].fill_between(masses, s1s2_current_pi4[2,:], 1e-34, color = 'black', alpha = 0.2)
 
 ax[1].grid(which='both')
-ax[1].text(3e2, 1e-44, '$\\theta = \pi/4$')
+ax[1].text(3e2, 1e-36, '$\\theta = \pi/4$')
 
 ax[2].contour(m_vals, cross_vals, int_prob_sup_0_s1s2.reshape(30,30).T, levels = [0.9], colors = color_s1s2)
 ax[2].contour(m_vals, cross_vals, int_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
-ax[2].contour(m_vals, cross_vals, int_prob_sup_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '-.', colors = color_drate)
+#ax[2].contour(m_vals, cross_vals, int_prob_sup_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '-.', colors = color_drate)
 ax[2].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = ':')
-ax[2].fill_between(masses, s1s2_current_0[2,:], 1e-43, color = 'black', alpha = 0.2, label = 'Excluded')
+ax[2].fill_between(masses, s1s2_current_0[2,:], 1e-34, color = 'black', alpha = 0.2, label = 'Excluded')
 ax[2].legend(loc = 'lower right')
 
 ax[2].grid(which='both')
-ax[2].text(3e2, 1e-44, '$\\theta = 0$')
+ax[2].text(3e2, 1e-36, '$\\theta = 0$')
 
 ax[0].set_ylabel('$\sigma \ [cm^{2}]$')
 ax[0].set_xlabel('m [GeV]')
 ax[1].set_xlabel('m [GeV]')
 ax[2].set_xlabel('m [GeV]')
 
-ax[0].set_ylim(1e-43, 1e-35)
+ax[0].set_ylim(1e-43, 4e-36)
 ax[0].set_xlim(6, 9.8e2)
 
 fig.subplots_adjust(right=0.8)
@@ -2541,8 +2541,6 @@ ax[1].legend(handles = custom_lines, loc = 'lower left')
 
 plt.savefig('../graph/O4_contours_all_int_prob_sup_th49.pdf')
 # -
-
-
 
 # # Some other plots (NOT IMPLEMENTED)
 
