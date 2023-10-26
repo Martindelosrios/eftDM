@@ -267,6 +267,8 @@ s1s2_testset  = s1s2[test_ind,:,:]
 
 # -
 
+# ## Neutrino Fog
+
 neutrino_fog = np.loadtxt('../data/neutrino_fog.csv', skiprows = 1, delimiter = ',')
 
 # ## Xenon data
@@ -2539,7 +2541,7 @@ for i in range(3):
     
 ax[1].legend(handles = custom_lines, loc = 'lower left')
 
-plt.savefig('../graph/O4_contours_all_int_prob_sup_th49.pdf')
+#plt.savefig('../graph/O4_contours_all_int_prob_sup_th49.pdf')
 # -
 
 # # Some other plots (NOT IMPLEMENTED)
