@@ -493,15 +493,18 @@ trainer_rate.test(network_rate, dm_test_rate, ckpt_path = ckpt_path)
 # ---------------------------------------------- 
 # -
 
-val_loss = []
-train_loss = []
-for i in range(1, len(cb.collection)):
-    train_loss.append( np.asarray(cb.train_loss[i].cpu()) )
-    val_loss.append( np.asarray(cb.val_loss[i].cpu()) )
-
-plt.plot(train_loss, label = 'Train Loss')
-plt.plot(val_loss, label = 'Val Loss')
-plt.legend()
+if fit:
+    val_loss = []
+    train_loss = []
+    for i in range(1, len(cb.collection)):
+        train_loss.append( np.asarray(cb.train_loss[i].cpu()) )
+        val_loss.append( np.asarray(cb.val_loss[i].cpu()) )
+    
+    plt.plot(train_loss, label = 'Train Loss')
+    plt.plot(val_loss, label = 'Val Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
 
 # ### Let's make some inference
 
