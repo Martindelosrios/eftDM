@@ -2226,7 +2226,7 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
     checkpoint_callback.to_yaml("./logs/O1_s1s2.yaml") 
@@ -2279,10 +2279,13 @@ if fit:
 pars_norm = (pars_testset - pars_min) / (pars_max - pars_min)
 
 x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1]
+# -
+
+flag = 'disc'
 
 # +
 # First let's create some observation from some "true" theta parameters
-#i = 189 #np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
+i = 189 #np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
 print(i)
 
 pars_true = pars_norm[i,:]
@@ -2295,8 +2298,8 @@ plt.imshow(x_obs[0].T, origin = 'lower')
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
-
+pars_prior = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
+pars_prior[:,2] = np.random.normal(pars_true[2], 0.001, (len(pars_prior)))
 prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
@@ -2307,9 +2310,9 @@ predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
 swyft.corner(predictions_s1s2, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
 
 if flag == 'exc':
-    plt.savefig('../graph/cornerplot_s1s2_exc.pdf')
+    plt.savefig('../graph/cornerplot_s1s2_exc_thetaFix.pdf')
 else:
-    plt.savefig('../graph/cornerplot_s1s2.pdf')
+    plt.savefig('../graph/cornerplot_s1s2_thetaFix.pdf')
 
 # +
 bins = 50
@@ -2325,6 +2328,7 @@ edges = torch.linspace(v.min(), v.max(), bins + 1)
 x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
 
 # +
+cross_section_th = -49
 vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
 
 low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
@@ -2360,9 +2364,9 @@ plt.text(-50,2, '$m = {:.2e}$'.format(10**(pars_true[0])))
 plt.text(-50,1.8, '$\sigma = {:.2e}$'.format(10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])))
 plt.text(-50,1.5, '$\\theta = {:.2f}$'.format(pars_true[0]))
 if flag == 'exc':
-    plt.savefig('../graph/1Dposterior_s1s2_exc_' + str(i) + '.pdf')
+    plt.savefig('../graph/1Dposterior_s1s2_exc_' + str(i) + '_thetaFix.pdf')
 else:
-    plt.savefig('../graph/1Dposterior_s1s2_disc_' + str(i) + '.pdf')
+    plt.savefig('../graph/1Dposterior_s1s2_disc_' + str(i) + '_thetaFix.pdf')
 # -
 
 swyft.plot_1d(predictions_s1s2, "pars_norm[1]", bins = 50, smooth = 1)
@@ -2532,10 +2536,10 @@ masses_int_prob_sup_full = []
 for folder in folders:
     pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
     
-    if (os.path.exists(folder + 'cross_sec_sigmas_s1s2.txt') & 
-        os.path.exists(folder + 'cross_sec_int_prob_s1s2.txt') &
-        os.path.exists(folder + 'cross_sec_int_prob_sup_s1s2.txt') &
-        os.path.exists(folder + 'masses_int_prob_sup_s1s2.txt')
+    if (os.path.exists(folder + 'cross_sec_sigmas_s1s2_thetaFix.txt') & 
+        os.path.exists(folder + 'cross_sec_int_prob_s1s2_thetaFix.txt') &
+        os.path.exists(folder + 'cross_sec_int_prob_sup_s1s2_thetaFix.txt') &
+        os.path.exists(folder + 'masses_int_prob_sup_s1s2_thetaFix.txt')
        ) == False or force == True:
         # Let's normalize testset between 0 and 1
         
@@ -2561,6 +2565,7 @@ for folder in folders:
             
             # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
             pars_prior    = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
+            pars_prior[:,2] = np.random.normal(pars_true[2], 0.001, (len(pars_prior)))
             prior_samples = swyft.Samples(z = pars_prior)
             
             # Finally we make the inference
@@ -2607,16 +2612,16 @@ for folder in folders:
         cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
         masses_int_prob_sup_full.append(masses_int_prob_sup)
             
-        np.savetxt(folder + 'cross_sec_sigmas_s1s2.txt', cross_sec_sigmas)
-        np.savetxt(folder + 'cross_sec_int_prob_s1s2.txt', cross_sec_int_prob)
-        np.savetxt(folder + 'cross_sec_int_prob_sup_s1s2.txt', cross_sec_int_prob_sup)
-        np.savetxt(folder + 'masses_int_prob_sup_s1s2.txt', masses_int_prob_sup)
+        np.savetxt(folder + 'cross_sec_sigmas_s1s2_thetaFix.txt', cross_sec_sigmas)
+        np.savetxt(folder + 'cross_sec_int_prob_s1s2_thetaFix.txt', cross_sec_int_prob)
+        np.savetxt(folder + 'cross_sec_int_prob_sup_s1s2_thetaFix.txt', cross_sec_int_prob_sup)
+        np.savetxt(folder + 'masses_int_prob_sup_s1s2_thetaFix.txt', masses_int_prob_sup)
     else:
         print('pre-computed')
-        cross_sec_sigmas       = np.loadtxt(folder + 'cross_sec_sigmas_s1s2.txt')
-        cross_sec_int_prob     = np.loadtxt(folder + 'cross_sec_int_prob_s1s2.txt')
-        cross_sec_int_prob_sup = np.loadtxt(folder + 'cross_sec_int_prob_sup_s1s2.txt')
-        masses_int_prob_sup    = np.loadtxt(folder + 'masses_int_prob_sup_s1s2.txt')
+        cross_sec_sigmas       = np.loadtxt(folder + 'cross_sec_sigmas_s1s2_thetaFix.txt')
+        cross_sec_int_prob     = np.loadtxt(folder + 'cross_sec_int_prob_s1s2_thetaFix.txt')
+        cross_sec_int_prob_sup = np.loadtxt(folder + 'cross_sec_int_prob_sup_s1s2_thetaFix.txt')
+        masses_int_prob_sup    = np.loadtxt(folder + 'masses_int_prob_sup_s1s2_thetaFix.txt')
 
         cross_sec_sigmas_full.append(cross_sec_sigmas)
         cross_sec_int_prob_full.append(cross_sec_int_prob)
@@ -2650,25 +2655,25 @@ s1s2_3sigma_pi_2[np.where(cross_sec_sigmas[:,2] > cross_section_th)[0]] = 1
 # +
 fig, ax = plt.subplots(1,2)
 
-sbn.kdeplot(cross_sec_int_prob_sup_s1s2_0, label = '$\\theta = 0$', ax = ax[0])
+# #%sbn.kdeplot(cross_sec_int_prob_sup_s1s2_0, label = '$\\theta = 0$', ax = ax[0])
 sbn.kdeplot(cross_sec_int_prob_sup_s1s2_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_sup_s1s2_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_sup_s1s2_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_sup_s1s2_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0])
+# #%sbn.kdeplot(cross_sec_int_prob_sup_s1s2_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0])
+# #%sbn.kdeplot(cross_sec_int_prob_sup_s1s2_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0])
+# #%sbn.kdeplot(cross_sec_int_prob_sup_s1s2_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0])
 ax[0].legend()
 ax[0].set_xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
 ax[0].set_title('S1-S2')
 
-sbn.kdeplot(masses_int_prob_sup_s1s2_0, label = '$\\theta = 0$', ax = ax[1])
+# #%sbn.kdeplot(masses_int_prob_sup_s1s2_0, label = '$\\theta = 0$', ax = ax[1])
 sbn.kdeplot(masses_int_prob_sup_s1s2_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_sup_s1s2_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_sup_s1s2_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_sup_s1s2_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1])
+# #%sbn.kdeplot(masses_int_prob_sup_s1s2_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1])
+# #%sbn.kdeplot(masses_int_prob_sup_s1s2_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1])
+# #%sbn.kdeplot(masses_int_prob_sup_s1s2_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1])
 ax[1].legend()
 ax[1].set_xlabel('$\int_{m_{min}}^{m_{max}} P(m_{DM}|x)$')
 ax[1].set_title('S1-S2')
 
-plt.savefig('../graph/O1_int_prob_distribution_s1s2.pdf')
+# #%plt.savefig('../graph/O1_int_prob_distribution_s1s2.pdf')
 
 # +
 sigma = 0.2 # this depends on how noisy your data is, play with it!
@@ -2828,37 +2833,37 @@ plt.savefig('../graph/O1_contours_s1s2_int_prob.pdf')
 # +
 sigma = 0.8 # this depends on how noisy your data is, play with it!
 
-CR_int_prob_sup_0_s1s2          = gaussian_filter(cross_sec_int_prob_sup_s1s2_0, sigma)
-CR_int_prob_sup_0_s1s2_max      = gaussian_filter(cross_sec_int_prob_sup_s1s2_0 + cross_sec_int_prob_sup_s1s2_0_sd, sigma)
-CR_int_prob_sup_0_s1s2_min      = gaussian_filter(cross_sec_int_prob_sup_s1s2_0 - cross_sec_int_prob_sup_s1s2_0_sd, sigma)
+# #%CR_int_prob_sup_0_s1s2          = gaussian_filter(cross_sec_int_prob_sup_s1s2_0, sigma)
+# #%CR_int_prob_sup_0_s1s2_max      = gaussian_filter(cross_sec_int_prob_sup_s1s2_0 + cross_sec_int_prob_sup_s1s2_0_sd, sigma)
+# #%CR_int_prob_sup_0_s1s2_min      = gaussian_filter(cross_sec_int_prob_sup_s1s2_0 - cross_sec_int_prob_sup_s1s2_0_sd, sigma)
 CR_int_prob_sup_pi_2_s1s2       = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_2, sigma)
 CR_int_prob_sup_pi_2_s1s2_max   = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_2 + cross_sec_int_prob_sup_s1s2_pi_2_sd, sigma)
 CR_int_prob_sup_pi_2_s1s2_min   = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_2 - cross_sec_int_prob_sup_s1s2_pi_2_sd, sigma)
-CR_int_prob_sup_pi_4_s1s2       = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_4, sigma)
-CR_int_prob_sup_pi_4_s1s2_max   = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_4 + cross_sec_int_prob_sup_s1s2_pi_4_sd, sigma)
-CR_int_prob_sup_pi_4_s1s2_min   = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_4 - cross_sec_int_prob_sup_s1s2_pi_4_sd, sigma)
-CR_int_prob_sup_mpi_2_s1s2      = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_2, sigma)
-CR_int_prob_sup_mpi_2_s1s2_max  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_2 + cross_sec_int_prob_sup_s1s2_mpi_2_sd, sigma)
-CR_int_prob_sup_mpi_2_s1s2_min  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_2 - cross_sec_int_prob_sup_s1s2_mpi_2_sd, sigma)
-CR_int_prob_sup_mpi_4_s1s2      = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_4, sigma)
-CR_int_prob_sup_mpi_4_s1s2_max  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_4 + cross_sec_int_prob_sup_s1s2_mpi_4_sd, sigma)
-CR_int_prob_sup_mpi_4_s1s2_min  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_4 - cross_sec_int_prob_sup_s1s2_mpi_4_sd, sigma)
+# #%CR_int_prob_sup_pi_4_s1s2       = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_4, sigma)
+# #%CR_int_prob_sup_pi_4_s1s2_max   = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_4 + cross_sec_int_prob_sup_s1s2_pi_4_sd, sigma)
+# #%CR_int_prob_sup_pi_4_s1s2_min   = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_4 - cross_sec_int_prob_sup_s1s2_pi_4_sd, sigma)
+# #%CR_int_prob_sup_mpi_2_s1s2      = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_2, sigma)
+# #%CR_int_prob_sup_mpi_2_s1s2_max  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_2 + cross_sec_int_prob_sup_s1s2_mpi_2_sd, sigma)
+# #%CR_int_prob_sup_mpi_2_s1s2_min  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_2 - cross_sec_int_prob_sup_s1s2_mpi_2_sd, sigma)
+# #%CR_int_prob_sup_mpi_4_s1s2      = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_4, sigma)
+# #%CR_int_prob_sup_mpi_4_s1s2_max  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_4 + cross_sec_int_prob_sup_s1s2_mpi_4_sd, sigma)
+# #%CR_int_prob_sup_mpi_4_s1s2_min  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_4 - cross_sec_int_prob_sup_s1s2_mpi_4_sd, sigma)
 
-M_int_prob_sup_0_s1s2         = gaussian_filter(masses_int_prob_sup_s1s2_0, sigma)
-M_int_prob_sup_0_s1s2_max     = gaussian_filter(masses_int_prob_sup_s1s2_0 + masses_int_prob_sup_s1s2_0_sd, sigma)
-M_int_prob_sup_0_s1s2_min     = gaussian_filter(masses_int_prob_sup_s1s2_0 - masses_int_prob_sup_s1s2_0_sd, sigma)
+# #%M_int_prob_sup_0_s1s2         = gaussian_filter(masses_int_prob_sup_s1s2_0, sigma)
+# #%M_int_prob_sup_0_s1s2_max     = gaussian_filter(masses_int_prob_sup_s1s2_0 + masses_int_prob_sup_s1s2_0_sd, sigma)
+# #%M_int_prob_sup_0_s1s2_min     = gaussian_filter(masses_int_prob_sup_s1s2_0 - masses_int_prob_sup_s1s2_0_sd, sigma)
 M_int_prob_sup_pi_2_s1s2      = gaussian_filter(masses_int_prob_sup_s1s2_pi_2, sigma)
 M_int_prob_sup_pi_2_s1s2_max  = gaussian_filter(masses_int_prob_sup_s1s2_pi_2 + masses_int_prob_sup_s1s2_pi_2_sd, sigma)
 M_int_prob_sup_pi_2_s1s2_min  = gaussian_filter(masses_int_prob_sup_s1s2_pi_2 - masses_int_prob_sup_s1s2_pi_2_sd, sigma)
-M_int_prob_sup_pi_4_s1s2      = gaussian_filter(masses_int_prob_sup_s1s2_pi_4, sigma)
-M_int_prob_sup_pi_4_s1s2_max  = gaussian_filter(masses_int_prob_sup_s1s2_pi_4 + masses_int_prob_sup_s1s2_pi_4_sd, sigma)
-M_int_prob_sup_pi_4_s1s2_min  = gaussian_filter(masses_int_prob_sup_s1s2_pi_4 - masses_int_prob_sup_s1s2_pi_4_sd, sigma)
-M_int_prob_sup_mpi_2_s1s2     = gaussian_filter(masses_int_prob_sup_s1s2_mpi_2, sigma)
-M_int_prob_sup_mpi_2_s1s2_max = gaussian_filter(masses_int_prob_sup_s1s2_mpi_2 + masses_int_prob_sup_s1s2_mpi_2_sd, sigma)
-M_int_prob_sup_mpi_2_s1s2_min = gaussian_filter(masses_int_prob_sup_s1s2_mpi_2 - masses_int_prob_sup_s1s2_mpi_2_sd, sigma)
-M_int_prob_sup_mpi_4_s1s2     = gaussian_filter(masses_int_prob_sup_s1s2_mpi_4, sigma)
-M_int_prob_sup_mpi_4_s1s2_max = gaussian_filter(masses_int_prob_sup_s1s2_mpi_4 + masses_int_prob_sup_s1s2_mpi_4_sd, sigma)
-M_int_prob_sup_mpi_4_s1s2_min = gaussian_filter(masses_int_prob_sup_s1s2_mpi_4 - masses_int_prob_sup_s1s2_mpi_4_sd, sigma)
+# #%M_int_prob_sup_pi_4_s1s2      = gaussian_filter(masses_int_prob_sup_s1s2_pi_4, sigma)
+# #%M_int_prob_sup_pi_4_s1s2_max  = gaussian_filter(masses_int_prob_sup_s1s2_pi_4 + masses_int_prob_sup_s1s2_pi_4_sd, sigma)
+# #%M_int_prob_sup_pi_4_s1s2_min  = gaussian_filter(masses_int_prob_sup_s1s2_pi_4 - masses_int_prob_sup_s1s2_pi_4_sd, sigma)
+# #%M_int_prob_sup_mpi_2_s1s2     = gaussian_filter(masses_int_prob_sup_s1s2_mpi_2, sigma)
+# #%M_int_prob_sup_mpi_2_s1s2_max = gaussian_filter(masses_int_prob_sup_s1s2_mpi_2 + masses_int_prob_sup_s1s2_mpi_2_sd, sigma)
+# #%M_int_prob_sup_mpi_2_s1s2_min = gaussian_filter(masses_int_prob_sup_s1s2_mpi_2 - masses_int_prob_sup_s1s2_mpi_2_sd, sigma)
+# #%M_int_prob_sup_mpi_4_s1s2     = gaussian_filter(masses_int_prob_sup_s1s2_mpi_4, sigma)
+# #%M_int_prob_sup_mpi_4_s1s2_max = gaussian_filter(masses_int_prob_sup_s1s2_mpi_4 + masses_int_prob_sup_s1s2_mpi_4_sd, sigma)
+# #%M_int_prob_sup_mpi_4_s1s2_min = gaussian_filter(masses_int_prob_sup_s1s2_mpi_4 - masses_int_prob_sup_s1s2_mpi_4_sd, sigma)
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]
@@ -2934,7 +2939,7 @@ ax[0,1].plot(masses, s1s2_90_CL_pi4[2,:], color = 'black', linestyle = '-.')
 ax[1,0].plot(masses, s1s2_90_CL_mpi2[2,:], color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = '-.')
 
-plt.savefig('../graph/O1_contours_s1s2_int_prob_sup.pdf')
+#plt.savefig('../graph/O1_contours_s1s2_int_prob_sup.pdf')
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]
 
@@ -3348,7 +3353,7 @@ for itest in bps_ind:
     ax[0].set_xlabel('$log(m)$')
 
     ax[0].set_xlim(0, 3)
-    ax[1].set_ylim(1e-49, 1e-43)
+    ax[1].set_ylim(1e-43, 1e-3)
     
     fig.subplots_adjust(right=0.8)
     cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
