@@ -487,7 +487,7 @@ dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1],
 trainer_rate.test(network_rate, dm_test_rate)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_rate.fit(network_rate, dm_rate)
     checkpoint_callback.to_yaml("./logs/O4_rate.yaml") 
@@ -831,12 +831,12 @@ m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-force = True
-folders = ['../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2/',
-           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v2/',
-           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v3/',
-           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v4/',
-           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v5/'
+force = False
+folders = ['../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v2/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v3/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v4/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v5/'
          ]
 
 
@@ -845,6 +845,8 @@ cross_sec_int_prob_full     = []
 cross_sec_int_prob_sup_full = []
 
 masses_int_prob_sup_full = []
+masses_prob_sup_full     = []
+masses_prob_inf_full     = []
 
 for folder in folders:
     pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
@@ -852,7 +854,9 @@ for folder in folders:
     if (os.path.exists(folder + 'cross_sec_sigmas_rate.txt') &
         os.path.exists(folder + 'cross_sec_int_prob_rate.txt') &
         os.path.exists(folder + 'cross_sec_int_prob_sup_rate.txt') &
-        os.path.exists(folder + 'masses_int_prob_sup_rate.txt')
+        os.path.exists(folder + 'masses_int_prob_sup_rate.txt') &
+        os.path.exists(folder + 'masses_prob_sup_rate.txt') &
+        os.path.exists(folder + 'masses_prob_inf_rate.txt')
        ) == False or force == True:
         # Let's normalize testset between 0 and 1
 
@@ -867,6 +871,8 @@ for folder in folders:
         cross_sec_int_prob     = np.ones(len(pars_norm)) * -99
         cross_sec_int_prob_sup = np.ones(len(pars_norm)) * -99
         masses_int_prob_sup    = np.ones(len(pars_norm)) * -99
+        masses_prob_sup        = np.ones(len(pars_norm)) * -99
+        masses_prob_inf        = np.ones(len(pars_norm)) * -99
 
         for itest in tqdm(range(len(pars_norm))):
             x_obs = x_norm_rate[itest, :]
@@ -895,14 +901,14 @@ for folder in folders:
 
             vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
 
-            cross_sec_sigmas[itest,0] = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
-            cross_sec_sigmas[itest,3] = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+            cross_sec_sigmas[itest,0] = np.min(x[np.where(np.array(h1) >= np.array(vals[2]))[0]])
+            cross_sec_sigmas[itest,3] = np.max(x[np.where(np.array(h1) >= np.array(vals[2]))[0]])
 
-            cross_sec_sigmas[itest,1] = np.min(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
-            cross_sec_sigmas[itest,4] = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+            cross_sec_sigmas[itest,1] = np.min(x[np.where(np.array(h1) >= np.array(vals[1]))[0]])
+            cross_sec_sigmas[itest,4] = np.max(x[np.where(np.array(h1) >= np.array(vals[1]))[0]])
 
-            cross_sec_sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
-            cross_sec_sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+            cross_sec_sigmas[itest,2] = np.min(x[np.where(np.array(h1) >= np.array(vals[0]))[0]])
+            cross_sec_sigmas[itest,5] = np.max(x[np.where(np.array(h1) >= np.array(vals[0]))[0]])
 
             cr_th = np.argmin(np.abs(x - (-41)))
             cross_sec_int_prob[itest]     = trapezoid(h1[:cr_th], x[:cr_th]) / trapezoid(h1, x)
@@ -916,16 +922,22 @@ for folder in folders:
             m_min = np.argmin(np.abs(masses_pred - 1))
             m_max = np.argmin(np.abs(masses_pred - 2.6))
             masses_int_prob_sup[itest] = trapezoid(ratios_rate[m_min:m_max], masses_pred[m_min:m_max]) / trapezoid(ratios_rate, masses_pred)
-
+            masses_prob_sup[itest] = trapezoid(ratios_rate[m_min:], masses_pred[m_min:]) / trapezoid(ratios_rate, masses_pred)
+            masses_prob_inf[itest] = trapezoid(ratios_rate[:m_max], masses_pred[:m_max]) / trapezoid(ratios_rate, masses_pred)
+            
         cross_sec_sigmas_full.append(cross_sec_sigmas)
         cross_sec_int_prob_full.append(cross_sec_int_prob)
         cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
         masses_int_prob_sup_full.append(masses_int_prob_sup)
+        masses_prob_sup_full.append(masses_prob_sup)
+        masses_prob_inf_full.append(masses_prob_inf)
 
         np.savetxt(folder + 'cross_sec_sigmas_rate.txt', cross_sec_sigmas)
         np.savetxt(folder + 'cross_sec_int_prob_rate.txt', cross_sec_int_prob)
         np.savetxt(folder + 'cross_sec_int_prob_sup_rate.txt', cross_sec_int_prob_sup)
         np.savetxt(folder + 'masses_int_prob_sup_rate.txt', masses_int_prob_sup)
+        np.savetxt(folder + 'masses_prob_sup_rate.txt', masses_prob_sup)
+        np.savetxt(folder + 'masses_prob_inf_rate.txt', masses_prob_inf)
     else:
         print('pre-computed')
 
@@ -933,55 +945,83 @@ for folder in folders:
         cross_sec_int_prob = np.loadtxt(folder + 'cross_sec_int_prob_rate.txt')
         cross_sec_int_prob_sup = np.loadtxt(folder + 'cross_sec_int_prob_sup_rate.txt')
         masses_int_prob_sup = np.loadtxt(folder + 'masses_int_prob_sup_rate.txt')
+        masses_prob_sup = np.loadtxt(folder + 'masses_prob_sup_rate.txt')
+        masses_prob_inf = np.loadtxt(folder + 'masses_prob_inf_rate.txt')
 
         cross_sec_sigmas_full.append(cross_sec_sigmas)
         cross_sec_int_prob_full.append(cross_sec_int_prob)
         cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
         masses_int_prob_sup_full.append(masses_int_prob_sup)
+        masses_prob_sup_full.append(masses_prob_sup)
+        masses_prob_inf_full.append(masses_prob_inf)
+        
+email('Termino de analizar las slices')
 
 # +
 cross_section_th = -41
 
 if len(cross_sec_int_prob_full) > 1:
-    cross_sec_int_prob_rate_mpi_2        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
-    cross_sec_int_prob_sup_rate_mpi_2    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    cross_sec_int_prob_sup_rate_mpi_2_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_rate_mpi_2       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_rate_mpi_2_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
+    cross_sec_int_prob_rate_0        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
+    cross_sec_int_prob_sup_rate_0    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    cross_sec_int_prob_sup_rate_0_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_rate_0       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_rate_0_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_prob_sup_rate_0           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_sup_rate_0_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_inf_rate_0           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
+    masses_prob_inf_rate_0_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
     cross_sec_sigmas = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
 else:
-    cross_sec_int_prob_rate_mpi_2     = cross_sec_int_prob
-    cross_sec_int_prob_sup_rate_mpi_2 = cross_sec_int_prob_sup
-    masses_int_prob_sup_rate_mpi_2    = masses_int_prob_sup
+    cross_sec_int_prob_rate_0     = cross_sec_int_prob
+    cross_sec_int_prob_sup_rate_0 = cross_sec_int_prob_sup
+    masses_int_prob_sup_rate_0    = masses_int_prob_sup
+    masses_prob_sup_rate_0        = masses_prob_sup
+    masses_prob_inf_rate_0        = masses_prob_inf
 
-rate_1sigma_mpi_2 = np.ones(900) * -99
-rate_2sigma_mpi_2 = np.ones(900) * -99
-rate_3sigma_mpi_2 = np.ones(900) * -99
+rate_1sigma_0 = np.ones(900) * -99
+rate_2sigma_0 = np.ones(900) * -99
+rate_3sigma_0 = np.ones(900) * -99
 
-rate_1sigma_mpi_2[np.where(cross_sec_sigmas[:,0] > cross_section_th)[0]] = 1
-rate_2sigma_mpi_2[np.where(cross_sec_sigmas[:,1] > cross_section_th)[0]] = 1
-rate_3sigma_mpi_2[np.where(cross_sec_sigmas[:,2] > cross_section_th)[0]] = 1
+rate_1sigma_0[np.where(cross_sec_sigmas[:,0] > cross_section_th)[0]] = 1
+rate_2sigma_0[np.where(cross_sec_sigmas[:,1] > cross_section_th)[0]] = 1
+rate_3sigma_0[np.where(cross_sec_sigmas[:,2] > cross_section_th)[0]] = 1
 
 # +
-fig, ax = plt.subplots(1,2)
+fig, ax = plt.subplots(2,2)
 
-sbn.kdeplot(cross_sec_int_prob_sup_rate_0, label = '$\\theta = 0$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_sup_rate_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_sup_rate_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_sup_rate_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_sup_rate_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0])
-ax[0].legend()
-ax[0].set_xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
-ax[0].set_title('Total Rate')
+sbn.kdeplot(cross_sec_int_prob_sup_rate_0, label = '$\\theta = 0$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_sup_rate_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_sup_rate_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_sup_rate_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_sup_rate_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0,0])
+ax[0,0].legend()
+ax[0,0].set_xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
+ax[0,0].set_title('Total Rate')
 
-sbn.kdeplot(masses_int_prob_sup_rate_0, label = '$\\theta = 0$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_sup_rate_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_sup_rate_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_sup_rate_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_sup_rate_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1])
-ax[1].legend()
-ax[1].set_xlabel('$\int_{m_{min}}^{m_{max}} P(m_{DM}|x)$')
-ax[1].set_title('Total Rate')
+sbn.kdeplot(masses_int_prob_sup_rate_0, label = '$\\theta = 0$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_sup_rate_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_sup_rate_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_sup_rate_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_sup_rate_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0,1])
+ax[0,1].legend()
+ax[0,1].set_xlabel('$\int_{m_{min}}^{m_{max}} P(m_{DM}|x)$')
+ax[0,1].set_title('Total Rate')
+
+sbn.kdeplot(masses_prob_sup_rate_0, label = '$\\theta = 0$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_sup_rate_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_sup_rate_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_sup_rate_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_sup_rate_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1,0])
+ax[1,0].legend()
+ax[1,0].set_xlabel('$\int_{m_{min}}^{\inf} P(m_{DM}|x)$')
+
+sbn.kdeplot(masses_prob_inf_rate_0, label = '$\\theta = 0$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_inf_rate_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_inf_rate_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_inf_rate_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_inf_rate_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1,1])
+ax[1,1].legend()
+ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
 plt.savefig('../graph/O4_int_prob_distribution_rate.pdf')
 
@@ -1147,18 +1187,32 @@ CR_int_prob_sup_mpi_4_rate_min  = gaussian_filter(cross_sec_int_prob_sup_rate_mp
 M_int_prob_sup_0_rate         = gaussian_filter(masses_int_prob_sup_rate_0, sigma)
 M_int_prob_sup_0_rate_max     = gaussian_filter(masses_int_prob_sup_rate_0 + masses_int_prob_sup_rate_0_sd, sigma)
 M_int_prob_sup_0_rate_min     = gaussian_filter(masses_int_prob_sup_rate_0 - masses_int_prob_sup_rate_0_sd, sigma)
+M_prob_sup_0_rate             = gaussian_filter(masses_prob_sup_rate_0, sigma)
+M_prob_inf_0_rate             = gaussian_filter(masses_prob_inf_rate_0, sigma)
+
 M_int_prob_sup_pi_2_rate      = gaussian_filter(masses_int_prob_sup_rate_pi_2, sigma)
 M_int_prob_sup_pi_2_rate_max  = gaussian_filter(masses_int_prob_sup_rate_pi_2 + masses_int_prob_sup_rate_pi_2_sd, sigma)
 M_int_prob_sup_pi_2_rate_min  = gaussian_filter(masses_int_prob_sup_rate_pi_2 - masses_int_prob_sup_rate_pi_2_sd, sigma)
+M_prob_sup_pi_2_rate          = gaussian_filter(masses_prob_sup_rate_pi_2, sigma)
+M_prob_inf_pi_2_rate          = gaussian_filter(masses_prob_inf_rate_pi_2, sigma)
+
 M_int_prob_sup_pi_4_rate      = gaussian_filter(masses_int_prob_sup_rate_pi_4, sigma)
 M_int_prob_sup_pi_4_rate_max  = gaussian_filter(masses_int_prob_sup_rate_pi_4 + masses_int_prob_sup_rate_pi_4_sd, sigma)
 M_int_prob_sup_pi_4_rate_min  = gaussian_filter(masses_int_prob_sup_rate_pi_4 - masses_int_prob_sup_rate_pi_4_sd, sigma)
+M_prob_sup_pi_4_rate          = gaussian_filter(masses_prob_sup_rate_pi_4, sigma)
+M_prob_inf_pi_4_rate          = gaussian_filter(masses_prob_inf_rate_pi_4, sigma)
+
 M_int_prob_sup_mpi_2_rate     = gaussian_filter(masses_int_prob_sup_rate_mpi_2, sigma)
 M_int_prob_sup_mpi_2_rate_max = gaussian_filter(masses_int_prob_sup_rate_mpi_2 + masses_int_prob_sup_rate_mpi_2_sd, sigma)
 M_int_prob_sup_mpi_2_rate_min = gaussian_filter(masses_int_prob_sup_rate_mpi_2 - masses_int_prob_sup_rate_mpi_2_sd, sigma)
+M_prob_sup_mpi_2_rate         = gaussian_filter(masses_prob_sup_rate_mpi_2, sigma)
+M_prob_inf_mpi_2_rate         = gaussian_filter(masses_prob_inf_rate_mpi_2, sigma)
+
 M_int_prob_sup_mpi_4_rate     = gaussian_filter(masses_int_prob_sup_rate_mpi_4, sigma)
 M_int_prob_sup_mpi_4_rate_max = gaussian_filter(masses_int_prob_sup_rate_mpi_4 + masses_int_prob_sup_rate_mpi_4_sd, sigma)
 M_int_prob_sup_mpi_4_rate_min = gaussian_filter(masses_int_prob_sup_rate_mpi_4 - masses_int_prob_sup_rate_mpi_4_sd, sigma)
+M_prob_sup_mpi_4_rate         = gaussian_filter(masses_prob_sup_rate_mpi_4, sigma)
+M_prob_inf_mpi_4_rate         = gaussian_filter(masses_prob_inf_rate_mpi_4, sigma)
 
 # +
 levels = [0.56, 0.76, 0.84, 0.9, 1]
@@ -1170,6 +1224,9 @@ fig00 = ax[0,0].contourf(m_vals, cross_vals, CR_int_prob_sup_pi_2_rate.reshape(3
 ax[0,0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_rate.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 #ax[0,0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_rate_max.reshape(30,30).T, levels=[0.9], linewidths = 1, zorder = 4)
 #ax[0,0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_rate_min.reshape(30,30).T, levels=[0.9], linewidths = 1, zorder = 4)
+ax[0,0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_rate.reshape(30,30).T, levels=levels, linewidths = 2, cmap = 'inferno', linestyles = [':'])
+ax[0,0].contour(m_vals, cross_vals, M_prob_sup_pi_2_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
+ax[0,0].contour(m_vals, cross_vals, M_prob_inf_pi_2_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
 
 ax[0,0].set_yscale('log')
 ax[0,0].set_xscale('log')
@@ -1180,18 +1237,27 @@ ax[0,0].legend(loc = 'lower left')
 
 ax[0,1].contourf(m_vals, cross_vals, CR_int_prob_sup_pi_4_rate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_rate.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
+ax[0,1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_rate.reshape(30,30).T, levels=levels, linewidths = 2, cmap = 'inferno', linestyles = [':'])
+ax[0,1].contour(m_vals, cross_vals, M_prob_sup_pi_4_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
+ax[0,1].contour(m_vals, cross_vals, M_prob_inf_pi_4_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
 
 ax[0,1].grid(which='both')
 ax[0,1].text(3e2, 1e-36, '$\\theta = \pi/4$')
 
 ax[1,0].contourf(m_vals, cross_vals, CR_int_prob_sup_mpi_2_rate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,0].contour(m_vals, cross_vals, CR_int_prob_sup_mpi_2_rate.reshape(30,30).T, levels=levels)
+ax[1,0].contour(m_vals, cross_vals, M_int_prob_sup_mpi_2_rate.reshape(30,30).T, levels=levels, linewidths = 2, cmap = 'inferno', linestyles = [':'])
+ax[1,0].contour(m_vals, cross_vals, M_prob_sup_mpi_2_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
+ax[1,0].contour(m_vals, cross_vals, M_prob_inf_mpi_2_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
 
 ax[1,0].grid(which='both')
 ax[1,0].text(3e2, 1e-36, '$\\theta = -\pi/2$')
 
 ax[1,1].contourf(m_vals, cross_vals, CR_int_prob_sup_0_rate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,1].contour(m_vals, cross_vals, CR_int_prob_sup_0_rate.reshape(30,30).T, levels=levels)
+ax[1,1].contour(m_vals, cross_vals, M_int_prob_sup_0_rate.reshape(30,30).T, levels=levels, linewidths = 2, cmap = 'inferno', linestyles = [':'])
+ax[1,1].contour(m_vals, cross_vals, M_prob_sup_0_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
+ax[1,1].contour(m_vals, cross_vals, M_prob_inf_0_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
 
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-36, '$\\theta = 0$')

@@ -559,7 +559,7 @@ dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1],
 trainer_rate.test(network_rate, dm_test_rate)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_rate.fit(network_rate, dm_rate)
     checkpoint_callback.to_yaml("./logs/O1_rate.yaml") 
@@ -922,11 +922,11 @@ cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
 force = False
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v5/'
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v5/'
          ]
 
 
@@ -935,6 +935,8 @@ cross_sec_int_prob_full     = []
 cross_sec_int_prob_sup_full = []
 
 masses_int_prob_sup_full = []
+masses_prob_sup_full     = []
+masses_prob_inf_full     = []
 
 for folder in folders:
     pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
@@ -942,7 +944,9 @@ for folder in folders:
     if (os.path.exists(folder + 'cross_sec_sigmas_rate.txt') & 
         os.path.exists(folder + 'cross_sec_int_prob_rate.txt') &
         os.path.exists(folder + 'cross_sec_int_prob_sup_rate.txt') &
-        os.path.exists(folder + 'masses_int_prob_sup_rate.txt')
+        os.path.exists(folder + 'masses_int_prob_sup_rate.txt') &
+        os.path.exists(folder + 'masses_prob_sup_rate.txt') &
+        os.path.exists(folder + 'masses_prob_inf_rate.txt') 
        ) == False or force == True:
         # Let's normalize testset between 0 and 1
         
@@ -954,9 +958,11 @@ for folder in folders:
         
         cross_sec_sigmas = np.ones((len(pars_slices), 6))
     
-        cross_sec_int_prob = np.ones(len(pars_norm)) * -99
+        cross_sec_int_prob     = np.ones(len(pars_norm)) * -99
         cross_sec_int_prob_sup = np.ones(len(pars_norm)) * -99
-        masses_int_prob_sup = np.ones(len(pars_norm)) * -99
+        masses_int_prob_sup    = np.ones(len(pars_norm)) * -99
+        masses_prob_sup        = np.ones(len(pars_norm)) * -99
+        masses_prob_inf        = np.ones(len(pars_norm)) * -99
         for itest in tqdm(range(len(pars_norm))):
             x_obs = x_norm_rate[itest, :]
             
@@ -984,14 +990,14 @@ for folder in folders:
         
             vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
             
-            cross_sec_sigmas[itest,0] = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
-            cross_sec_sigmas[itest,3] = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
+            cross_sec_sigmas[itest,0] = np.min(x[np.where(np.array(h1) >= np.array(vals[2]))[0]])
+            cross_sec_sigmas[itest,3] = np.max(x[np.where(np.array(h1) >= np.array(vals[2]))[0]])
             
-            cross_sec_sigmas[itest,1] = np.min(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
-            cross_sec_sigmas[itest,4] = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
+            cross_sec_sigmas[itest,1] = np.min(x[np.where(np.array(h1) >= np.array(vals[1]))[0]])
+            cross_sec_sigmas[itest,4] = np.max(x[np.where(np.array(h1) >= np.array(vals[1]))[0]])
             
-            cross_sec_sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
-            cross_sec_sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
+            cross_sec_sigmas[itest,2] = np.min(x[np.where(np.array(h1) >= np.array(vals[0]))[0]])
+            cross_sec_sigmas[itest,5] = np.max(x[np.where(np.array(h1) >= np.array(vals[0]))[0]])
             
             cr_th = np.argmin(np.abs(x - (-49)))
             cross_sec_int_prob[itest]     = trapezoid(h1[:cr_th], x[:cr_th]) / trapezoid(h1, x)
@@ -1005,16 +1011,22 @@ for folder in folders:
             m_min = np.argmin(np.abs(masses_pred - 1))
             m_max = np.argmin(np.abs(masses_pred - 2.6))
             masses_int_prob_sup[itest] = trapezoid(ratios_rate[m_min:m_max], masses_pred[m_min:m_max]) / trapezoid(ratios_rate, masses_pred)
+            masses_prob_sup[itest] = trapezoid(ratios_rate[m_min:], masses_pred[m_min:]) / trapezoid(ratios_rate, masses_pred)
+            masses_prob_inf[itest] = trapezoid(ratios_rate[:m_max], masses_pred[:m_max]) / trapezoid(ratios_rate, masses_pred)
 
         cross_sec_sigmas_full.append(cross_sec_sigmas)
         cross_sec_int_prob_full.append(cross_sec_int_prob)
         cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
         masses_int_prob_sup_full.append(masses_int_prob_sup)
+        masses_prob_sup_full.append(masses_prob_sup)
+        masses_prob_inf_full.append(masses_prob_inf)
             
         np.savetxt(folder + 'cross_sec_sigmas_rate.txt', cross_sec_sigmas)
         np.savetxt(folder + 'cross_sec_int_prob_rate.txt', cross_sec_int_prob)
         np.savetxt(folder + 'cross_sec_int_prob_sup_rate.txt', cross_sec_int_prob_sup)
         np.savetxt(folder + 'masses_int_prob_sup_rate.txt', masses_int_prob_sup)
+        np.savetxt(folder + 'masses_prob_sup_rate.txt', masses_prob_sup)
+        np.savetxt(folder + 'masses_prob_inf_rate.txt', masses_prob_inf)
     else:
         print('pre-computed')
                 
@@ -1022,11 +1034,15 @@ for folder in folders:
         cross_sec_int_prob = np.loadtxt(folder + 'cross_sec_int_prob_rate.txt')
         cross_sec_int_prob_sup = np.loadtxt(folder + 'cross_sec_int_prob_sup_rate.txt')
         masses_int_prob_sup = np.loadtxt(folder + 'masses_int_prob_sup_rate.txt')
+        masses_prob_sup = np.loadtxt(folder + 'masses_prob_sup_rate.txt')
+        masses_prob_inf = np.loadtxt(folder + 'masses_prob_inf_rate.txt')
         
         cross_sec_sigmas_full.append(cross_sec_sigmas)
         cross_sec_int_prob_full.append(cross_sec_int_prob)
         cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
         masses_int_prob_sup_full.append(masses_int_prob_sup)
+        masses_prob_sup_full.append(masses_prob_sup)
+        masses_prob_inf_full.append(masses_prob_inf)
 
 email('Termino de analizar las slices')
 
@@ -1034,45 +1050,67 @@ email('Termino de analizar las slices')
 cross_section_th = -49
 
 if len(cross_sec_int_prob_full) > 1:
-    cross_sec_int_prob_mpi_2        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
-    cross_sec_int_prob_sup_mpi_2    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    cross_sec_int_prob_sup_mpi_2_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    cross_sec_int_prob_0        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
+    cross_sec_int_prob_sup_0    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    cross_sec_int_prob_sup_0_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
     cross_sec_sigmas                = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
-    masses_int_prob_sup_mpi_2       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_mpi_2_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_0       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_0_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_prob_sup_0           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_sup_0_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_inf_0           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
+    masses_prob_inf_0_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
 else:
-    cross_sec_int_prob_mpi_2     = cross_sec_int_prob
-    cross_sec_int_prob_sup_mpi_2 = cross_sec_int_prob_sup
-    masses_int_prob_sup_mpi_2    = masses_int_prob_sup
+    cross_sec_int_prob_0     = cross_sec_int_prob
+    cross_sec_int_prob_sup_0 = cross_sec_int_prob_sup
+    masses_int_prob_sup_0    = masses_int_prob_sup
+    masses_prob_sup_0        = masses_prob_sup
+    masses_prob_inf_0        = masses_prob_inf
 
-rate_1sigma_mpi_2 = np.ones(900) * -99
-rate_2sigma_mpi_2 = np.ones(900) * -99
-rate_3sigma_mpi_2 = np.ones(900) * -99
+rate_1sigma_0 = np.ones(900) * -99
+rate_2sigma_0 = np.ones(900) * -99
+rate_3sigma_0 = np.ones(900) * -99
 
-rate_1sigma_mpi_2[np.where(cross_sec_sigmas[:,0] > cross_section_th)[0]] = 1
-rate_2sigma_mpi_2[np.where(cross_sec_sigmas[:,1] > cross_section_th)[0]] = 1
-rate_3sigma_mpi_2[np.where(cross_sec_sigmas[:,2] > cross_section_th)[0]] = 1
+rate_1sigma_0[np.where(cross_sec_sigmas[:,0] > cross_section_th)[0]] = 1
+rate_2sigma_0[np.where(cross_sec_sigmas[:,1] > cross_section_th)[0]] = 1
+rate_3sigma_0[np.where(cross_sec_sigmas[:,2] > cross_section_th)[0]] = 1
 
 # +
-fig, ax = plt.subplots(1,2)
+fig, ax = plt.subplots(2,2)
 
-sbn.kdeplot(cross_sec_int_prob_sup_0, label = '$\\theta = 0$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0])
-ax[0].legend()
-ax[0].set_xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
-ax[0].set_title('Total Rate')
+sbn.kdeplot(cross_sec_int_prob_sup_0, label = '$\\theta = 0$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0,0])
+ax[0,0].legend()
+ax[0,0].set_xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
+ax[0,0].set_title('Total Rate')
 
-sbn.kdeplot(masses_int_prob_sup_0, label = '$\\theta = 0$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1])
-ax[1].legend()
-ax[1].set_xlabel('$\int_{m_{min}}^{m_{max}} P(m_{DM}|x)$')
-ax[1].set_title('Total Rate')
+sbn.kdeplot(masses_int_prob_sup_0, label = '$\\theta = 0$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0,1])
+ax[0,1].legend()
+ax[0,1].set_xlabel('$\int_{m_{min}}^{m_{max}} P(m_{DM}|x)$')
+ax[0,1].set_title('Total Rate')
+
+sbn.kdeplot(masses_prob_sup_0, label = '$\\theta = 0$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1,0])
+ax[1,0].legend()
+ax[1,0].set_xlabel('$\int_{m_{min}}^{\inf} P(m_{DM}|x)$')
+
+sbn.kdeplot(masses_prob_inf_0, label = '$\\theta = 0$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_inf_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_inf_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_inf_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_inf_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1,1])
+ax[1,1].legend()
+ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
 plt.savefig('../graph/O1_int_prob_distribution_rate.pdf')
 
@@ -1245,6 +1283,8 @@ CR_int_prob_sup_0_rate_max = gaussian_filter(cross_sec_int_prob_sup_0 + cross_se
 M_int_prob_sup_0_rate     = gaussian_filter(masses_int_prob_sup_0, sigma)
 M_int_prob_sup_0_rate_min = gaussian_filter(masses_int_prob_sup_0 - masses_int_prob_sup_0_sd, sigma)
 M_int_prob_sup_0_rate_max = gaussian_filter(masses_int_prob_sup_0 + masses_int_prob_sup_0_sd, sigma)
+M_prob_sup_0_rate         = gaussian_filter(masses_prob_sup_0, sigma)
+M_prob_inf_0_rate         = gaussian_filter(masses_prob_inf_0, sigma)
 
 CR_int_prob_sup_pi_2_rate  = gaussian_filter(cross_sec_int_prob_sup_pi_2, sigma)
 CR_int_prob_sup_pi_2_rate_min = gaussian_filter(cross_sec_int_prob_sup_pi_2 - cross_sec_int_prob_sup_pi_2_sd, sigma)
@@ -1253,6 +1293,8 @@ CR_int_prob_sup_pi_2_rate_max = gaussian_filter(cross_sec_int_prob_sup_pi_2 + cr
 M_int_prob_sup_pi_2_rate     = gaussian_filter(masses_int_prob_sup_pi_2, sigma)
 M_int_prob_sup_pi_2_rate_min = gaussian_filter(masses_int_prob_sup_pi_2 - masses_int_prob_sup_pi_2_sd, sigma)
 M_int_prob_sup_pi_2_rate_max = gaussian_filter(masses_int_prob_sup_pi_2 + masses_int_prob_sup_pi_2_sd, sigma)
+M_prob_sup_pi_2_rate         = gaussian_filter(masses_prob_sup_pi_2, sigma)
+M_prob_inf_pi_2_rate         = gaussian_filter(masses_prob_inf_pi_2, sigma)
 
 CR_int_prob_sup_pi_4_rate  = gaussian_filter(cross_sec_int_prob_sup_pi_4, sigma)
 CR_int_prob_sup_pi_4_rate_min = gaussian_filter(cross_sec_int_prob_sup_pi_4 - cross_sec_int_prob_sup_pi_4_sd, sigma)
@@ -1261,6 +1303,8 @@ CR_int_prob_sup_pi_4_rate_max = gaussian_filter(cross_sec_int_prob_sup_pi_4 + cr
 M_int_prob_sup_pi_4_rate   = gaussian_filter(masses_int_prob_sup_pi_4, sigma)
 M_int_prob_sup_pi_4_rate_min = gaussian_filter(masses_int_prob_sup_pi_4 - masses_int_prob_sup_pi_4_sd, sigma)
 M_int_prob_sup_pi_4_rate_max = gaussian_filter(masses_int_prob_sup_pi_4 + masses_int_prob_sup_pi_4_sd, sigma)
+M_prob_sup_pi_4_rate         = gaussian_filter(masses_prob_sup_pi_4, sigma)
+M_prob_inf_pi_4_rate         = gaussian_filter(masses_prob_inf_pi_4, sigma)
 
 CR_int_prob_sup_mpi_2_rate = gaussian_filter(cross_sec_int_prob_sup_mpi_2, sigma)
 CR_int_prob_sup_mpi_2_rate_min = gaussian_filter(cross_sec_int_prob_sup_mpi_2 - cross_sec_int_prob_sup_mpi_2_sd, sigma)
@@ -1269,6 +1313,8 @@ CR_int_prob_sup_mpi_2_rate_max = gaussian_filter(cross_sec_int_prob_sup_mpi_2 + 
 M_int_prob_sup_mpi_2_rate  = gaussian_filter(masses_int_prob_sup_mpi_2, sigma)
 M_int_prob_sup_mpi_2_rate_min = gaussian_filter(masses_int_prob_sup_mpi_2 - masses_int_prob_sup_mpi_2_sd, sigma)
 M_int_prob_sup_mpi_2_rate_max = gaussian_filter(masses_int_prob_sup_mpi_2 + masses_int_prob_sup_mpi_2_sd, sigma)
+M_prob_sup_mpi_2_rate         = gaussian_filter(masses_prob_sup_mpi_2, sigma)
+M_prob_inf_mpi_2_rate         = gaussian_filter(masses_prob_inf_mpi_2, sigma)
 
 CR_int_prob_sup_mpi_4_rate = gaussian_filter(cross_sec_int_prob_sup_mpi_4, sigma)
 CR_int_prob_sup_mpi_4_rate_min = gaussian_filter(cross_sec_int_prob_sup_mpi_4 - cross_sec_int_prob_sup_mpi_4_sd, sigma)
@@ -1277,6 +1323,8 @@ CR_int_prob_sup_mpi_4_rate_max = gaussian_filter(cross_sec_int_prob_sup_mpi_4 + 
 M_int_prob_sup_mpi_4_rate  = gaussian_filter(masses_int_prob_sup_mpi_4, sigma)
 M_int_prob_sup_mpi_4_rate_min = gaussian_filter(masses_int_prob_sup_mpi_4 - masses_int_prob_sup_mpi_4_sd, sigma)
 M_int_prob_sup_mpi_4_rate_max = gaussian_filter(masses_int_prob_sup_mpi_4 + masses_int_prob_sup_mpi_4_sd, sigma)
+M_prob_sup_mpi_4_rate         = gaussian_filter(masses_prob_sup_mpi_4, sigma)
+M_prob_inf_mpi_4_rate         = gaussian_filter(masses_prob_inf_mpi_4, sigma)
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1] 
@@ -1287,6 +1335,8 @@ fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
 fig00 = ax[0,0].contourf(m_vals, cross_vals, CR_int_prob_sup_pi_2_rate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[0,0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_rate.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 ax[0,0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_rate.reshape(30,30).T, levels=levels, linewidths = 2, cmap = 'inferno', linestyles = [':'])
+ax[0,0].contour(m_vals, cross_vals, M_prob_sup_pi_2_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
+ax[0,0].contour(m_vals, cross_vals, M_prob_inf_pi_2_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
 
 
 #ax[0,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
@@ -1302,6 +1352,9 @@ ax[0,0].legend(loc = 'lower left')
 ax[0,1].contourf(m_vals, cross_vals, CR_int_prob_sup_pi_4_rate.reshape(30,30).T, levels=levels, alpha = 1, zorder = 1)
 ax[0,1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_rate.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 fig01 = ax[0,1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_rate.reshape(30,30).T, levels=levels, linestyles = [':'], cmap = 'inferno')
+ax[0,1].contour(m_vals, cross_vals, M_prob_sup_pi_4_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
+ax[0,1].contour(m_vals, cross_vals, M_prob_inf_pi_4_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
+
 #fig01 = ax[0,1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_rate.reshape(30,30).T, levels=5, zorder = 1, cmap = 'inferno')
 
 #ax[0,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--', label = 'XENON nT [$3\sigma$]')
@@ -1313,6 +1366,8 @@ ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
 ax[1,0].contourf(m_vals, cross_vals, CR_int_prob_sup_mpi_2_rate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
 ax[1,0].contour(m_vals, cross_vals, CR_int_prob_sup_mpi_2_rate.reshape(30,30).T, levels=levels)
 ax[1,0].contour(m_vals, cross_vals, M_int_prob_sup_mpi_2_rate.reshape(30,30).T, levels=levels, linestyles = [':'], cmap = 'inferno')
+ax[1,0].contour(m_vals, cross_vals, M_prob_sup_mpi_2_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
+ax[1,0].contour(m_vals, cross_vals, M_prob_inf_mpi_2_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
 
 #ax[1,0].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
 #ax[1,0].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
@@ -1325,6 +1380,8 @@ ax[1,1].contour(m_vals, cross_vals, CR_int_prob_sup_0_rate.reshape(30,30).T, lev
 # #%ax[1,1].contour(m_vals, cross_vals, CR_int_prob_sup_0_rate_min.reshape(30,30).T, levels=[0.9], colors='green', linestyles = '-.')
 # #%ax[1,1].contour(m_vals, cross_vals, CR_int_prob_sup_0_rate_max.reshape(30,30).T, levels=[0.9], colors='green', linestyles = '-.')
 ax[1,1].contour(m_vals, cross_vals, M_int_prob_sup_0_rate.reshape(30,30).T, levels=levels, cmap = 'inferno', linestyles = ':')
+ax[1,1].contour(m_vals, cross_vals, M_prob_sup_0_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
+ax[1,1].contour(m_vals, cross_vals, M_prob_inf_0_rate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
 
 #ax[1,1].plot(xenon_nt_3s[:,0], xenon_nt_3s[:,1], color = 'blue', linestyle = '--')
 #ax[1,1].plot(xenon_nt_5s[:,0], xenon_nt_5s[:,1], color = 'blue', linestyle = ':')
@@ -1496,7 +1553,7 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_drate.fit(network_drate, dm_drate)
     checkpoint_callback.to_yaml("./logs/O1_drate.yaml") 
@@ -1663,6 +1720,20 @@ else:
     plt.savefig('../graph/1Dposterior_drate_' + str(i) + '.pdf')
 # -
 
+ratios_drate = np.exp(np.asarray(predictions_drate[0].logratios[:,0]))
+masses_pred  = np.asarray(predictions_drate[0].params[:,0,0]) * (pars_max[0] - pars_min[0]) + pars_min[0]           
+ind_sort     = np.argsort(masses_pred)
+ratios_drate = ratios_drate[ind_sort]
+masses_pred  = masses_pred[ind_sort]
+
+plt.plot(masses_pred, ratios_drate)
+
+m_min = np.argmin(np.abs(masses_pred - 1))
+m_max = np.argmin(np.abs(masses_pred - 2.6))
+print(trapezoid(ratios_drate[m_min:m_max], masses_pred[m_min:m_max]) / trapezoid(ratios_drate, masses_pred))
+print(trapezoid(ratios_drate[m_min:], masses_pred[m_min:]) / trapezoid(ratios_drate, masses_pred))
+print(trapezoid(ratios_drate[:m_max], masses_pred[:m_max]) / trapezoid(ratios_drate, masses_pred))
+
 parameters_drate = np.asarray(predictions_drate[0].params[:,:,0])
 parameters_drate = parameters_drate * (pars_max - pars_min) + pars_min
 parameters_drate.shape
@@ -1812,11 +1883,11 @@ cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
 force = False 
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v5/'
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v5/'
          ]
 
 cross_sec_sigmas_full       = []
@@ -1824,6 +1895,8 @@ cross_sec_int_prob_full     = []
 cross_sec_int_prob_sup_full = []
 
 masses_int_prob_sup_full = []
+masses_prob_sup_full     = []
+masses_prob_inf_full     = []
 
 for folder in folders:
     pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
@@ -1831,7 +1904,9 @@ for folder in folders:
     if (os.path.exists(folder + 'cross_sec_sigmas_drate.txt') & 
         os.path.exists(folder + 'cross_sec_int_prob_drate.txt') &
         os.path.exists(folder + 'cross_sec_int_prob_sup_drate.txt') &
-        os.path.exists(folder + 'masses_int_prob_sup_drate.txt')
+        os.path.exists(folder + 'masses_int_prob_sup_drate.txt') &
+        os.path.exists(folder + 'masses_prob_sup_drate.txt') &
+        os.path.exists(folder + 'masses_prob_inf_drate.txt') 
        ) == False or force == True:
         # Let's normalize testset between 0 and 1
         
@@ -1841,9 +1916,11 @@ for folder in folders:
         
         cross_sec_sigmas = np.ones((len(pars_slices), 6))
     
-        cross_sec_int_prob = np.ones(len(pars_norm)) * -99
+        cross_sec_int_prob     = np.ones(len(pars_norm)) * -99
         cross_sec_int_prob_sup = np.ones(len(pars_norm)) * -99
-        masses_int_prob_sup = np.ones(len(pars_norm)) * -99
+        masses_int_prob_sup    = np.ones(len(pars_norm)) * -99
+        masses_prob_sup        = np.ones(len(pars_norm)) * -99
+        masses_prob_inf        = np.ones(len(pars_norm)) * -99
            
         for itest in tqdm(range(len(pars_norm))):
             x_obs = x_norm_drate[itest, :]
@@ -1893,16 +1970,22 @@ for folder in folders:
             m_min = np.argmin(np.abs(masses_pred - 1))
             m_max = np.argmin(np.abs(masses_pred - 2.6))
             masses_int_prob_sup[itest] = trapezoid(ratios_drate[m_min:m_max], masses_pred[m_min:m_max]) / trapezoid(ratios_drate, masses_pred)
+            masses_prob_sup[itest] = trapezoid(ratios_drate[m_min:], masses_pred[m_min:]) / trapezoid(ratios_drate, masses_pred)
+            masses_prob_inf[itest] = trapezoid(ratios_drate[:m_max], masses_pred[:m_max]) / trapezoid(ratios_drate, masses_pred)
 
         cross_sec_sigmas_full.append(cross_sec_sigmas)
         cross_sec_int_prob_full.append(cross_sec_int_prob)
         cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
         masses_int_prob_sup_full.append(masses_int_prob_sup)
+        masses_prob_sup_full.append(masses_prob_sup)
+        masses_prob_inf_full.append(masses_prob_inf)
             
         np.savetxt(folder + 'cross_sec_sigmas_drate.txt', cross_sec_sigmas)
         np.savetxt(folder + 'cross_sec_int_prob_drate.txt', cross_sec_int_prob)
         np.savetxt(folder + 'cross_sec_int_prob_sup_drate.txt', cross_sec_int_prob_sup)
         np.savetxt(folder + 'masses_int_prob_sup_drate.txt', masses_int_prob_sup)
+        np.savetxt(folder + 'masses_prob_sup_drate.txt', masses_prob_sup)
+        np.savetxt(folder + 'masses_prob_inf_drate.txt', masses_prob_inf)
     else:
         print('pre-computed')
                 
@@ -1910,56 +1993,82 @@ for folder in folders:
         cross_sec_int_prob = np.loadtxt(folder + 'cross_sec_int_prob_drate.txt')
         cross_sec_int_prob_sup = np.loadtxt(folder + 'cross_sec_int_prob_sup_drate.txt')
         masses_int_prob_sup = np.loadtxt(folder + 'masses_int_prob_sup_drate.txt')
+        masses_prob_sup = np.loadtxt(folder + 'masses_prob_sup_drate.txt')
+        masses_prob_inf = np.loadtxt(folder + 'masses_prob_inf_drate.txt')
         
         cross_sec_sigmas_full.append(cross_sec_sigmas)
         cross_sec_int_prob_full.append(cross_sec_int_prob)
         cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
         masses_int_prob_sup_full.append(masses_int_prob_sup)
-#email('Termino analisis slice')
+        masses_prob_sup_full.append(masses_prob_sup)
+        masses_prob_inf_full.append(masses_prob_inf)
+email('Termino analisis slice')
 
 # +
 cross_section_th = -49
 
 if len(cross_sec_int_prob_full) > 1:
-    cross_sec_int_prob_drate_pi_2        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
-    cross_sec_int_prob_drate_sup_pi_2    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    cross_sec_int_prob_drate_sup_pi_2_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    masses_int_prob_drate_sup_pi_2       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_int_prob_drate_sup_pi_2_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
+    cross_sec_int_prob_drate_0        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
+    cross_sec_int_prob_drate_sup_0    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    cross_sec_int_prob_drate_sup_0_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    masses_int_prob_drate_sup_0       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_int_prob_drate_sup_0_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_prob_drate_sup_0           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_drate_sup_0_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_drate_inf_0           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
+    masses_prob_drate_inf_0_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
     cross_sec_sigmas = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
 else:
-    cross_sec_int_prob_drate_pi_2 = cross_sec_int_prob
-    cross_sec_int_prob_drate_sup_pi_2 = cross_sec_int_prob_sup
-    masses_int_prob_drate_sup_pi_2 = masses_int_prob_sup
+    cross_sec_int_prob_drate_0     = cross_sec_int_prob
+    cross_sec_int_prob_drate_sup_0 = cross_sec_int_prob_sup
+    masses_int_prob_drate_sup_0    = masses_int_prob_sup
+    masses_prob_drate_sup_0        = masses_prob_sup
+    masses_prob_drate_inf_0        = masses_prob_inf
 
-rate_1sigma_pi_2 = np.ones(900) * -99
-rate_2sigma_pi_2 = np.ones(900) * -99
-rate_3sigma_pi_2 = np.ones(900) * -99
+rate_1sigma_0 = np.ones(900) * -99
+rate_2sigma_0 = np.ones(900) * -99
+rate_3sigma_0 = np.ones(900) * -99
 
-rate_1sigma_pi_2[np.where(cross_sec_sigmas[:,0] > cross_section_th)[0]] = 1
-rate_2sigma_pi_2[np.where(cross_sec_sigmas[:,1] > cross_section_th)[0]] = 1
-rate_3sigma_pi_2[np.where(cross_sec_sigmas[:,2] > cross_section_th)[0]] = 1
+rate_1sigma_0[np.where(cross_sec_sigmas[:,0] > cross_section_th)[0]] = 1
+rate_2sigma_0[np.where(cross_sec_sigmas[:,1] > cross_section_th)[0]] = 1
+rate_3sigma_0[np.where(cross_sec_sigmas[:,2] > cross_section_th)[0]] = 1
 
 # +
-fig, ax = plt.subplots(1,2)
+fig, ax = plt.subplots(2,2)
 
-sbn.kdeplot(cross_sec_int_prob_drate_sup_0, label = '$\\theta = 0$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_drate_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_drate_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_drate_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_drate_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0])
-ax[0].legend()
-ax[0].set_xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
-ax[0].set_title('Diff Rate')
+sbn.kdeplot(cross_sec_int_prob_drate_sup_0, label = '$\\theta = 0$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_drate_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_drate_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_drate_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_drate_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0,0])
+ax[0,0].legend()
+ax[0,0].set_xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
+ax[0,0].set_title('Diff. Rate')
 
-sbn.kdeplot(masses_int_prob_drate_sup_0, label = '$\\theta = 0$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_drate_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_drate_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_drate_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_drate_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1])
-ax[1].legend()
-ax[1].set_xlabel('$\int_{m_{min}}^{m_{max}} P(m_{DM}|x)$')
-ax[1].set_title('Diff Rate')
+sbn.kdeplot(masses_int_prob_drate_sup_0, label = '$\\theta = 0$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_drate_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_drate_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_drate_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_drate_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0,1])
+ax[0,1].legend()
+ax[0,1].set_xlabel('$\int_{m_{min}}^{m_{max}} P(m_{DM}|x)$')
+ax[0,1].set_title('Diff. Rate')
+
+sbn.kdeplot(masses_prob_drate_sup_0, label = '$\\theta = 0$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_drate_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_drate_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_drate_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_drate_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1,0])
+ax[1,0].legend()
+ax[1,0].set_xlabel('$\int_{m_{min}}^{\inf} P(m_{DM}|x)$')
+
+sbn.kdeplot(masses_prob_drate_inf_0, label = '$\\theta = 0$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_drate_inf_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_drate_inf_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_drate_inf_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_drate_inf_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1,1])
+ax[1,1].legend()
+ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
 plt.savefig('../graph/O1_int_prob_distribution_drate.pdf')
 
@@ -1985,18 +2094,33 @@ CR_int_prob_sup_mpi_4_drate_max = gaussian_filter(cross_sec_int_prob_drate_sup_m
 M_int_prob_sup_0_drate         = gaussian_filter(masses_int_prob_drate_sup_0, sigma)
 M_int_prob_sup_0_drate_min     = gaussian_filter(masses_int_prob_drate_sup_0 - masses_int_prob_drate_sup_0_sd, sigma)
 M_int_prob_sup_0_drate_max     = gaussian_filter(masses_int_prob_drate_sup_0 + masses_int_prob_drate_sup_0_sd, sigma)
+M_prob_sup_0_drate             = gaussian_filter(masses_prob_drate_sup_0, sigma)
+M_prob_inf_0_drate             = gaussian_filter(masses_prob_drate_inf_0, sigma)
+
 M_int_prob_sup_pi_2_drate      = gaussian_filter(masses_int_prob_drate_sup_pi_2, sigma)
 M_int_prob_sup_pi_2_drate_min  = gaussian_filter(masses_int_prob_drate_sup_pi_2 - masses_int_prob_drate_sup_pi_2_sd, sigma)
 M_int_prob_sup_pi_2_drate_max  = gaussian_filter(masses_int_prob_drate_sup_pi_2 + masses_int_prob_drate_sup_pi_2_sd, sigma)
+M_prob_sup_pi_2_drate          = gaussian_filter(masses_prob_drate_sup_pi_2, sigma)
+M_prob_inf_pi_2_drate          = gaussian_filter(masses_prob_drate_inf_pi_2, sigma)
+
 M_int_prob_sup_pi_4_drate      = gaussian_filter(masses_int_prob_drate_sup_pi_4, sigma)
 M_int_prob_sup_pi_4_drate_min  = gaussian_filter(masses_int_prob_drate_sup_pi_4 - masses_int_prob_drate_sup_pi_4_sd, sigma)
 M_int_prob_sup_pi_4_drate_max  = gaussian_filter(masses_int_prob_drate_sup_pi_4 + masses_int_prob_drate_sup_pi_4_sd, sigma)
+M_prob_sup_pi_4_drate          = gaussian_filter(masses_prob_drate_sup_pi_4, sigma)
+M_prob_inf_pi_4_drate          = gaussian_filter(masses_prob_drate_inf_pi_4, sigma)
+
 M_int_prob_sup_mpi_2_drate     = gaussian_filter(masses_int_prob_drate_sup_mpi_2, sigma)
 M_int_prob_sup_mpi_2_drate_min = gaussian_filter(masses_int_prob_drate_sup_mpi_2 - masses_int_prob_drate_sup_mpi_2_sd, sigma)
 M_int_prob_sup_mpi_2_drate_max = gaussian_filter(masses_int_prob_drate_sup_mpi_2 + masses_int_prob_drate_sup_mpi_2_sd, sigma)
+M_prob_sup_mpi_2_drate         = gaussian_filter(masses_prob_drate_sup_mpi_2, sigma)
+M_prob_inf_mpi_2_drate         = gaussian_filter(masses_prob_drate_inf_mpi_2, sigma)
+
 M_int_prob_sup_mpi_4_drate     = gaussian_filter(masses_int_prob_drate_sup_mpi_4, sigma)
 M_int_prob_sup_mpi_4_drate_min = gaussian_filter(masses_int_prob_drate_sup_mpi_4 - masses_int_prob_drate_sup_mpi_4_sd, sigma)
 M_int_prob_sup_mpi_4_drate_max = gaussian_filter(masses_int_prob_drate_sup_mpi_4 + masses_int_prob_drate_sup_mpi_4_sd, sigma)
+M_prob_sup_mpi_4_drate         = gaussian_filter(masses_prob_drate_sup_mpi_4, sigma)
+M_prob_inf_mpi_4_drate         = gaussian_filter(masses_prob_drate_inf_mpi_4, sigma)
+
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1] 
@@ -2007,6 +2131,8 @@ fig00 = ax[0,0].contourf(m_vals, cross_vals, CR_int_prob_sup_pi_2_drate.reshape(
 ax[0,0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_drate.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 ax[0,0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
 ax[0,0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_rate.reshape(30,30).T, levels = levels, linestyles = ':', cmap = 'inferno')
+ax[0,0].contour(m_vals, cross_vals, M_prob_sup_pi_2_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
+ax[0,0].contour(m_vals, cross_vals, M_prob_inf_pi_2_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
 
 ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
 ax[0,0].set_yscale('log')
@@ -2019,6 +2145,8 @@ ax[0,1].contourf(m_vals, cross_vals, CR_int_prob_sup_pi_4_drate.reshape(30,30).T
 ax[0,1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_drate.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
 ax[0,1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
 ax[0,1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_rate.reshape(30,30).T, levels = 5, linestyles = '-.', cmap = 'inferno')
+ax[0,1].contour(m_vals, cross_vals, M_prob_sup_pi_4_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
+ax[0,1].contour(m_vals, cross_vals, M_prob_inf_pi_4_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
 
 ax[0,1].grid(which='both')
 ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
@@ -2027,6 +2155,8 @@ ax[1,0].contourf(m_vals, cross_vals, CR_int_prob_sup_mpi_2_drate.reshape(30,30).
 ax[1,0].contour(m_vals, cross_vals, CR_int_prob_sup_mpi_2_drate.reshape(30,30).T, levels=levels)
 ax[1,0].contour(m_vals, cross_vals, CR_int_prob_sup_mpi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
 ax[1,0].contour(m_vals, cross_vals, M_int_prob_sup_mpi_2_rate.reshape(30,30).T, levels = 5, linestyles = '-.', cmap = 'inferno')
+ax[1,0].contour(m_vals, cross_vals, M_prob_sup_mpi_2_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
+ax[1,0].contour(m_vals, cross_vals, M_prob_inf_mpi_2_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
 
 ax[1,0].grid(which='both')
 ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
@@ -2035,6 +2165,8 @@ ax[1,1].contourf(m_vals, cross_vals, CR_int_prob_sup_0_drate.reshape(30,30).T, l
 ax[1,1].contour(m_vals, cross_vals, CR_int_prob_sup_0_drate.reshape(30,30).T, levels=levels)
 ax[1,1].contour(m_vals, cross_vals, CR_int_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
 ax[1,1].contour(m_vals, cross_vals, M_int_prob_sup_0_rate.reshape(30,30).T, levels = 5, linestyles = '-.', cmap = 'inferno')
+ax[1,1].contour(m_vals, cross_vals, M_prob_sup_0_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
+ax[1,1].contour(m_vals, cross_vals, M_prob_inf_0_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
 
 ax[1,1].grid(which='both')
 ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
@@ -2519,12 +2651,12 @@ m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-force = True
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v5/'
+force = False
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v5/'
          ]
 
 cross_sec_sigmas_full       = []
@@ -2532,14 +2664,18 @@ cross_sec_int_prob_full     = []
 cross_sec_int_prob_sup_full = []
 
 masses_int_prob_sup_full = []
+masses_prob_sup_full     = []
+masses_prob_inf_full     = []
 
 for folder in folders:
     pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
     
-    if (os.path.exists(folder + 'cross_sec_sigmas_s1s2_thetaFix.txt') & 
-        os.path.exists(folder + 'cross_sec_int_prob_s1s2_thetaFix.txt') &
-        os.path.exists(folder + 'cross_sec_int_prob_sup_s1s2_thetaFix.txt') &
-        os.path.exists(folder + 'masses_int_prob_sup_s1s2_thetaFix.txt')
+    if (os.path.exists(folder + 'cross_sec_sigmas_s1s2.txt') & 
+        os.path.exists(folder + 'cross_sec_int_prob_s1s2.txt') &
+        os.path.exists(folder + 'cross_sec_int_prob_sup_s1s2.txt') &
+        os.path.exists(folder + 'masses_int_prob_sup_s1s2.txt') &
+        os.path.exists(folder + 'masses_prob_sup_s1s2.txt') &
+        os.path.exists(folder + 'masses_prob_inf_s1s2.txt') 
        ) == False or force == True:
         # Let's normalize testset between 0 and 1
         
@@ -2565,7 +2701,6 @@ for folder in folders:
             
             # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
             pars_prior    = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
-            pars_prior[:,2] = np.random.normal(pars_true[2], 0.001, (len(pars_prior)))
             prior_samples = swyft.Samples(z = pars_prior)
             
             # Finally we make the inference
@@ -2606,74 +2741,106 @@ for folder in folders:
             m_min = np.argmin(np.abs(masses_pred - 1))
             m_max = np.argmin(np.abs(masses_pred - 2.6))
             masses_int_prob_sup[itest] = trapezoid(ratios_s1s2[m_min:m_max], masses_pred[m_min:m_max]) / trapezoid(ratios_s1s2, masses_pred)
+            masses_prob_sup[itest] = trapezoid(ratios_s1s2[m_min:], masses_pred[m_min:]) / trapezoid(ratios_s1s2, masses_pred)
+            masses_prob_inf[itest] = trapezoid(ratios_s1s2[:m_max], masses_pred[:m_max]) / trapezoid(ratios_s1s2, masses_pred)
 
         cross_sec_sigmas_full.append(cross_sec_sigmas)
         cross_sec_int_prob_full.append(cross_sec_int_prob)
         cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
         masses_int_prob_sup_full.append(masses_int_prob_sup)
+        masses_prob_sup_full.append(masses_prob_sup)
+        masses_prob_inf_full.append(masses_prob_inf)
             
-        np.savetxt(folder + 'cross_sec_sigmas_s1s2_thetaFix.txt', cross_sec_sigmas)
-        np.savetxt(folder + 'cross_sec_int_prob_s1s2_thetaFix.txt', cross_sec_int_prob)
-        np.savetxt(folder + 'cross_sec_int_prob_sup_s1s2_thetaFix.txt', cross_sec_int_prob_sup)
-        np.savetxt(folder + 'masses_int_prob_sup_s1s2_thetaFix.txt', masses_int_prob_sup)
+        np.savetxt(folder + 'cross_sec_sigmas_s1s2.txt', cross_sec_sigmas)
+        np.savetxt(folder + 'cross_sec_int_prob_s1s2.txt', cross_sec_int_prob)
+        np.savetxt(folder + 'cross_sec_int_prob_sup_s1s2.txt', cross_sec_int_prob_sup)
+        np.savetxt(folder + 'masses_int_prob_sup_s1s2.txt', masses_int_prob_sup)
+        np.savetxt(folder + 'masses_prob_sup_s1s2.txt', masses_prob_sup)
+        np.savetxt(folder + 'masses_prob_inf_s1s2.txt', masses_prob_inf)
     else:
         print('pre-computed')
-        cross_sec_sigmas       = np.loadtxt(folder + 'cross_sec_sigmas_s1s2_thetaFix.txt')
-        cross_sec_int_prob     = np.loadtxt(folder + 'cross_sec_int_prob_s1s2_thetaFix.txt')
-        cross_sec_int_prob_sup = np.loadtxt(folder + 'cross_sec_int_prob_sup_s1s2_thetaFix.txt')
-        masses_int_prob_sup    = np.loadtxt(folder + 'masses_int_prob_sup_s1s2_thetaFix.txt')
+        cross_sec_sigmas       = np.loadtxt(folder + 'cross_sec_sigmas_s1s2.txt')
+        cross_sec_int_prob     = np.loadtxt(folder + 'cross_sec_int_prob_s1s2.txt')
+        cross_sec_int_prob_sup = np.loadtxt(folder + 'cross_sec_int_prob_sup_s1s2.txt')
+        masses_int_prob_sup    = np.loadtxt(folder + 'masses_int_prob_sup_s1s2.txt')
+        masses_prob_sup        = np.loadtxt(folder + 'masses_prob_sup_s1s2.txt')
+        masses_prob_inf        = np.loadtxt(folder + 'masses_prob_inf_s1s2.txt')
 
         cross_sec_sigmas_full.append(cross_sec_sigmas)
         cross_sec_int_prob_full.append(cross_sec_int_prob)
         cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
         masses_int_prob_sup_full.append(masses_int_prob_sup)
+        masses_prob_sup_full.append(masses_prob_sup)
+        masses_prob_inf_full.append(masses_prob_inf)
 
 
 # +
 cross_section_th = -49
 
 if len(cross_sec_int_prob_full) > 1:
-    cross_sec_int_prob_s1s2_pi_2        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
-    cross_sec_int_prob_sup_s1s2_pi_2    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    cross_sec_int_prob_sup_s1s2_pi_2_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_s1s2_pi_2       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_s1s2_pi_2_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
-    cross_sec_sigmas                     = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
+    cross_sec_int_prob_s1s2_0        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
+    cross_sec_int_prob_sup_s1s2_0    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    cross_sec_int_prob_sup_s1s2_0_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_s1s2_0       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_s1s2_0_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_prob_sup_s1s2_0           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_sup_s1s2_0_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_inf_s1s2_0           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
+    masses_prob_inf_s1s2_0_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
+    cross_sec_sigmas                    = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
 else:
-    cross_sec_int_prob_s1s2_pi_2     = cross_sec_int_prob
-    cross_sec_int_prob_sup_s1s2_pi_2 = cross_sec_int_prob_sup
-    masses_int_prob_sup_s1s2_pi_2    = masses_int_prob_sup
+    cross_sec_int_prob_s1s2_0     = cross_sec_int_prob
+    cross_sec_int_prob_sup_s1s2_0 = cross_sec_int_prob_sup
+    masses_int_prob_sup_s1s2_0    = masses_int_prob_sup
+    masses_prob_sup_s1s2_0        = masses_prob_sup
+    masses_prob_inf_s1s2_0        = masses_prob_inf
 
-s1s2_1sigma_pi_2 = np.ones(900) * -99
-s1s2_2sigma_pi_2 = np.ones(900) * -99
-s1s2_3sigma_pi_2 = np.ones(900) * -99
+s1s2_1sigma_0 = np.ones(900) * -99
+s1s2_2sigma_0 = np.ones(900) * -99
+s1s2_3sigma_0 = np.ones(900) * -99
 
-s1s2_1sigma_pi_2[np.where(cross_sec_sigmas[:,0] > cross_section_th)[0]] = 1
-s1s2_2sigma_pi_2[np.where(cross_sec_sigmas[:,1] > cross_section_th)[0]] = 1
-s1s2_3sigma_pi_2[np.where(cross_sec_sigmas[:,2] > cross_section_th)[0]] = 1
+s1s2_1sigma_0[np.where(cross_sec_sigmas[:,0] > cross_section_th)[0]] = 1
+s1s2_2sigma_0[np.where(cross_sec_sigmas[:,1] > cross_section_th)[0]] = 1
+s1s2_3sigma_0[np.where(cross_sec_sigmas[:,2] > cross_section_th)[0]] = 1
 
 # +
-fig, ax = plt.subplots(1,2)
+fig, ax = plt.subplots(2,2)
 
-# #%sbn.kdeplot(cross_sec_int_prob_sup_s1s2_0, label = '$\\theta = 0$', ax = ax[0])
-sbn.kdeplot(cross_sec_int_prob_sup_s1s2_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[0])
-# #%sbn.kdeplot(cross_sec_int_prob_sup_s1s2_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0])
-# #%sbn.kdeplot(cross_sec_int_prob_sup_s1s2_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0])
-# #%sbn.kdeplot(cross_sec_int_prob_sup_s1s2_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0])
-ax[0].legend()
-ax[0].set_xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
-ax[0].set_title('S1-S2')
+sbn.kdeplot(cross_sec_int_prob_sup_s1s2_0, label = '$\\theta = 0$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_sup_s1s2_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_sup_s1s2_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_sup_s1s2_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0,0])
+sbn.kdeplot(cross_sec_int_prob_sup_s1s2_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0,0])
+ax[0,0].legend()
+ax[0,0].set_xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
+ax[0,0].set_title('S1-S2')
 
-# #%sbn.kdeplot(masses_int_prob_sup_s1s2_0, label = '$\\theta = 0$', ax = ax[1])
-sbn.kdeplot(masses_int_prob_sup_s1s2_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[1])
-# #%sbn.kdeplot(masses_int_prob_sup_s1s2_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1])
-# #%sbn.kdeplot(masses_int_prob_sup_s1s2_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1])
-# #%sbn.kdeplot(masses_int_prob_sup_s1s2_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1])
-ax[1].legend()
-ax[1].set_xlabel('$\int_{m_{min}}^{m_{max}} P(m_{DM}|x)$')
-ax[1].set_title('S1-S2')
+sbn.kdeplot(masses_int_prob_sup_s1s2_0, label = '$\\theta = 0$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_sup_s1s2_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_sup_s1s2_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_sup_s1s2_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0,1])
+sbn.kdeplot(masses_int_prob_sup_s1s2_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0,1])
+ax[0,1].legend()
+ax[0,1].set_xlabel('$\int_{m_{min}}^{m_{max}} P(m_{DM}|x)$')
+ax[0,1].set_title('S1-S2')
 
-# #%plt.savefig('../graph/O1_int_prob_distribution_s1s2.pdf')
+sbn.kdeplot(masses_prob_sup_s1s2_0, label = '$\\theta = 0$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_sup_s1s2_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_sup_s1s2_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_sup_s1s2_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1,0])
+sbn.kdeplot(masses_prob_sup_s1s2_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1,0])
+ax[1,0].legend()
+ax[1,0].set_xlabel('$\int_{m_{min}}^{\inf} P(m_{DM}|x)$')
+
+sbn.kdeplot(masses_prob_inf_s1s2_0, label = '$\\theta = 0$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_inf_s1s2_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_inf_s1s2_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_inf_s1s2_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1,1])
+sbn.kdeplot(masses_prob_inf_s1s2_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1,1])
+ax[1,1].legend()
+ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
+
+plt.savefig('../graph/O1_int_prob_distribution_s1s2.pdf')
 
 # +
 sigma = 0.2 # this depends on how noisy your data is, play with it!
@@ -2755,7 +2922,7 @@ ax[1,1].set_xlabel('m [GeV]')
 
 ax[0,0].set_ylim(1e-49, 1e-43)
 
-plt.savefig('../graph/O1_contours_s1s2.pdf')
+#plt.savefig('../graph/O1_contours_s1s2.pdf')
 
 
 # +
@@ -2833,37 +3000,52 @@ plt.savefig('../graph/O1_contours_s1s2_int_prob.pdf')
 # +
 sigma = 0.8 # this depends on how noisy your data is, play with it!
 
-# #%CR_int_prob_sup_0_s1s2          = gaussian_filter(cross_sec_int_prob_sup_s1s2_0, sigma)
-# #%CR_int_prob_sup_0_s1s2_max      = gaussian_filter(cross_sec_int_prob_sup_s1s2_0 + cross_sec_int_prob_sup_s1s2_0_sd, sigma)
-# #%CR_int_prob_sup_0_s1s2_min      = gaussian_filter(cross_sec_int_prob_sup_s1s2_0 - cross_sec_int_prob_sup_s1s2_0_sd, sigma)
+CR_int_prob_sup_0_s1s2          = gaussian_filter(cross_sec_int_prob_sup_s1s2_0, sigma)
+CR_int_prob_sup_0_s1s2_max      = gaussian_filter(cross_sec_int_prob_sup_s1s2_0 + cross_sec_int_prob_sup_s1s2_0_sd, sigma)
+CR_int_prob_sup_0_s1s2_min      = gaussian_filter(cross_sec_int_prob_sup_s1s2_0 - cross_sec_int_prob_sup_s1s2_0_sd, sigma)
 CR_int_prob_sup_pi_2_s1s2       = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_2, sigma)
 CR_int_prob_sup_pi_2_s1s2_max   = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_2 + cross_sec_int_prob_sup_s1s2_pi_2_sd, sigma)
 CR_int_prob_sup_pi_2_s1s2_min   = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_2 - cross_sec_int_prob_sup_s1s2_pi_2_sd, sigma)
-# #%CR_int_prob_sup_pi_4_s1s2       = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_4, sigma)
-# #%CR_int_prob_sup_pi_4_s1s2_max   = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_4 + cross_sec_int_prob_sup_s1s2_pi_4_sd, sigma)
-# #%CR_int_prob_sup_pi_4_s1s2_min   = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_4 - cross_sec_int_prob_sup_s1s2_pi_4_sd, sigma)
-# #%CR_int_prob_sup_mpi_2_s1s2      = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_2, sigma)
-# #%CR_int_prob_sup_mpi_2_s1s2_max  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_2 + cross_sec_int_prob_sup_s1s2_mpi_2_sd, sigma)
-# #%CR_int_prob_sup_mpi_2_s1s2_min  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_2 - cross_sec_int_prob_sup_s1s2_mpi_2_sd, sigma)
-# #%CR_int_prob_sup_mpi_4_s1s2      = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_4, sigma)
-# #%CR_int_prob_sup_mpi_4_s1s2_max  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_4 + cross_sec_int_prob_sup_s1s2_mpi_4_sd, sigma)
-# #%CR_int_prob_sup_mpi_4_s1s2_min  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_4 - cross_sec_int_prob_sup_s1s2_mpi_4_sd, sigma)
+CR_int_prob_sup_pi_4_s1s2       = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_4, sigma)
+CR_int_prob_sup_pi_4_s1s2_max   = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_4 + cross_sec_int_prob_sup_s1s2_pi_4_sd, sigma)
+CR_int_prob_sup_pi_4_s1s2_min   = gaussian_filter(cross_sec_int_prob_sup_s1s2_pi_4 - cross_sec_int_prob_sup_s1s2_pi_4_sd, sigma)
+CR_int_prob_sup_mpi_2_s1s2      = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_2, sigma)
+CR_int_prob_sup_mpi_2_s1s2_max  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_2 + cross_sec_int_prob_sup_s1s2_mpi_2_sd, sigma)
+CR_int_prob_sup_mpi_2_s1s2_min  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_2 - cross_sec_int_prob_sup_s1s2_mpi_2_sd, sigma)
+CR_int_prob_sup_mpi_4_s1s2      = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_4, sigma)
+CR_int_prob_sup_mpi_4_s1s2_max  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_4 + cross_sec_int_prob_sup_s1s2_mpi_4_sd, sigma)
+CR_int_prob_sup_mpi_4_s1s2_min  = gaussian_filter(cross_sec_int_prob_sup_s1s2_mpi_4 - cross_sec_int_prob_sup_s1s2_mpi_4_sd, sigma)
 
-# #%M_int_prob_sup_0_s1s2         = gaussian_filter(masses_int_prob_sup_s1s2_0, sigma)
-# #%M_int_prob_sup_0_s1s2_max     = gaussian_filter(masses_int_prob_sup_s1s2_0 + masses_int_prob_sup_s1s2_0_sd, sigma)
-# #%M_int_prob_sup_0_s1s2_min     = gaussian_filter(masses_int_prob_sup_s1s2_0 - masses_int_prob_sup_s1s2_0_sd, sigma)
+M_int_prob_sup_0_s1s2         = gaussian_filter(masses_int_prob_sup_s1s2_0, sigma)
+M_int_prob_sup_0_s1s2_max     = gaussian_filter(masses_int_prob_sup_s1s2_0 + masses_int_prob_sup_s1s2_0_sd, sigma)
+M_int_prob_sup_0_s1s2_min     = gaussian_filter(masses_int_prob_sup_s1s2_0 - masses_int_prob_sup_s1s2_0_sd, sigma)
+M_prob_sup_0_s1s2             = gaussian_filter(masses_prob_sup_s1s2_0, sigma)
+M_prob_inf_0_s1s2             = gaussian_filter(masses_prob_inf_s1s2_0, sigma)
+
 M_int_prob_sup_pi_2_s1s2      = gaussian_filter(masses_int_prob_sup_s1s2_pi_2, sigma)
 M_int_prob_sup_pi_2_s1s2_max  = gaussian_filter(masses_int_prob_sup_s1s2_pi_2 + masses_int_prob_sup_s1s2_pi_2_sd, sigma)
 M_int_prob_sup_pi_2_s1s2_min  = gaussian_filter(masses_int_prob_sup_s1s2_pi_2 - masses_int_prob_sup_s1s2_pi_2_sd, sigma)
-# #%M_int_prob_sup_pi_4_s1s2      = gaussian_filter(masses_int_prob_sup_s1s2_pi_4, sigma)
-# #%M_int_prob_sup_pi_4_s1s2_max  = gaussian_filter(masses_int_prob_sup_s1s2_pi_4 + masses_int_prob_sup_s1s2_pi_4_sd, sigma)
-# #%M_int_prob_sup_pi_4_s1s2_min  = gaussian_filter(masses_int_prob_sup_s1s2_pi_4 - masses_int_prob_sup_s1s2_pi_4_sd, sigma)
-# #%M_int_prob_sup_mpi_2_s1s2     = gaussian_filter(masses_int_prob_sup_s1s2_mpi_2, sigma)
-# #%M_int_prob_sup_mpi_2_s1s2_max = gaussian_filter(masses_int_prob_sup_s1s2_mpi_2 + masses_int_prob_sup_s1s2_mpi_2_sd, sigma)
-# #%M_int_prob_sup_mpi_2_s1s2_min = gaussian_filter(masses_int_prob_sup_s1s2_mpi_2 - masses_int_prob_sup_s1s2_mpi_2_sd, sigma)
-# #%M_int_prob_sup_mpi_4_s1s2     = gaussian_filter(masses_int_prob_sup_s1s2_mpi_4, sigma)
-# #%M_int_prob_sup_mpi_4_s1s2_max = gaussian_filter(masses_int_prob_sup_s1s2_mpi_4 + masses_int_prob_sup_s1s2_mpi_4_sd, sigma)
-# #%M_int_prob_sup_mpi_4_s1s2_min = gaussian_filter(masses_int_prob_sup_s1s2_mpi_4 - masses_int_prob_sup_s1s2_mpi_4_sd, sigma)
+M_prob_sup_pi_2_s1s2          = gaussian_filter(masses_prob_sup_s1s2_pi_2, sigma)
+M_prob_inf_pi_2_s1s2          = gaussian_filter(masses_prob_inf_s1s2_pi_2, sigma)
+
+M_int_prob_sup_pi_4_s1s2      = gaussian_filter(masses_int_prob_sup_s1s2_pi_4, sigma)
+M_int_prob_sup_pi_4_s1s2_max  = gaussian_filter(masses_int_prob_sup_s1s2_pi_4 + masses_int_prob_sup_s1s2_pi_4_sd, sigma)
+M_int_prob_sup_pi_4_s1s2_min  = gaussian_filter(masses_int_prob_sup_s1s2_pi_4 - masses_int_prob_sup_s1s2_pi_4_sd, sigma)
+M_prob_sup_pi_4_s1s2          = gaussian_filter(masses_prob_sup_s1s2_pi_4, sigma)
+M_prob_inf_pi_4_s1s2          = gaussian_filter(masses_prob_inf_s1s2_pi_4, sigma)
+
+M_int_prob_sup_mpi_2_s1s2     = gaussian_filter(masses_int_prob_sup_s1s2_mpi_2, sigma)
+M_int_prob_sup_mpi_2_s1s2_max = gaussian_filter(masses_int_prob_sup_s1s2_mpi_2 + masses_int_prob_sup_s1s2_mpi_2_sd, sigma)
+M_int_prob_sup_mpi_2_s1s2_min = gaussian_filter(masses_int_prob_sup_s1s2_mpi_2 - masses_int_prob_sup_s1s2_mpi_2_sd, sigma)
+M_prob_sup_mpi_2_s1s2         = gaussian_filter(masses_prob_sup_s1s2_mpi_2, sigma)
+M_prob_inf_mpi_2_s1s2         = gaussian_filter(masses_prob_inf_s1s2_mpi_2, sigma)
+
+M_int_prob_sup_mpi_4_s1s2     = gaussian_filter(masses_int_prob_sup_s1s2_mpi_4, sigma)
+M_int_prob_sup_mpi_4_s1s2_max = gaussian_filter(masses_int_prob_sup_s1s2_mpi_4 + masses_int_prob_sup_s1s2_mpi_4_sd, sigma)
+M_int_prob_sup_mpi_4_s1s2_min = gaussian_filter(masses_int_prob_sup_s1s2_mpi_4 - masses_int_prob_sup_s1s2_mpi_4_sd, sigma)
+M_prob_sup_mpi_4_s1s2         = gaussian_filter(masses_prob_sup_s1s2_mpi_4, sigma)
+M_prob_inf_mpi_4_s1s2         = gaussian_filter(masses_prob_inf_s1s2_mpi_4, sigma)
+
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]
@@ -2960,12 +3142,18 @@ ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_drate.reshape(30,30).T, l
 # #%ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_drate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_drate)
 # #%ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_drate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_drate)
 ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_s1s2)
+ax[0].contour(m_vals, cross_vals, M_prob_sup_pi_2_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
+#ax[0].contour(m_vals, cross_vals, M_prob_inf_pi_2_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
 # #%ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_s1s2_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
 # #%ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_s1s2_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
 ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
+ax[0].contour(m_vals, cross_vals, M_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
+#ax[0].contour(m_vals, cross_vals, M_prob_inf_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 # #%ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_rate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 # #%ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_rate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_drate)
+ax[0].contour(m_vals, cross_vals, M_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
+#ax[0].contour(m_vals, cross_vals, M_prob_inf_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 # #%ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_drate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 # #%ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_drate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 
@@ -2990,12 +3178,18 @@ ax[1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_drate.reshape(30,30).T, l
 # #%ax[1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_drate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_drate)
 # #%ax[1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_drate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_drate)
 ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_s1s2)
+ax[1].contour(m_vals, cross_vals, M_prob_sup_pi_4_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
+#ax[1].contour(m_vals, cross_vals, M_prob_inf_pi_4_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
 # #%ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_s1s2_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
 # #%ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_s1s2_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
 ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
+ax[1].contour(m_vals, cross_vals, M_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
+#ax[1].contour(m_vals, cross_vals, M_prob_inf_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 # #%ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_rate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 # #%ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_rate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_drate)
+ax[1].contour(m_vals, cross_vals, M_prob_sup_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
+#ax[1].contour(m_vals, cross_vals, M_prob_inf_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 # #%ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_drate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 # #%ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_drate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 
@@ -3015,12 +3209,18 @@ ax[2].contour(m_vals, cross_vals, CR_int_prob_sup_0_drate.reshape(30,30).T, leve
 # #%ax[2].contour(m_vals, cross_vals, CR_int_prob_sup_0_drate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_drate)
 # #%ax[2].contour(m_vals, cross_vals, CR_int_prob_sup_0_drate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_drate)
 ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_s1s2)
+ax[2].contour(m_vals, cross_vals, M_prob_sup_0_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
+#ax[2].contour(m_vals, cross_vals, M_prob_inf_0_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
 # #%ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_s1s2_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
 # #%ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_s1s2_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
 ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
+ax[2].contour(m_vals, cross_vals, M_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
+#ax[2].contour(m_vals, cross_vals, M_prob_inf_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 # #%ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_rate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 # #%ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_rate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_drate)
+ax[2].contour(m_vals, cross_vals, M_prob_sup_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
+#ax[2].contour(m_vals, cross_vals, M_prob_inf_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 # #%ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_drate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 # #%ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_drate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 
