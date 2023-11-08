@@ -2779,7 +2779,7 @@ ax[0,1].plot(masses, s1s2_90_CL_pi4[2,:], color = 'black', linestyle = '-.')
 ax[1,0].plot(masses, s1s2_90_CL_mpi2[2,:], color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = '-.')
 
-plt.savefig('../graph/O4_contours_s1s1_int_prob.pdf')
+#plt.savefig('../graph/O4_contours_s1s1_int_prob.pdf')
 
 # +
 sigma = 2.1 # this depends on how noisy your data is, play with it!
