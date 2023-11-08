@@ -2692,6 +2692,8 @@ for folder in folders:
         cross_sec_int_prob = np.ones(len(pars_norm)) * -99
         cross_sec_int_prob_sup = np.ones(len(pars_norm)) * -99
         masses_int_prob_sup = np.ones(len(pars_norm)) * -99
+        masses_prob_sup     = np.ones(len(pars_norm)) * -99
+        masses_prob_inf     = np.ones(len(pars_norm)) * -99
            
         for itest in tqdm(range(len(pars_norm))):
             x_obs = x_norm_s1s2[itest, :,:]
