@@ -1551,7 +1551,7 @@ plt.colorbar()
 plt.xlabel('$\sigma_{Real}$')
 plt.ylabel('$\sigma_{Pred}$')
 
-plt.savefig('../graph/testset_predVSreal_rate.pdf')
+plt.savefig('../graph/O1_testset_predVSreal_rate.pdf')
 # -
 
 # ## Only using the total diff_rate
@@ -2449,7 +2449,7 @@ plt.colorbar()
 plt.xlabel('$\sigma_{Real}$')
 plt.ylabel('$\sigma_{Pred}$')
 
-plt.savefig('../graph/testset_predVSreal_drate.pdf')
+plt.savefig('../graph/O1_testset_predVSreal_drate.pdf')
 # -
 
 # ## Using s1s2
@@ -3674,7 +3674,7 @@ plt.colorbar()
 plt.xlabel('$\sigma_{Real}$')
 plt.ylabel('$\sigma_{Pred}$')
 
-plt.savefig('../graph/testset_predVSreal_s1s2.pdf')
+plt.savefig('../graph/O1_testset_predVSreal_s1s2.pdf')
 # -
 
 # # Some other plots
