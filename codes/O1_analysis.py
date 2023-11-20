@@ -50,9 +50,10 @@ smtp_port = 587
 # +
 #from playsound import playsound
 #playsound('/home/martinrios/Downloads/mario.mp3')
-# -
 
-from torchsummary import summary
+# +
+#from torchsummary import summary
+# -
 
 # It is usefull to print the versions of the package that we are using
 print('swyft version:', swyft.__version__)
@@ -644,7 +645,7 @@ x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = np.random.randint(ntest) # 239 (disc) 455 (exc) 203 (middle)
+i = 239#np.random.randint(ntest) # 239 (disc) 455 (exc) 203 (middle)
 print(i)
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_rate[i,:]
@@ -829,7 +830,26 @@ trapezoid(ratios[m_min:m_max], masses_pred[m_min:m_max]) / trapezoid(ratios, mas
 results_pars_rate = np.asarray(predictions_rate[1].params)
 results_rate      = np.asarray(predictions_rate[1].logratios)
 
+from scipy.interpolate import CloughTocher2DInterpolator
+
+results_pars_rate[:,0,0] = 10**(results_pars_rate[:,0,0] * (pars_max[0] - pars_min[0]) + pars_min[0])
+results_pars_rate[:,0,1] = 10**(results_pars_rate[:,0,1] * (pars_max[1] - pars_min[1]) + pars_min[1])
+
+results_pars_rate[:,0,:].shape
+
+results_rate[:,0].shape
+
+interp = CloughTocher2DInterpolator(results_pars_rate[:,0,:], results_rate[:,0])
+
+np.min(results_pars_rate[:,0,:],axis = 1)
+
+integrate.dblquad(interp, 0, 2, 0, 1)
+
 # +
+mbins = np.logspace(0.41, 3.4, 25)
+sbins = np.logspace(-49.9, -40.5, 25)
+tbins = np.linspace(-1.6, 1.6, 25)
+
 fig, ax = plt.subplots(1,3, gridspec_kw = {'hspace':0.7, 'wspace':0.4}, figsize = (12,4))
 
 #  -------------------------------- MAX  ----------------------------------------
@@ -841,7 +861,7 @@ m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
 sigma_results = 10**(results_pars_rate[:,0,1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_rate[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-48.2, -41, 15)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_rate[:,0], 'max', bins = [mbins, sbins])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -853,7 +873,7 @@ im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, 
 clb = plt.colorbar(im20, ax = ax[0])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-48.2, -41, 10)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [mbins, sbins])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -868,6 +888,9 @@ ax[0].set_ylabel('$\sigma$')
 ax[0].set_xscale('log')
 ax[0].set_yscale('log')
 
+ax[0].set_ylim(4e-49, 9e-44)
+ax[0].set_xlim(9, 9e2)
+
 # M vs theta
 
 m_results     = 10**(results_pars_rate[:,1,0] * (pars_max[0] - pars_min[0]) + pars_min[0])
@@ -875,7 +898,7 @@ m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
 theta_results = results_pars_rate[:,1,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
 theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, theta_results, results_rate[:,1], 'max', bins = [np.logspace(0.81, 3, 15), np.linspace(-1.6, 1.6, 15)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, theta_results, results_rate[:,1], 'max', bins = [mbins, tbins])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -887,7 +910,7 @@ im21 = ax[1].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, 
 clb = plt.colorbar(im21, ax = ax[1])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.linspace(-1.6, 1.6, 10)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), pars[:,2], np.log10(rate + 7), 'min', bins = [mbins, tbins])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -901,6 +924,8 @@ ax[1].set_xlabel('m')
 ax[1].set_ylabel('$\\theta$')
 ax[1].set_xscale('log')
 
+ax[1].set_xlim(9, 9e2)
+ax[1].set_ylim(-1.45, 1.45)
 # Sigma vs theta
 
 sigma_results = 10**(results_pars_rate[:,2,0] * (pars_max[1] - pars_min[1]) + pars_min[1])
@@ -908,7 +933,7 @@ sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
 theta_results = results_pars_rate[:,2,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
 theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_rate[:,2], 'max', bins = [np.logspace(-48.2, -41, 15), np.linspace(-1.6, 1.6, 15)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_rate[:,2], 'max', bins = [sbins, tbins])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -920,7 +945,7 @@ im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, 
 clb = plt.colorbar(im22, ax = ax[2])
 clb.ax.set_title('$\lambda$')
 
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-48.2, -41, 10), np.linspace(-1.6, 1.6, 10)])
+val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [sbins, tbins])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
@@ -933,6 +958,9 @@ ax[2].axvline(x = sigma_true, c = 'red')
 ax[2].set_xlabel('$\sigma$')
 ax[2].set_ylabel('$\\theta$')
 ax[2].set_xscale('log')
+
+ax[2].set_xlim(4e-49, 9e-44)
+ax[2].set_ylim(-1.45, 1.45)
 
 if flag == 'exc':
     plt.savefig('../graph/pars_rate_exc.pdf')
