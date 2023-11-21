@@ -12,6 +12,8 @@ import pandas as pd
 import os
 from scipy.ndimage import gaussian_filter
 from scipy.integrate import trapezoid
+from scipy.interpolate import CloughTocher2DInterpolator
+from scipy.integrate import simps
 from matplotlib.pyplot import contour, show
 from matplotlib.lines import Line2D
 
@@ -172,6 +174,112 @@ def email(message = 'termino'):
     # Close the connection
     server.quit()
     return None
+
+
+def plot1d(ax, predictions, pars_true, par = 1, 
+           xlabel = '$\log_{10}(\sigma)$', ylabel = '$P(\sigma|x)\ /\ P(\sigma)$',
+           flip = False):
+    # Let's put the results in arrays
+    parameter = np.asarray(predictions[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+    ratios = np.exp(np.asarray(predictions[0].logratios[:,par]))
+    
+    ind_sort  = np.argsort(parameter)
+    ratios    = ratios[ind_sort]
+    parameter = parameter[ind_sort]
+    
+    # Let's compute the integrated probability for different threshold
+    cuts = np.linspace(np.min(ratios), np.max(ratios), 100)
+    integrals = []
+    for c in cuts:
+        ratios0 = np.copy(ratios)
+        ratios0[np.where(ratios < c)[0]] = 0 
+        integrals.append( trapezoid(ratios0, parameter) / trapezoid(ratios, parameter) )
+        
+    integrals = np.asarray(integrals)
+    
+    # Let's compute the thresholds corresponding to 0.9 and 0.95 integrated prob
+    cut90 = cuts[np.argmin( np.abs(integrals - 0.95))]
+    cut95 = cuts[np.argmin( np.abs(integrals - 0.9))]
+
+    if not flip:
+        ax.plot(10**parameter, ratios, c = 'black')
+        ind = np.where(ratios > cut90)[0]
+        ax.fill_between(10**parameter[ind], ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.3)
+        ind = np.where(ratios > cut95)[0]
+        ax.fill_between(10**parameter[ind], ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.5)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_xscale('log')
+    else:
+        plt.plot(ratios, 10**parameter, c = 'black')
+        ind = np.where(ratios > cut90)[0]
+        ax.fill_betweenx(10**parameter[ind], [0] * len(ind), ratios[ind], color = 'darkcyan', alpha = 0.3)
+        ind = np.where(ratios > cut95)[0]
+        ax.fill_betweenx(10**parameter[ind], [0] * len(ind), ratios[ind], color = 'darkcyan', alpha = 0.5) 
+        ax.set_xlabel(ylabel)
+        ax.set_ylabel(xlabel)
+        #ax.set_xlim(-0.1,8)
+        ax.set_ylim(1e-50, 1e-42)
+        ax.set_yscale('log')
+    return ax
+
+
+def plot2d(ax, predictions, pars_true):      
+    results_pars = np.asarray(predictions[1].params)
+    results      = np.asarray(predictions[1].logratios)
+    
+    # Let's make an interpolation function 
+    interp = CloughTocher2DInterpolator(results_pars[:,0,:], 10**results[:,0])
+    
+    def interpol(log_m, log_sigma):
+        m_norm = (log_m - pars_min[0]) / (pars_max[0] - pars_min[0])
+        sigma_norm = (log_sigma - pars_min[1]) / (pars_max[1] - pars_min[1])
+        return interp(m_norm, sigma_norm)
+        
+    # Let's estimate the value of the posterior in a grid
+    nvals = 20
+    m_values = np.logspace(0.8, 2.99, nvals)
+    s_values = np.logspace(-49., -43.1, nvals)
+    m_grid, s_grid = np.meshgrid(m_values, s_values)
+    
+    ds = np.log10(s_values[1]) - np.log10(s_values[0])
+    dm = np.log10(m_values[1]) - np.log10(m_values[0])
+    
+    res = np.zeros((nvals, nvals))
+    for m in range(nvals):
+        for s in range(nvals):
+            res[m,s] = interpol(np.log10(m_values[m]), np.log10(s_values[s]))
+    res[np.isnan(res)] = 0
+    #print(res)
+    # Let's compute the integral
+    norm = simps(simps(res, dx=dm, axis=1), dx=ds)
+    #print(norm)
+    
+    # Let's look for the 0.9 probability threshold
+    cuts = np.linspace(np.min(res), np.max(res), 100)
+    integrals = []
+    for c in cuts:
+        res0 = np.copy(res)
+        res0[np.where(res < c)[0], np.where(res < c)[1]] = 0
+        integrals.append( simps(simps(res0, dx=dm, axis=1), dx=ds) / norm )
+    integrals = np.asarray(integrals)
+    
+    cut90 = cuts[np.argmin( np.abs(integrals - 0.95))]
+    cut95 = cuts[np.argmin( np.abs(integrals - 0.9))]
+    #print(cut)
+    ax.contourf(m_values, s_values, res.T, levels = [0, cut90, 10 * cut90], colors = ['white','darkcyan'], alpha = 0.3, linestyles = ['solid'])
+    ax.contourf(m_values, s_values, res.T, levels = [0, cut95, 10 * cut95], colors = ['white','darkcyan'], alpha = 0.5, linestyles = ['solid'])
+    ax.contour(m_values, s_values, res.T, levels = [0,cut90], colors = ['black'], linestyles = ['--'])
+    ax.contour(m_values, s_values, res.T, levels = [0,cut95], colors = ['black'], linestyles = ['solid'])
+    
+    ax.axvline(x = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'coral')
+    ax.axhline(y = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'coral')
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_xlabel('$M_{DM}$ [GeV]')
+    ax.set_ylabel('$\sigma$ $[cm^{2}]$')
+
+    return ax
 
 
 # # Let's load the data
@@ -645,11 +753,12 @@ x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = 239#np.random.randint(ntest) # 239 (disc) 455 (exc) 203 (middle)
+i = np.random.randint(ntest) # 239 (disc) 455 (exc) 203 (middle)
 print(i)
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_rate[i,:]
 
+print('Real values:' + str(pars_true * (pars_max - pars_min) + pars_min ))
 print('"Normalized Observed" x value : {}'.format(x_obs))
 real_val = 10**(x_obs * (x_max_rate - x_min_rate) + x_min_rate)
 print('"Observed" x value : {} events'.format(real_val))
@@ -670,7 +779,7 @@ A = pars_min[1]
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior    = np.random.uniform(low = 0, high = 1, size = (1_000_000, 3))
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
 #pars_prior = np.random.uniform(low = pars_min, high = pars_max, size = (100_000, 3))
 #pars_prior = np.random.uniform(low = [6, 1e-50, -1.57], high = [1000, 1e-45, 1.57], size = (100_000, 3))
 #pars_prior[:,0] = np.log10(pars_prior[:,0])
@@ -681,6 +790,31 @@ prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
 predictions_rate = trainer_rate.infer(network_rate, obs, prior_samples)
+
+# +
+fig,ax = plt.subplots(2,2, figsize = (6,6), 
+                      gridspec_kw={'height_ratios': [0.5, 2], 'width_ratios':[2,0.5]})
+
+plt.subplots_adjust(hspace = 0.1, wspace = 0.1)
+
+plot1d(ax[0,0], predictions_rate, pars_true, par = 0)
+plot2d(ax[1,0], predictions_rate, pars_true)
+plot1d(ax[1,1], predictions_rate, pars_true, par = 1, flip = True)
+ax[0,1].remove()
+
+ax[0,0].set_xlim(8,1e3)
+ax[1,0].set_xlim(8,1e3)
+ax[1,0].set_ylim(1e-50,1e-43)
+ax[1,1].set_ylim(1e-50,1e-43)
+
+ax[0,0].set_xlabel('')
+ax[0,0].set_ylabel('$P(m|x)$')
+ax[0,0].set_xticks([])
+ax[1,1].set_ylabel('')
+ax[1,1].set_yticks([])
+ax[1,1].set_xlabel('$P(\sigma|x)$')
+#ax[1,0].grid(which = 'both')
+plt.savefig('../graph/2d_custom_posteriors.pdf')
 # -
 
 # Let's plot the results
@@ -804,6 +938,41 @@ else:
     plt.savefig('../graph/O1_loglikratio_rate.pdf')
 
 # +
+par = 0
+cross_sec = np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+ratios = np.exp(np.asarray(predictions_rate[0].logratios[:,par]))
+
+ind_sort  = np.argsort(cross_sec)
+ratios    = ratios[ind_sort]
+cross_sec = cross_sec[ind_sort]
+
+# Let's compute the integrated probability for different threshold
+cuts = np.linspace(np.min(ratios), np.max(ratios), 100)
+integrals = []
+for c in cuts:
+    ratios0 = np.copy(ratios)
+    ratios0[np.where(ratios < c)[0]] = 0 
+    integrals.append( trapezoid(ratios0, cross_sec) / trapezoid(ratios, cross_sec) )
+    
+integrals = np.asarray(integrals)
+
+# Let's compute the thresholds corresponding to 0.9 and 0.95 integrated prob
+cut90 = cuts[np.argmin( np.abs(integrals - 0.95))]
+cut95 = cuts[np.argmin( np.abs(integrals - 0.9))]
+# -
+
+cross_sec[ind]
+
+plt.plot(cross_sec, ratios, c = 'blue')
+ind = np.where(ratios > cut90)[0]
+plt.fill_between(cross_sec[ind], ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.3)
+#plt.scatter(cross_sec[ind], ratios[ind], color = 'darkcyan', alpha = 0.3)
+ind = np.where(ratios > cut95)[0]
+plt.fill_between(cross_sec[ind], ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.5)
+#ax.set_xlabel(xlabel)
+#ax.set_ylabel(ylabel)
+
+# +
 masses_pred = np.asarray(predictions_rate[0].params[:,0,0]) * (pars_max[0] - pars_min[0]) + pars_min[0]
 ratios = np.exp(np.asarray(predictions_rate[0].logratios[:,0]))
 
@@ -830,20 +999,9 @@ trapezoid(ratios[m_min:m_max], masses_pred[m_min:m_max]) / trapezoid(ratios, mas
 results_pars_rate = np.asarray(predictions_rate[1].params)
 results_rate      = np.asarray(predictions_rate[1].logratios)
 
-from scipy.interpolate import CloughTocher2DInterpolator
-
-results_pars_rate[:,0,0] = 10**(results_pars_rate[:,0,0] * (pars_max[0] - pars_min[0]) + pars_min[0])
-results_pars_rate[:,0,1] = 10**(results_pars_rate[:,0,1] * (pars_max[1] - pars_min[1]) + pars_min[1])
-
-results_pars_rate[:,0,:].shape
-
-results_rate[:,0].shape
-
-interp = CloughTocher2DInterpolator(results_pars_rate[:,0,:], results_rate[:,0])
-
-np.min(results_pars_rate[:,0,:],axis = 1)
-
-integrate.dblquad(interp, 0, 2, 0, 1)
+print(results_pars_rate[:,0,:].shape)
+print(np.min(results_pars_rate[:,0,:], axis = 0))
+print(np.max(results_pars_rate[:,0,:], axis = 0))
 
 # +
 mbins = np.logspace(0.41, 3.4, 25)
@@ -2731,17 +2889,20 @@ if fit:
 pars_norm = (pars_testset - pars_min) / (pars_max - pars_min)
 
 x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1]
-# -
-
-flag = 'exc'
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = 455#np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
+i = np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
 print(i)
 
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_s1s2[i,:].reshape(1,96,96)
+
+if np.sum(x_obs) < 2930: 
+    flag = 'exc'
+else:
+    flag = 'disc'
+print(flag)
 
 plt.imshow(x_obs[0].T, origin = 'lower')
 
@@ -2750,12 +2911,16 @@ plt.imshow(x_obs[0].T, origin = 'lower')
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior = np.random.uniform(low = 0, high = 1, size = (1_000_000, 3))
+pars_prior = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
 #pars_prior[:,2] = np.random.normal(pars_true[2], 0.001, (len(pars_prior)))
 prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
 predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
+# -
+
+fig,ax = plt.subplots(1,1)
+ax = plot2d(ax, predictions_s1s2, pars_true)
 
 # +
 # Let's plot the results
