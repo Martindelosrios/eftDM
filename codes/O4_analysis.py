@@ -25,7 +25,7 @@ import seaborn as sns
 
 torch.set_float32_matmul_precision('high')
 pallete = np.flip(sns.color_palette("tab20c", 8), axis = 0)
-cross_sec_th = -49
+cross_sec_th = -42
 
 # +
 import smtplib
@@ -836,12 +836,12 @@ m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-force = False
-folders = ['../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0/',
-           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v2/',
-           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v3/',
-           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v4/',
-           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v5/'
+force = True
+folders = ['../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v2/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v3/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v4/',
+           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v5/'
          ]
 
 
@@ -917,7 +917,7 @@ for folder in folders:
 
             cross_sec_sigmas[itest,6] = x[np.argmax(h1)]
             
-            cr_th = np.argmin(np.abs(x - (-41)))
+            cr_th = np.argmin(np.abs(x - (-42)))
             cross_sec_int_prob[itest]     = trapezoid(h1[:cr_th], x[:cr_th]) / trapezoid(h1, x)
             cross_sec_int_prob_sup[itest] = trapezoid(h1[cr_th:], x[cr_th:]) / trapezoid(h1, x)
 
@@ -965,33 +965,33 @@ for folder in folders:
 email('Termino de analizar las slices')
 
 # +
-cross_section_th = -41
+cross_section_th = -42
 
 if len(cross_sec_int_prob_full) > 1:
-    cross_sec_int_prob_rate_0        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
-    cross_sec_int_prob_sup_rate_0    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    cross_sec_int_prob_sup_rate_0_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_rate_0       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_rate_0_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_prob_sup_rate_0           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_sup_rate_0_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_inf_rate_0           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
-    masses_prob_inf_rate_0_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
-    cross_sec_sigmas_0               = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
+    cross_sec_int_prob_rate_mpi_2        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
+    cross_sec_int_prob_sup_rate_mpi_2    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    cross_sec_int_prob_sup_rate_mpi_2_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_rate_mpi_2       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_rate_mpi_2_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_prob_sup_rate_mpi_2           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_sup_rate_mpi_2_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_inf_rate_mpi_2           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
+    masses_prob_inf_rate_mpi_2_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
+    cross_sec_sigmas_mpi_2               = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
 else:
-    cross_sec_int_prob_rate_0     = cross_sec_int_prob
-    cross_sec_int_prob_sup_rate_0 = cross_sec_int_prob_sup
-    masses_int_prob_sup_rate_0    = masses_int_prob_sup
-    masses_prob_sup_rate_0        = masses_prob_sup
-    masses_prob_inf_rate_0        = masses_prob_inf
+    cross_sec_int_prob_rate_mpi_2     = cross_sec_int_prob
+    cross_sec_int_prob_sup_rate_mpi_2 = cross_sec_int_prob_sup
+    masses_int_prob_sup_rate_mpi_2    = masses_int_prob_sup
+    masses_prob_sup_rate_mpi_2        = masses_prob_sup
+    masses_prob_inf_rate_mpi_2        = masses_prob_inf
 
-rate_1sigma_0 = np.ones(900) * -99
-rate_2sigma_0 = np.ones(900) * -99
-rate_3sigma_0 = np.ones(900) * -99
+rate_1sigma_mpi_2 = np.ones(900) * -99
+rate_2sigma_mpi_2 = np.ones(900) * -99
+rate_3sigma_mpi_2 = np.ones(900) * -99
 
-rate_1sigma_0[np.where(cross_sec_sigmas_0[:,0] > cross_section_th)[0]] = 1
-rate_2sigma_0[np.where(cross_sec_sigmas_0[:,1] > cross_section_th)[0]] = 1
-rate_3sigma_0[np.where(cross_sec_sigmas_0[:,2] > cross_section_th)[0]] = 1
+rate_1sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,0] > cross_section_th)[0]] = 1
+rate_2sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,1] > cross_section_th)[0]] = 1
+rate_3sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,2] > cross_section_th)[0]] = 1
 
 # +
 fig, ax = plt.subplots(2,2)
@@ -1030,7 +1030,7 @@ sbn.kdeplot(masses_prob_inf_rate_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', 
 ax[1,1].legend()
 ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
-#plt.savefig('../graph/O4_int_prob_distribution_rate.pdf')
+plt.savefig('../graph/O4_int_prob_distribution_rate.pdf')
 
 # +
 sigma = 0.2 # this depends on how noisy your data is, play with it!
@@ -1285,7 +1285,7 @@ ax[0,1].plot(masses, rate_90_CL_pi4[2,:], color = 'black', linestyle = '-.')
 ax[1,0].plot(masses, rate_90_CL_mpi2[2,:], color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, rate_90_CL_0[2,:], color = 'black', linestyle = '-.')
 
-#plt.savefig('../graph/O4_contours_rate_int_prob_sup.pdf')
+plt.savefig('../graph/O4_contours_rate_int_prob_sup.pdf')
 # -
 
 # ### Testset
@@ -1293,7 +1293,7 @@ ax[1,1].plot(masses, rate_90_CL_0[2,:], color = 'black', linestyle = '-.')
 # !ls ../data/andresData/O4-fulldata/O4
 
 # +
-force = False
+force = True
 folder = '../data/andresData/O4-fulldata/O4/'
 
 pars_slices = pars_testset
@@ -1359,7 +1359,7 @@ if (os.path.exists(folder + 'test_cross_sec_sigmas_rate.txt') &
         
         rate_cross_sec_sigmas[itest,6] = x[np.argmax(h1)]
         
-        cr_th = np.argmin(np.abs(x - (-41)))
+        cr_th = np.argmin(np.abs(x - (-42)))
         rate_cross_sec_int_prob[itest]     = trapezoid(h1[:cr_th], x[:cr_th]) / trapezoid(h1, x)
         rate_cross_sec_int_prob_sup[itest] = trapezoid(h1[cr_th:], x[cr_th:]) / trapezoid(h1, x)
 
@@ -1408,7 +1408,7 @@ plt.colorbar()
 plt.xlabel('$\sigma_{Real}$')
 plt.ylabel('$\sigma_{Pred}$')
 
-#plt.savefig('../graph/O4_testset_predVSreal_rate.pdf')
+plt.savefig('../graph/O4_testset_predVSreal_rate.pdf')
 # -
 
 # ## Only using the total diff_rate
@@ -1851,12 +1851,12 @@ m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-force = False
-folders = ['../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2/',
-           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v2/',
-           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v3/',
-           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v4/',
-           '../data/andresData/O4-fulldata/O4/theta-minuspidiv2/O4-slices01-minuspidiv2-v5/'
+force = True
+folders = ['../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v2/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v3/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v4/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v5/'
          ]
 
 
@@ -1931,7 +1931,7 @@ for folder in folders:
                 cross_sec_sigmas[itest,6] = x[np.argmax(h1)]
             except:
                 pass
-            cr_th = np.argmin(np.abs(x - (-41)))
+            cr_th = np.argmin(np.abs(x - (-42)))
             cross_sec_int_prob[itest]     = trapezoid(h1[:cr_th], x[:cr_th]) / trapezoid(h1, x)
             cross_sec_int_prob_sup[itest] = trapezoid(h1[cr_th:], x[cr_th:]) / trapezoid(h1, x)
 
@@ -1978,33 +1978,33 @@ for folder in folders:
 #email('Termino analisis slice')
 
 # +
-cross_section_th = -41
+cross_section_th = -42
 
 if len(cross_sec_int_prob_full) > 1:
-    cross_sec_int_prob_drate_mpi_2        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
-    cross_sec_int_prob_sup_drate_mpi_2    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    cross_sec_int_prob_sup_drate_mpi_2_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_drate_mpi_2       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_drate_mpi_2_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_prob_sup_drate_mpi_2           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_sup_drate_mpi_2_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_inf_drate_mpi_2           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
-    masses_prob_inf_drate_mpi_2_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
-    cross_sec_sigmas_mpi_2                = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
+    cross_sec_int_prob_drate_0        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
+    cross_sec_int_prob_sup_drate_0    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    cross_sec_int_prob_sup_drate_0_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_drate_0       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_drate_0_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_prob_sup_drate_0           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_sup_drate_0_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_inf_drate_0           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
+    masses_prob_inf_drate_0_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
+    cross_sec_sigmas_0                = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
 else:
-    cross_sec_int_prob_drate_mpi_2     = cross_sec_int_prob
-    cross_sec_int_prob_sup_drate_mpi_2 = cross_sec_int_prob_sup
-    masses_int_prob_sup_drate_mpi_2    = masses_int_prob_sup
-    masses_prob_sup_drate_mpi_2        = masses_prob_sup
-    masses_prob_inf_drate_mpi_2        = masses_prob_inf
+    cross_sec_int_prob_drate_0     = cross_sec_int_prob
+    cross_sec_int_prob_sup_drate_0 = cross_sec_int_prob_sup
+    masses_int_prob_sup_drate_0    = masses_int_prob_sup
+    masses_prob_sup_drate_0        = masses_prob_sup
+    masses_prob_inf_drate_0        = masses_prob_inf
 
-rate_1sigma_mpi_2 = np.ones(900) * -99
-rate_2sigma_mpi_2 = np.ones(900) * -99
-rate_3sigma_mpi_2 = np.ones(900) * -99
+rate_1sigma_0 = np.ones(900) * -99
+rate_2sigma_0 = np.ones(900) * -99
+rate_3sigma_0 = np.ones(900) * -99
 
-rate_1sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,0] > cross_section_th)[0]] = 1
-rate_2sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,1] > cross_section_th)[0]] = 1
-rate_3sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,2] > cross_section_th)[0]] = 1
+rate_1sigma_0[np.where(cross_sec_sigmas_0[:,0] > cross_section_th)[0]] = 1
+rate_2sigma_0[np.where(cross_sec_sigmas_0[:,1] > cross_section_th)[0]] = 1
+rate_3sigma_0[np.where(cross_sec_sigmas_0[:,2] > cross_section_th)[0]] = 1
 
 # +
 fig, ax = plt.subplots(2,2)
@@ -2043,7 +2043,7 @@ sbn.kdeplot(masses_prob_inf_drate_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$',
 ax[1,1].legend()
 ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
-#plt.savefig('../graph/O4_int_prob_distribution_drate.pdf')
+plt.savefig('../graph/O4_int_prob_distribution_drate.pdf')
 
 # +
 sigma = 0.1 # this depends on how noisy your data is, play with it!
@@ -2158,13 +2158,13 @@ ax[1,0].plot(masses, s1s2_90_CL_mpi2[2,:], color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = '-.')
 ax[0,0].legend(loc = 'lower left')
 
-#plt.savefig('../graph/O4_contours_drate_int_prob_sup.pdf')
+plt.savefig('../graph/O4_contours_drate_int_prob_sup.pdf')
 # -
 
 # ### Testset
 
 # +
-force = False
+force = True
 folder = '../data/andresData/O4-fulldata/O4/'
 
 pars_slices = pars_testset
@@ -2230,7 +2230,7 @@ if (os.path.exists(folder + 'test_cross_sec_sigmas_drate.txt') &
 
         drate_cross_sec_sigmas[itest,6] = x[np.argmax(h1)]
         
-        cr_th = np.argmin(np.abs(x - (-41)))
+        cr_th = np.argmin(np.abs(x - (-42)))
         drate_cross_sec_int_prob[itest]     = trapezoid(h1[:cr_th], x[:cr_th]) / trapezoid(h1, x)
         drate_cross_sec_int_prob_sup[itest] = trapezoid(h1[cr_th:], x[cr_th:]) / trapezoid(h1, x)
         
@@ -2277,7 +2277,7 @@ plt.colorbar()
 plt.xlabel('$\sigma_{Real}$')
 plt.ylabel('$\sigma_{Pred}$')
 
-#plt.savefig('../graph/O4_testset_predVSreal_drate.pdf')
+plt.savefig('../graph/O4_testset_predVSreal_drate.pdf')
 # -
 
 # ## Using s1s2
@@ -2694,12 +2694,12 @@ m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
-force = False
-folders = ['../data/andresData/O4-fulldata/O4/theta-pluspidiv2/O4-slices01-pluspidiv2/',
-           '../data/andresData/O4-fulldata/O4/theta-pluspidiv2/O4-slices01-pluspidiv2-v2/',
-           '../data/andresData/O4-fulldata/O4/theta-pluspidiv2/O4-slices01-pluspidiv2-v3/',
-           '../data/andresData/O4-fulldata/O4/theta-pluspidiv2/O4-slices01-pluspidiv2-v4/',
-           '../data/andresData/O4-fulldata/O4/theta-pluspidiv2/O4-slices01-pluspidiv2-v5/'
+force = True
+folders = ['../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v2/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v3/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v4/',
+           '../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-theta0-v5/'
          ]
 
 cross_sec_sigmas_full       = []
@@ -2827,33 +2827,33 @@ email('Termino analisis slices O4')
 
 
 # +
-cross_section_th = -41
+cross_section_th = -42
 
 if len(cross_sec_int_prob_full) > 1:
-    cross_sec_int_prob_s1s2_pi_2        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
-    cross_sec_int_prob_sup_s1s2_pi_2    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    cross_sec_int_prob_sup_s1s2_pi_2_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_s1s2_pi_2       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_s1s2_pi_2_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_prob_sup_s1s2_pi_2           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_sup_s1s2_pi_2_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_inf_s1s2_pi_2           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
-    masses_prob_inf_s1s2_pi_2_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
-    cross_sec_sigmas_pi_2               = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
+    cross_sec_int_prob_s1s2_0        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
+    cross_sec_int_prob_sup_s1s2_0    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    cross_sec_int_prob_sup_s1s2_0_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_s1s2_0       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_s1s2_0_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_prob_sup_s1s2_0           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_sup_s1s2_0_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_inf_s1s2_0           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
+    masses_prob_inf_s1s2_0_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
+    cross_sec_sigmas_0               = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
 else:
-    cross_sec_int_prob_s1s2_pi_2     = cross_sec_int_prob
-    cross_sec_int_prob_sup_s1s2_pi_2 = cross_sec_int_prob_sup
-    masses_int_prob_sup_s1s2_pi_2    = masses_int_prob_sup
-    masses_prob_sup_s1s2_pi_2        = masses_prob_sup
-    masses_prob_inf_s1s2_pi_2        = masses_prob_inf
+    cross_sec_int_prob_s1s2_0     = cross_sec_int_prob
+    cross_sec_int_prob_sup_s1s2_0 = cross_sec_int_prob_sup
+    masses_int_prob_sup_s1s2_0    = masses_int_prob_sup
+    masses_prob_sup_s1s2_0        = masses_prob_sup
+    masses_prob_inf_s1s2_0        = masses_prob_inf
 
-s1s2_1sigma_pi_2 = np.ones(900) * -99
-s1s2_2sigma_pi_2 = np.ones(900) * -99
-s1s2_3sigma_pi_2 = np.ones(900) * -99
+s1s2_1sigma_0 = np.ones(900) * -99
+s1s2_2sigma_0 = np.ones(900) * -99
+s1s2_3sigma_0 = np.ones(900) * -99
 
-s1s2_1sigma_pi_2[np.where(cross_sec_sigmas_pi_2[:,0] > cross_section_th)[0]] = 1
-s1s2_2sigma_pi_2[np.where(cross_sec_sigmas_pi_2[:,1] > cross_section_th)[0]] = 1
-s1s2_3sigma_pi_2[np.where(cross_sec_sigmas_pi_2[:,2] > cross_section_th)[0]] = 1
+s1s2_1sigma_0[np.where(cross_sec_sigmas_0[:,0] > cross_section_th)[0]] = 1
+s1s2_2sigma_0[np.where(cross_sec_sigmas_0[:,1] > cross_section_th)[0]] = 1
+s1s2_3sigma_0[np.where(cross_sec_sigmas_0[:,2] > cross_section_th)[0]] = 1
 
 # +
 fig, ax = plt.subplots(2,2)
@@ -2892,7 +2892,7 @@ sbn.kdeplot(masses_prob_inf_s1s2_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', 
 ax[1,1].legend()
 ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
-#plt.savefig('../graph/O4_int_prob_distribution_s1s2.pdf')
+plt.savefig('../graph/O4_int_prob_distribution_s1s2.pdf')
 
 # +
 sigma = 0.2 # this depends on how noisy your data is, play with it!
@@ -2974,7 +2974,7 @@ ax[1,1].set_xlabel('m [GeV]')
 
 ax[0,0].set_ylim(1e-43, 1e-35)
 
-#plt.savefig('../graph/O4_contours_s1s2.pdf')
+plt.savefig('../graph/O4_contours_s1s2.pdf')
 
 
 # +
@@ -3036,7 +3036,7 @@ ax[0,1].plot(masses, s1s2_90_CL_pi4[2,:], color = 'black', linestyle = '-.')
 ax[1,0].plot(masses, s1s2_90_CL_mpi2[2,:], color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = '-.')
 
-#plt.savefig('../graph/O4_contours_s1s1_int_prob.pdf')
+plt.savefig('../graph/O4_contours_s1s1_int_prob.pdf')
 
 # +
 sigma = .1 # this depends on how noisy your data is, play with it!
@@ -3147,7 +3147,7 @@ ax[0,1].plot(masses, s1s2_90_CL_pi4[2,:], color = 'black', linestyle = '-.')
 ax[1,0].plot(masses, s1s2_90_CL_mpi2[2,:], color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = '-.')
 
-#plt.savefig('../graph/O4_contours_s1s2_int_prob_sup.pdf')
+plt.savefig('../graph/O4_contours_s1s2_int_prob_sup.pdf')
 # +
 fig, ax = plt.subplots(1,3, sharex = True, sharey = True, figsize = (12,5))
 fig.subplots_adjust(hspace = 0, wspace = 0)
@@ -3373,7 +3373,7 @@ plt.yscale('log')
 # ### Testset
 
 # +
-force = False
+force = True
 folder = '../data/andresData/O4-fulldata/O4/'
 
 pars_slices = pars_testset
@@ -3441,7 +3441,7 @@ if (os.path.exists(folder + 'test_cross_sec_sigmas_s1s2.txt') &
 
         s1s2_cross_sec_sigmas[itest,6] = x[np.argmax(h1)]
         
-        cr_th = np.argmin(np.abs(x - (-41)))
+        cr_th = np.argmin(np.abs(x - (-42)))
         s1s2_cross_sec_int_prob[itest]     = trapezoid(h1[:cr_th],x[:cr_th]) / trapezoid(h1,x)
         s1s2_cross_sec_int_prob_sup[itest] = trapezoid(h1[cr_th:],x[cr_th:]) / trapezoid(h1,x)
 
@@ -3488,7 +3488,7 @@ plt.colorbar()
 plt.xlabel('$\sigma_{Real}$')
 plt.ylabel('$\sigma_{Pred}$')
 
-#plt.savefig('../graph/O4_testset_predVSreal_s1s2.pdf')
+plt.savefig('../graph/O4_testset_predVSreal_s1s2.pdf')
 # -
 
 # # Individual BPs
