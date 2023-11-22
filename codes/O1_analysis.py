@@ -178,7 +178,7 @@ def email(message = 'termino'):
 
 def plot1d(ax, predictions, pars_true, par = 1, 
            xlabel = '$\log_{10}(\sigma)$', ylabel = '$P(\sigma|x)\ /\ P(\sigma)$',
-           flip = False):
+           flip = False, fill = True, linestyle = 'solid', color = 'black'):
     # Let's put the results in arrays
     parameter = np.asarray(predictions[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
     ratios = np.exp(np.asarray(predictions[0].logratios[:,par]))
@@ -202,29 +202,34 @@ def plot1d(ax, predictions, pars_true, par = 1,
     cut95 = cuts[np.argmin( np.abs(integrals - 0.9))]
 
     if not flip:
-        ax.plot(10**parameter, ratios, c = 'black')
-        ind = np.where(ratios > cut90)[0]
-        ax.fill_between(10**parameter[ind], ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.3)
-        ind = np.where(ratios > cut95)[0]
-        ax.fill_between(10**parameter[ind], ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.5)
+        ax.plot(10**parameter, ratios, c = color, linestyle = linestyle)
+        if fill:
+            ind = np.where(ratios > cut90)[0]
+            ax.fill_between(10**parameter[ind], ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.3)
+            ind = np.where(ratios > cut95)[0]
+            ax.fill_between(10**parameter[ind], ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.5)
+        ax.axvline(x = 10**(pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'coral')
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.set_xscale('log')
     else:
-        plt.plot(ratios, 10**parameter, c = 'black')
-        ind = np.where(ratios > cut90)[0]
-        ax.fill_betweenx(10**parameter[ind], [0] * len(ind), ratios[ind], color = 'darkcyan', alpha = 0.3)
-        ind = np.where(ratios > cut95)[0]
-        ax.fill_betweenx(10**parameter[ind], [0] * len(ind), ratios[ind], color = 'darkcyan', alpha = 0.5) 
+        plt.plot(ratios, 10**parameter, c = color, linestyle = linestyle)
+        if fill:
+            ind = np.where(ratios > cut90)[0]
+            ax.fill_betweenx(10**parameter[ind], [0] * len(ind), ratios[ind], color = 'darkcyan', alpha = 0.3)
+            ind = np.where(ratios > cut95)[0]
+            ax.fill_betweenx(10**parameter[ind], [0] * len(ind), ratios[ind], color = 'darkcyan', alpha = 0.5) 
+        ax.axhline(y = 10**(pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'coral')
         ax.set_xlabel(ylabel)
         ax.set_ylabel(xlabel)
         #ax.set_xlim(-0.1,8)
         ax.set_ylim(1e-50, 1e-42)
         ax.set_yscale('log')
+        
     return ax
 
 
-def plot2d(ax, predictions, pars_true):      
+def plot2d(ax, predictions, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black'):      
     results_pars = np.asarray(predictions[1].params)
     results      = np.asarray(predictions[1].logratios)
     
@@ -267,10 +272,12 @@ def plot2d(ax, predictions, pars_true):
     cut90 = cuts[np.argmin( np.abs(integrals - 0.95))]
     cut95 = cuts[np.argmin( np.abs(integrals - 0.9))]
     #print(cut)
-    ax.contourf(m_values, s_values, res.T, levels = [0, cut90, 10 * cut90], colors = ['white','darkcyan'], alpha = 0.3, linestyles = ['solid'])
-    ax.contourf(m_values, s_values, res.T, levels = [0, cut95, 10 * cut95], colors = ['white','darkcyan'], alpha = 0.5, linestyles = ['solid'])
-    ax.contour(m_values, s_values, res.T, levels = [0,cut90], colors = ['black'], linestyles = ['--'])
-    ax.contour(m_values, s_values, res.T, levels = [0,cut95], colors = ['black'], linestyles = ['solid'])
+    if fill:
+        ax.contourf(m_values, s_values, res.T, levels = [0, cut90, 10 * cut90], colors = ['white','darkcyan'], alpha = 0.3, linestyles = ['solid'])
+        ax.contourf(m_values, s_values, res.T, levels = [0, cut95, 10 * cut95], colors = ['white','darkcyan'], alpha = 0.5, linestyles = ['solid'])
+    if line:
+        ax.contour(m_values, s_values, res.T, levels = [0,cut90], colors = [color], linestyles = [linestyle])
+        #ax.contour(m_values, s_values, res.T, levels = [0,cut95], colors = ['black'], linestyles = [linestyle])
     
     ax.axvline(x = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'coral')
     ax.axhline(y = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'coral')
@@ -814,7 +821,7 @@ ax[1,1].set_ylabel('')
 ax[1,1].set_yticks([])
 ax[1,1].set_xlabel('$P(\sigma|x)$')
 #ax[1,0].grid(which = 'both')
-plt.savefig('../graph/2d_custom_posteriors.pdf')
+plt.savefig('../graph/2d_custom_posteriors_' + str(i) + '_rate.pdf')
 # -
 
 # Let's plot the results
@@ -1964,7 +1971,7 @@ x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = np.random.randint(ntest)
+#i = np.random.randint(ntest)
 print(i)
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_drate[i,:]
@@ -1992,6 +1999,31 @@ prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
 predictions_drate = trainer_drate.infer(network_drate, obs, prior_samples)
+
+# +
+fig,ax = plt.subplots(2,2, figsize = (6,6), 
+                      gridspec_kw={'height_ratios': [0.5, 2], 'width_ratios':[2,0.5]})
+
+plt.subplots_adjust(hspace = 0.1, wspace = 0.1)
+
+plot1d(ax[0,0], predictions_drate, pars_true, par = 0)
+plot2d(ax[1,0], predictions_drate, pars_true)
+plot1d(ax[1,1], predictions_drate, pars_true, par = 1, flip = True)
+ax[0,1].remove()
+
+ax[0,0].set_xlim(8,1e3)
+ax[1,0].set_xlim(8,1e3)
+ax[1,0].set_ylim(1e-50,1e-43)
+ax[1,1].set_ylim(1e-50,1e-43)
+
+ax[0,0].set_xlabel('')
+ax[0,0].set_ylabel('$P(m|x)$')
+ax[0,0].set_xticks([])
+ax[1,1].set_ylabel('')
+ax[1,1].set_yticks([])
+ax[1,1].set_xlabel('$P(\sigma|x)$')
+#ax[1,0].grid(which = 'both')
+plt.savefig('../graph/2d_custom_posteriors_' + str(i) + '_drate.pdf')
 
 # +
 # Let's plot the results
@@ -2892,7 +2924,7 @@ x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1]
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
+#i = np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
 print(i)
 
 pars_true = pars_norm[i,:]
@@ -2917,10 +2949,52 @@ prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
 predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
-# -
 
-fig,ax = plt.subplots(1,1)
-ax = plot2d(ax, predictions_s1s2, pars_true)
+# +
+fig,ax = plt.subplots(2,2, figsize = (6,6), 
+                      gridspec_kw={'height_ratios': [0.5, 2], 'width_ratios':[2,0.5]})
+
+plt.subplots_adjust(hspace = 0.1, wspace = 0.1)
+
+plot1d(ax[0,0], predictions_s1s2, pars_true, par = 0)
+plot1d(ax[0,0], predictions_rate, pars_true, par = 0, fill = False, linestyle = ':', color = color_rate)
+plot1d(ax[0,0], predictions_drate, pars_true, par = 0, fill = False, linestyle = '--', color = color_drate)
+
+plot2d(ax[1,0], predictions_s1s2, pars_true)
+plot2d(ax[1,0], predictions_rate, pars_true, fill = False, line = True, linestyle = ':', color = color_rate)
+plot2d(ax[1,0], predictions_drate, pars_true, fill = False, line = True, linestyle = '--', color = color_drate)
+
+plot1d(ax[1,1], predictions_s1s2, pars_true, par = 1, flip = True)
+plot1d(ax[1,1], predictions_rate, pars_true, par = 1, flip = True, fill = False, linestyle = ':', color = color_rate)
+plot1d(ax[1,1], predictions_drate, pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = color_drate)
+
+ax[0,0].set_xlim(8,1e3)
+ax[1,0].set_xlim(8,1e3)
+ax[1,0].set_ylim(1e-50,1e-43)
+ax[1,1].set_ylim(1e-50,1e-43)
+
+ax[0,0].set_xlabel('')
+ax[0,0].set_ylabel('$P(m|x)$')
+ax[0,0].set_xticks([])
+ax[1,1].set_ylabel('')
+ax[1,1].set_yticks([])
+ax[1,1].set_xlabel('$P(\sigma|x)$')
+
+custom_lines = []
+labels = ['Total Rate', 'Dif. Rate', 'S1-S2']
+markers = [':','--', 'solid']
+colors = [color_rate, color_drate, 'black']
+for i in range(3):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+            label = labels[i]) )
+
+ax[0,1].axis('off')
+ax[0,1].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(-0.2,0.05))
+#ax[0,1].remove()
+
+#ax[0,1].
+#ax[1,0].grid(which = 'both')
+#plt.savefig('../graph/2d_custom_posteriors_' + str(i) + '_s1s2.pdf')
 
 # +
 # Let's plot the results
