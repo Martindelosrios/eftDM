@@ -198,8 +198,8 @@ def plot1d(ax, predictions, pars_true, par = 1,
     integrals = np.asarray(integrals)
     
     # Let's compute the thresholds corresponding to 0.9 and 0.95 integrated prob
-    cut90 = cuts[np.argmin( np.abs(integrals - 0.95))]
-    cut95 = cuts[np.argmin( np.abs(integrals - 0.9))]
+    cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
+    cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
 
     if not flip:
         ax.plot(10**parameter, ratios, c = color, linestyle = linestyle)
@@ -208,18 +208,18 @@ def plot1d(ax, predictions, pars_true, par = 1,
             ax.fill_between(10**parameter[ind], ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.3)
             ind = np.where(ratios > cut95)[0]
             ax.fill_between(10**parameter[ind], ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.5)
-        ax.axvline(x = 10**(pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'coral')
+        ax.axvline(x = 10**(pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.set_xscale('log')
     else:
-        plt.plot(ratios, 10**parameter, c = color, linestyle = linestyle)
+        ax.plot(ratios, 10**parameter, c = color, linestyle = linestyle)
         if fill:
             ind = np.where(ratios > cut90)[0]
             ax.fill_betweenx(10**parameter[ind], [0] * len(ind), ratios[ind], color = 'darkcyan', alpha = 0.3)
             ind = np.where(ratios > cut95)[0]
             ax.fill_betweenx(10**parameter[ind], [0] * len(ind), ratios[ind], color = 'darkcyan', alpha = 0.5) 
-        ax.axhline(y = 10**(pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'coral')
+        ax.axhline(y = 10**(pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
         ax.set_xlabel(ylabel)
         ax.set_ylabel(xlabel)
         #ax.set_xlim(-0.1,8)
@@ -269,18 +269,18 @@ def plot2d(ax, predictions, pars_true, fill = True, line = False, linestyle = 's
         integrals.append( simps(simps(res0, dx=dm, axis=1), dx=ds) / norm )
     integrals = np.asarray(integrals)
     
-    cut90 = cuts[np.argmin( np.abs(integrals - 0.95))]
-    cut95 = cuts[np.argmin( np.abs(integrals - 0.9))]
+    cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
+    cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
     #print(cut)
     if fill:
         ax.contourf(m_values, s_values, res.T, levels = [0, cut90, 10 * cut90], colors = ['white','darkcyan'], alpha = 0.3, linestyles = ['solid'])
         ax.contourf(m_values, s_values, res.T, levels = [0, cut95, 10 * cut95], colors = ['white','darkcyan'], alpha = 0.5, linestyles = ['solid'])
     if line:
-        ax.contour(m_values, s_values, res.T, levels = [0,cut90], colors = [color], linestyles = [linestyle])
-        #ax.contour(m_values, s_values, res.T, levels = [0,cut95], colors = ['black'], linestyles = [linestyle])
+        ax.contour(m_values, s_values, res.T, levels = [0,cut90], colors = [color], linestyles = ['solid'])
+        ax.contour(m_values, s_values, res.T, levels = [0,cut95], colors = [color], linestyles = ['--'])
     
-    ax.axvline(x = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'coral')
-    ax.axhline(y = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'coral')
+    ax.axvline(x = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'black')
+    ax.axhline(y = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'black')
     ax.set_xscale('log')
     ax.set_yscale('log')
     ax.set_xlabel('$M_{DM}$ [GeV]')
@@ -2943,7 +2943,7 @@ plt.imshow(x_obs[0].T, origin = 'lower')
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
+pars_prior = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
 #pars_prior[:,2] = np.random.normal(pars_true[2], 0.001, (len(pars_prior)))
 prior_samples = swyft.Samples(z = pars_prior)
 
@@ -3213,11 +3213,11 @@ cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
 force = False
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v5/'
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v5/'
          ]
 
 cross_sec_sigmas_full       = []
@@ -3352,30 +3352,30 @@ for folder in folders:
 cross_section_th = -49
 
 if len(cross_sec_int_prob_full) > 1:
-    cross_sec_int_prob_s1s2_0        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
-    cross_sec_int_prob_sup_s1s2_0    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    cross_sec_int_prob_sup_s1s2_0_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_s1s2_0       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_s1s2_0_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_prob_sup_s1s2_0           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_sup_s1s2_0_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_inf_s1s2_0           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
-    masses_prob_inf_s1s2_0_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
-    cross_sec_sigmas_0               = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
+    cross_sec_int_prob_s1s2_mpi_2        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
+    cross_sec_int_prob_sup_s1s2_mpi_2    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    cross_sec_int_prob_sup_s1s2_mpi_2_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_s1s2_mpi_2       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_s1s2_mpi_2_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_prob_sup_s1s2_mpi_2           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_sup_s1s2_mpi_2_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_inf_s1s2_mpi_2           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
+    masses_prob_inf_s1s2_mpi_2_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
+    cross_sec_sigmas_mpi_2               = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
 else:
-    cross_sec_int_prob_s1s2_0     = cross_sec_int_prob
-    cross_sec_int_prob_sup_s1s2_0 = cross_sec_int_prob_sup
-    masses_int_prob_sup_s1s2_0    = masses_int_prob_sup
-    masses_prob_sup_s1s2_0        = masses_prob_sup
-    masses_prob_inf_s1s2_0        = masses_prob_inf
+    cross_sec_int_prob_s1s2_mpi_2     = cross_sec_int_prob
+    cross_sec_int_prob_sup_s1s2_mpi_2 = cross_sec_int_prob_sup
+    masses_int_prob_sup_s1s2_mpi_2    = masses_int_prob_sup
+    masses_prob_sup_s1s2_mpi_2        = masses_prob_sup
+    masses_prob_inf_s1s2_mpi_2        = masses_prob_inf
 
-s1s2_1sigma_0 = np.ones(900) * -99
-s1s2_2sigma_0 = np.ones(900) * -99
-s1s2_3sigma_0 = np.ones(900) * -99
+s1s2_1sigma_mpi_2 = np.ones(900) * -99
+s1s2_2sigma_mpi_2 = np.ones(900) * -99
+s1s2_3sigma_mpi_2 = np.ones(900) * -99
 
-s1s2_1sigma_0[np.where(cross_sec_sigmas_0[:,0] > cross_section_th)[0]] = 1
-s1s2_2sigma_0[np.where(cross_sec_sigmas_0[:,1] > cross_section_th)[0]] = 1
-s1s2_3sigma_0[np.where(cross_sec_sigmas_0[:,2] > cross_section_th)[0]] = 1
+s1s2_1sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,0] > cross_section_th)[0]] = 1
+s1s2_2sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,1] > cross_section_th)[0]] = 1
+s1s2_3sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,2] > cross_section_th)[0]] = 1
 
 # +
 fig, ax = plt.subplots(2,2)
@@ -4348,9 +4348,72 @@ imass = 12
 icross = 12
 10**pars_slices[imass*30 + icross,:]
 
+pars_true = (pars_slices[imass*30 + icross,:] - pars_min) / (pars_max - pars_min)
+
 imass*30 + icross
 
-cross_sec_int_prob_sup_s1s2_pi_2[imass*30 + icross]
+# +
+# Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
+prior_samples = swyft.Samples(z = pars_prior)
+
+x_obs_rate = x_norm_rate[imass*30 + icross,:]
+obs_rate   = swyft.Sample(x = x_obs_rate)
+predictions_rate = trainer_rate.infer(network_rate, obs_rate, prior_samples)
+
+x_obs_drate = x_norm_drate[imass*30 + icross,:]
+obs_drate   = swyft.Sample(x = x_obs_drate)
+predictions_drate = trainer_drate.infer(network_drate, obs_drate, prior_samples)
+
+x_obs_s1s2 = x_norm_s1s2[imass*30 + icross, :,:]
+obs_s1s2   = swyft.Sample(x = x_obs_s1s2.reshape(1,96,96))
+predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs_s1s2, prior_samples)
+
+# +
+fig,ax = plt.subplots(2,2, figsize = (6,6), 
+                      gridspec_kw={'height_ratios': [0.5, 2], 'width_ratios':[2,0.5]})
+
+plt.subplots_adjust(hspace = 0.1, wspace = 0.1)
+
+plot1d(ax[0,0], predictions_s1s2, pars_true, par = 0, color = color_s1s2)
+plot1d(ax[0,0], predictions_rate, pars_true, par = 0, fill = False, linestyle = ':', color = color_rate)
+plot1d(ax[0,0], predictions_drate, pars_true, par = 0, fill = False, linestyle = '--', color = color_drate)
+
+plot2d(ax[1,0], predictions_s1s2, pars_true, color = color_s1s2)
+plot2d(ax[1,0], predictions_rate, pars_true, fill = False, line = True, linestyle = ':', color = color_rate)
+plot2d(ax[1,0], predictions_drate, pars_true, fill = False, line = True, linestyle = '--', color = color_drate)
+
+plot1d(ax[1,1], predictions_s1s2, pars_true, par = 1, flip = True, color = color_s1s2)
+plot1d(ax[1,1], predictions_rate, pars_true, par = 1, flip = True, fill = False, linestyle = ':', color = color_rate)
+plot1d(ax[1,1], predictions_drate, pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = color_drate)
+
+ax[0,0].set_xlim(8,1e3)
+ax[1,0].set_xlim(8,1e3)
+ax[1,0].set_ylim(1e-49,1e-43)
+ax[1,1].set_ylim(1e-49,1e-43)
+
+ax[0,0].set_xlabel('')
+ax[0,0].set_ylabel('$P(m|x)$')
+ax[0,0].set_xticks([])
+ax[1,1].set_ylabel('')
+ax[1,1].set_yticks([])
+ax[1,1].set_xlabel('$P(\sigma|x)$')
+
+custom_lines = []
+labels = ['Total Rate', 'Dif. Rate', 'S1-S2']
+markers = ['solid','solid', 'solid']
+colors = [color_rate, color_drate, color_s1s2]
+for i in range(3):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+            label = labels[i]) )
+
+ax[0,1].axis('off')
+ax[0,1].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(-0.2,0.05))
+#ax[0,1].remove()
+
+#ax[0,1].
+#ax[1,0].grid(which = 'both')
+#plt.savefig('../graph/2d_custom_posteriors_' + str(imass*30 + icross) + '_s1s2.pdf')
 
 # +
 x_obs = x_norm_s1s2[imass*30 + icross, :,:]
@@ -4728,6 +4791,115 @@ os.system('cd ../graph/ ; convert -delay 60 -loop 0 {1..30}_s1s2.jpg O1_Mass_m_8
 # -
 
 os.system('convert -delay 60 -loop 0 ../graph/O1_Mass_gif_plot_m_84/{0..30}_s1s2.jpg ../graph/O1_Mass_gif_plot_m_84/O1_Mass_m_84_1Dposteriors_all.gif')
+
+# +
+# Gif plot
+pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(['../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v5/'])
+
+x_rate = np.log10(rate_slices)
+x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
+
+x_norm_drate = (diff_rate_slices - x_min_drate) / (x_max_drate - x_min_drate)
+
+x_norm_s1s2 = s1s2_slices[:,:-1,:-1]
+
+m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
+cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
+
+# +
+# Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
+prior_samples = swyft.Samples(z = pars_prior)
+
+bps_ind = np.where(np.round(pars_slices[:,0], 4) == np.round(np.log10(m_vals[15]), 4))[0]
+c = 0
+for itest in bps_ind:
+#itest = bps_ind[0]
+    c = c + 1
+    print(c)
+    pars_true = (pars_slices[itest,:] - pars_min) / (pars_max - pars_min)
+    
+    x_obs_rate = x_norm_rate[itest,:]
+    obs_rate   = swyft.Sample(x = x_obs_rate)
+    predictions_rate = trainer_rate.infer(network_rate, obs_rate, prior_samples)
+    
+    x_obs_drate = x_norm_drate[itest,:]
+    obs_drate   = swyft.Sample(x = x_obs_drate)
+    predictions_drate = trainer_drate.infer(network_drate, obs_drate, prior_samples)
+    
+    x_obs_s1s2 = x_norm_s1s2[itest, :,:]
+    obs_s1s2   = swyft.Sample(x = x_obs_s1s2.reshape(1,96,96))
+    predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs_s1s2, prior_samples)
+    
+    fig,ax = plt.subplots(2,3, figsize = (8,8), 
+                          gridspec_kw={'height_ratios': [0.5, 2], 'width_ratios':[1.,0.3,1.]})
+    
+    plt.subplots_adjust(hspace = 0.1, wspace = 0.1)
+    
+    plot1d(ax[0,0], predictions_s1s2, pars_true, par = 0, color = color_s1s2)
+    plot1d(ax[0,0], predictions_rate, pars_true, par = 0, fill = False, linestyle = ':', color = color_rate)
+    plot1d(ax[0,0], predictions_drate, pars_true, par = 0, fill = False, linestyle = '--', color = color_drate)
+    
+    plot2d(ax[1,0], predictions_s1s2, pars_true, color = color_s1s2)
+    plot2d(ax[1,0], predictions_rate, pars_true, fill = False, line = True, linestyle = ':', color = color_rate)
+    plot2d(ax[1,0], predictions_drate, pars_true, fill = False, line = True, linestyle = '--', color = color_drate)
+    
+    plot1d(ax[1,1], predictions_s1s2, pars_true, par = 1, flip = True, color = color_s1s2)
+    plot1d(ax[1,1], predictions_rate, pars_true, par = 1, flip = True, fill = False, linestyle = ':', color = color_rate)
+    plot1d(ax[1,1], predictions_drate, pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = color_drate)
+    
+    ax[0,0].set_xlim(8,1e3)
+    ax[1,0].set_xlim(8,1e3)
+    ax[1,0].set_ylim(1e-49,1e-43)
+    ax[1,1].set_ylim(1e-49,1e-43)
+    
+    ax[0,0].set_xlabel('')
+    ax[0,0].set_ylabel('$P(m|x)$')
+    ax[0,0].set_xticks([])
+    ax[1,1].set_ylabel('')
+    ax[1,1].set_yticks([])
+    ax[1,1].set_xlabel('$P(\sigma|x)$')
+    
+    custom_lines = []
+    labels = ['Total Rate', 'Dif. Rate', 'S1-S2']
+    markers = ['solid','solid', 'solid']
+    colors = [color_rate, color_drate, color_s1s2]
+    for i in range(3):
+        custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+                label = labels[i]) )
+    
+    ax[0,1].axis('off')
+    ax[0,1].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(-0.2,0.05))
+    
+    ax[0,2].axis('off')
+    
+    #fig00 = ax[1,2].contourf(m_vals, cross_vals, M_int_prob_sup_pi_2_s1s2.reshape(30,30).T, levels=5, alpha = 0.6, zorder = 1, cmap = 'inferno')
+    ax[1,2].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_s1s2.reshape(30,30).T, levels=[0.9], linewidths = 2, zorder = 4)
+    
+    ax[1,2].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
+    pars_true = (pars_true * (pars_max - pars_min) + pars_min)
+    ax[1,2].scatter(10**(pars_true[0]), 10**(pars_true[1]), c = 'red', marker = '*')
+    
+    ax[1,2].set_yscale('log')
+    ax[1,2].set_xscale('log')
+    ax[1,2].grid(which='both')
+    #ax[1,2].text(3e2, 1e-44, '$\\theta = \pi/2$')
+    #ax[1,2].plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = '-.', label = 'Bin. Lik. [90%]')
+    #ax[1,2].legend(loc = 'lower left')
+    
+    #ax[1,2].set_ylabel('$\sigma [cm^{2}]$')
+    #ax[0,2].set_ylabel('$P(m|x)$')
+    ax[1,2].set_xlabel('$log(m)$')
+    
+    ax[1,2].set_ylim(1e-49, 1e-43)
+    ax[1,2].set_xlim(8,1e3)
+    ax[1,2].set_yticks([])
+    
+    #ax[0,1].
+    #ax[1,0].grid(which = 'both')
+    plt.savefig('../graph/gif_plot_2Dposteriors_m84/' + str(c) + '.png')
+# -
 
 # # Paper plots
 
