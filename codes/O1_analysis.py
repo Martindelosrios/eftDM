@@ -178,7 +178,7 @@ def email(message = 'termino'):
 
 def plot1d(ax, predictions, pars_true, par = 1, 
            xlabel = '$\log_{10}(\sigma)$', ylabel = '$P(\sigma|x)\ /\ P(\sigma)$',
-           flip = False, fill = True, linestyle = 'solid', color = 'black'):
+           flip = False, fill = True, linestyle = 'solid', color = 'black', fac = 1):
     # Let's put the results in arrays
     parameter = np.asarray(predictions[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
     ratios = np.exp(np.asarray(predictions[0].logratios[:,par]))
@@ -202,23 +202,23 @@ def plot1d(ax, predictions, pars_true, par = 1,
     cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
 
     if not flip:
-        ax.plot(10**parameter, ratios, c = color, linestyle = linestyle)
+        ax.plot(10**parameter, fac * ratios, c = color, linestyle = linestyle)
         if fill:
             ind = np.where(ratios > cut90)[0]
-            ax.fill_between(10**parameter[ind], ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.3)
+            ax.fill_between(10**parameter[ind], fac * ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.3)
             ind = np.where(ratios > cut95)[0]
-            ax.fill_between(10**parameter[ind], ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.5)
+            ax.fill_between(10**parameter[ind], fac * ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.5)
         ax.axvline(x = 10**(pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.set_xscale('log')
     else:
-        ax.plot(ratios, 10**parameter, c = color, linestyle = linestyle)
+        ax.plot(fac * ratios, 10**parameter, c = color, linestyle = linestyle)
         if fill:
             ind = np.where(ratios > cut90)[0]
-            ax.fill_betweenx(10**parameter[ind], [0] * len(ind), ratios[ind], color = 'darkcyan', alpha = 0.3)
+            ax.fill_betweenx(10**parameter[ind], [0] * len(ind), fac * ratios[ind], color = 'darkcyan', alpha = 0.3)
             ind = np.where(ratios > cut95)[0]
-            ax.fill_betweenx(10**parameter[ind], [0] * len(ind), ratios[ind], color = 'darkcyan', alpha = 0.5) 
+            ax.fill_betweenx(10**parameter[ind], [0] * len(ind), fac * ratios[ind], color = 'darkcyan', alpha = 0.5) 
         ax.axhline(y = 10**(pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
         ax.set_xlabel(ylabel)
         ax.set_ylabel(xlabel)
@@ -273,8 +273,8 @@ def plot2d(ax, predictions, pars_true, fill = True, line = False, linestyle = 's
     cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
     #print(cut)
     if fill:
-        ax.contourf(m_values, s_values, res.T, levels = [0, cut90, 10 * cut90], colors = ['white','darkcyan'], alpha = 0.3, linestyles = ['solid'])
-        ax.contourf(m_values, s_values, res.T, levels = [0, cut95, 10 * cut95], colors = ['white','darkcyan'], alpha = 0.5, linestyles = ['solid'])
+        ax.contourf(m_values, s_values, res.T, levels = [0, cut90, np.max(res)], colors = ['white','darkcyan'], alpha = 0.3, linestyles = ['solid'])
+        ax.contourf(m_values, s_values, res.T, levels = [0, cut95, np.max(res)], colors = ['white','darkcyan'], alpha = 0.5, linestyles = ['solid'])
     if line:
         ax.contour(m_values, s_values, res.T, levels = [0,cut90], colors = [color], linestyles = ['solid'])
         ax.contour(m_values, s_values, res.T, levels = [0,cut95], colors = [color], linestyles = ['--'])
@@ -760,7 +760,7 @@ x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = np.random.randint(ntest) # 239 (disc) 455 (exc) 203 (middle)
+i = 189#np.random.randint(ntest) # 239 (disc) 455 (exc) 203 (middle)
 print(i)
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_rate[i,:]
@@ -1971,7 +1971,23 @@ x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
 
 # +
 # First let's create some observation from some "true" theta parameters
-#i = np.random.randint(ntest)
+i = 66#np.random.randint(ntest)
+print(i)
+pars_true = pars_norm[i,:]
+x_obs     = x_norm_drate[i,:]
+
+plt.plot(x_obs)
+plt.text(5,0.5, str(np.sum(x_drate[i,:])))
+if np.sum(diff_rate_WIMP[test_ind[i],:]) < 300: 
+    flag = 'exc'
+else:
+    flag = 'disc'
+print(np.sum(diff_rate_WIMP[test_ind[i],:]))
+print(flag)
+
+# +
+# First let's create some observation from some "true" theta parameters
+i = 66#np.random.randint(ntest)
 print(i)
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_drate[i,:]
@@ -2704,6 +2720,12 @@ plt.ylabel('$\sigma_{Pred}$')
 
 x_s1s2 = s1s2_trainset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 64x64
 
+np.max(s1s2_trainset[:,:-1,:-1])
+
+np.max(s1s2_testset[:,:-1,:-1])
+
+np.max(s1s2_valset[:,:-1,:-1])
+
 # +
 # Let's normalize everything between 0 and 1
 
@@ -2713,9 +2735,13 @@ pars_max = np.max(pars_trainset, axis = 0)
 pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 
 x_min_s1s2 = np.min(x_s1s2, axis = 0)
-x_max_s1s2 = np.max(x_s1s2, axis = 0)
+x_max_s1s2 = np.max(x_s1s2)
 
-x_norm_s1s2 = x_s1s2#(x - x_min) / (x_max - x_min)
+#x_norm_s1s2 = x_s1s2
+#ind_nonzero = np.where(x_max_s1s2 > 0)
+#x_norm_s1s2[:,ind_nonzero[0], ind_nonzero[1]] = (x_s1s2[:,ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]]) / (x_max_s1s2[ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]])
+x_norm_s1s2 = x_s1s2 / x_max_s1s2
+
 
 # +
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
@@ -2851,12 +2877,14 @@ cb = MetricTracker()
 torch.manual_seed(28890)
 cb = MetricTracker()
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=20, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_s1s2_norm_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2500, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_s1s2 = Network()
 
 # +
 x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
+
+x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
 x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -2868,13 +2896,13 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
-    checkpoint_callback.to_yaml("./logs/O1_s1s2.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O1_s1s2.yaml")
+    checkpoint_callback.to_yaml("./logs/O1_s1s2_norm.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O1_s1s2_norm.yaml")
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O1_s1s2.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O1_s1s2_norm.yaml")
 
 # ---------------------------------------
 # Min val loss value at 48 epochs. -3.31
@@ -2883,7 +2911,9 @@ else:
 
 # +
 x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
+x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
 x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
+
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
 # We have to build a swyft.Samples object that will handle the data
@@ -2911,7 +2941,7 @@ if fit:
     plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.savefig('../graph/O1_loss_s1s2.pdf')
+    plt.savefig('../graph/O1_loss_s1s2_norm.pdf')
 
 # ### Let's make some inference
 
@@ -2920,23 +2950,48 @@ if fit:
 
 pars_norm = (pars_testset - pars_min) / (pars_max - pars_min)
 
-x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1]
+#x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1]
+x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1] / x_max_s1s2
+# -
+
+np.where( (pars_testset[:,1] < -44.5) & (pars_testset[:,1] > -44.8))[0]
+
+10**pars_testset[np.where( (pars_testset[:,1] < -44.5) & (pars_testset[:,1] > -44.8))[0],0]
 
 # +
 # First let's create some observation from some "true" theta parameters
-#i = np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
+i = 66#np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
 print(i)
 
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_s1s2[i,:].reshape(1,96,96)
 
-if np.sum(x_obs) < 2930: 
+if np.sum(x_obs * x_max_s1s2) < 2930: 
     flag = 'exc'
 else:
     flag = 'disc'
 print(flag)
 
 plt.imshow(x_obs[0].T, origin = 'lower')
+
+# +
+# First let's create some observation from some "true" theta parameters
+i = 189#np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
+print(i)
+
+pars_true = pars_norm[i,:]
+x_obs     = x_norm_s1s2[i,:].reshape(1,96,96)
+
+if np.sum(x_obs * x_max_s1s2) < 2930: 
+    flag = 'exc'
+else:
+    flag = 'disc'
+print(flag)
+
+plt.imshow(x_obs[0].T, origin = 'lower')
+# -
+
+pars_true * (pars_max - pars_min) + pars_min
 
 # +
 # We have to put this "observation" into a swyft.Sample object
@@ -3000,10 +3055,10 @@ ax[0,1].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox
 # Let's plot the results
 swyft.corner(predictions_s1s2, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
 
-if flag == 'exc':
-    plt.savefig('../graph/O1_cornerplot_s1s2_exc.pdf')
-else:
-    plt.savefig('../graph/O1_cornerplot_s1s2.pdf')
+#if flag == 'exc':
+#    plt.savefig('../graph/O1_cornerplot_s1s2_exc.pdf')
+#else:
+#    plt.savefig('../graph/O1_cornerplot_s1s2.pdf')
 
 # +
 bins = 50
@@ -3213,11 +3268,11 @@ cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
 force = False
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v5/'
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v5/'
          ]
 
 cross_sec_sigmas_full       = []
@@ -3352,30 +3407,30 @@ for folder in folders:
 cross_section_th = -49
 
 if len(cross_sec_int_prob_full) > 1:
-    cross_sec_int_prob_s1s2_0        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
-    cross_sec_int_prob_sup_s1s2_0    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    cross_sec_int_prob_sup_s1s2_0_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_s1s2_0       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_s1s2_0_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_prob_sup_s1s2_0           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_sup_s1s2_0_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_inf_s1s2_0           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
-    masses_prob_inf_s1s2_0_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
-    cross_sec_sigmas_0               = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
+    cross_sec_int_prob_s1s2_mpi_2        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
+    cross_sec_int_prob_sup_s1s2_mpi_2    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    cross_sec_int_prob_sup_s1s2_mpi_2_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_s1s2_mpi_2       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_s1s2_mpi_2_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_prob_sup_s1s2_mpi_2           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_sup_s1s2_mpi_2_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_inf_s1s2_mpi_2           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
+    masses_prob_inf_s1s2_mpi_2_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
+    cross_sec_sigmas_mpi_2               = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
 else:
-    cross_sec_int_prob_s1s2_0     = cross_sec_int_prob
-    cross_sec_int_prob_sup_s1s2_0 = cross_sec_int_prob_sup
-    masses_int_prob_sup_s1s2_0    = masses_int_prob_sup
-    masses_prob_sup_s1s2_0        = masses_prob_sup
-    masses_prob_inf_s1s2_0        = masses_prob_inf
+    cross_sec_int_prob_s1s2_mpi_2     = cross_sec_int_prob
+    cross_sec_int_prob_sup_s1s2_mpi_2 = cross_sec_int_prob_sup
+    masses_int_prob_sup_s1s2_mpi_2    = masses_int_prob_sup
+    masses_prob_sup_s1s2_mpi_2        = masses_prob_sup
+    masses_prob_inf_s1s2_mpi_2        = masses_prob_inf
 
-s1s2_1sigma_0 = np.ones(900) * -99
-s1s2_2sigma_0 = np.ones(900) * -99
-s1s2_3sigma_0 = np.ones(900) * -99
+s1s2_1sigma_mpi_2 = np.ones(900) * -99
+s1s2_2sigma_mpi_2 = np.ones(900) * -99
+s1s2_3sigma_mpi_2 = np.ones(900) * -99
 
-s1s2_1sigma_0[np.where(cross_sec_sigmas_0[:,0] > cross_section_th)[0]] = 1
-s1s2_2sigma_0[np.where(cross_sec_sigmas_0[:,1] > cross_section_th)[0]] = 1
-s1s2_3sigma_0[np.where(cross_sec_sigmas_0[:,2] > cross_section_th)[0]] = 1
+s1s2_1sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,0] > cross_section_th)[0]] = 1
+s1s2_2sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,1] > cross_section_th)[0]] = 1
+s1s2_3sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,2] > cross_section_th)[0]] = 1
 
 # +
 fig, ax = plt.subplots(2,2)
@@ -3943,10 +3998,10 @@ ax[2].legend(handles = custom_lines, loc = 'lower left')
 
 # ### Slices fix mass (NOT IMPLEMENTED)
 
-# !ls ../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v1
+# !ls ../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v5
 
 # +
-folder = '../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v3/'
+folder = '../data/andresData/O1-slices-5vecescadatheta/SI-slices01-mDM50GeV-v2/'
 
 pars_slices0      = np.loadtxt(folder + 'pars.txt') # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
             
@@ -3960,17 +4015,24 @@ s1s2_radio_slices    = np.loadtxt(folder + 's1s2_radiogenics.txt')
 s1s2_wall_slices     = np.loadtxt(folder + 's1s2_wall.txt')
 # -
 
-algo.shape
+folder = folders[0]
+(os.path.exists(folder + 'cross_sec_sigmas_s1s2.txt') & 
+        os.path.exists(folder + 'cross_sec_int_prob_s1s2.txt') &
+        os.path.exists(folder + 'cross_sec_int_prob_sup_s1s2.txt') &
+        os.path.exists(folder + 'masses_int_prob_sup_s1s2.txt') &
+        os.path.exists(folder + 'masses_prob_sup_s1s2.txt') &
+        os.path.exists(folder + 'masses_prob_inf_s1s2.txt') 
+       )
 
-plt.hist(pars_slices[:,2])
+# !ls ../data/andresData/O1-slices-5vecescadatheta/SI-slices01-mDM50GeV-v2
 
 # +
 force = False
-folders = ['../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v1/',
-           '../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v5/'
+folders = ['../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v5/'#,
+           #'../data/andresData/O1-slices-5vecescadatheta/SI-slices01-mDM50GeV-v2/'#,
+           #'../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v3/',
+           #'../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v4/',
+           #'../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v5/'
          ]
 
 cross_sec_sigmas_full       = []
@@ -4081,8 +4143,8 @@ for folder in folders:
             masses_prob_inf[itest] = trapezoid(ratios_s1s2[:m_max], masses_pred[:m_max]) / trapezoid(ratios_s1s2, masses_pred)
 
             print(itest, ':')
-            print('$\sigma = $' + str(cross_sec_int_prob_sup[itest]))
-            print('$masses = $' + str(masses_int_prob_sup[itest]))
+            #print('$\sigma = $' + str(cross_sec_int_prob_sup[itest]))
+            #print('$masses = $' + str(masses_int_prob_sup[itest]))
 
         cross_sec_sigmas_full.append(cross_sec_sigmas)
         cross_sec_int_prob_full.append(cross_sec_int_prob)
@@ -4112,6 +4174,9 @@ for folder in folders:
         masses_int_prob_sup_full.append(masses_int_prob_sup)
         masses_prob_sup_full.append(masses_prob_sup)
         masses_prob_inf_full.append(masses_prob_inf)
+# -
+
+nobs_slices
 
 # +
 cross_section_th = -49
@@ -4135,9 +4200,9 @@ else:
     masses_prob_sup_s1s2_m_50        = masses_prob_sup
     masses_prob_inf_s1s2_m_50        = masses_prob_inf
 
-s1s2_1sigma_m_50 = np.ones(900) * -99
-s1s2_2sigma_m_50 = np.ones(900) * -99
-s1s2_3sigma_m_50 = np.ones(900) * -99
+s1s2_1sigma_m_50 = np.ones(nobs_slices) * -99
+s1s2_2sigma_m_50 = np.ones(nobs_slices) * -99
+s1s2_3sigma_m_50 = np.ones(nobs_slices) * -99
 
 s1s2_1sigma_m_50[np.where(cross_sec_sigmas_m_50[:,0] > cross_section_th)[0]] = 1
 s1s2_2sigma_m_50[np.where(cross_sec_sigmas_m_50[:,1] > cross_section_th)[0]] = 1
@@ -4165,19 +4230,42 @@ ax[1,1].legend()
 ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
 #plt.savefig('../graph/O1_int_prob_distribution_s1s2_FixMass.pdf')
+
+# +
+long_planck = 1.616199 * 1e-35 * 1e2 # cm
+masa_planck = 2.435 * 1e18 # GeV
+
+mass = 50
+mu = mass *1 / (mass +1)
+
+theta = pars_slices[0][:,2]
+cross = pars_slices[0][:,1]
+cp = (1/(masa_planck*long_planck*1e-3)) * ( (np.pi * cross)**0.5 / (2*mu*1e-3) ) * ( np.sin(theta) - np.cos(theta) )
+cn = (1/(masa_planck*long_planck*1e-3)) * ( (np.pi * cross)**0.5 / (2*mu*1e-3) ) * ( np.sin(theta) + np.cos(theta) )
+
 # -
 
-mu = 50 / (50 + 1) # GeV
+xbins = 20#np.concatenate( (np.linspace(np.min(cp), -0.005, 5), np.logspace(-0.005, np.max(cp),5)) )
+ybins = 20#np.concatenate( (np.logspace(np.min(cn), 0.005, 5), np.linspace(0.005, np.max(cp),5)) )
 
+# +
+val, xaux, yaux,_ = stats.binned_statistic_2d(cp, cn, cross_sec_int_prob_sup_s1s2_m_50, 'mean', bins = [xbins,ybins])
+    
+xbin = xaux[1] - xaux[0]
+x_centers = xaux[:-1] + xbin
 
-fac = (long_planck * masa_planck) / 1e6
-A = np.sqrt( pars_slices[0][:,1] * np.pi / (mu**2) ) / fac # TeV^{-2}
-cn = A * (np.sin(pars_slices[0][:,2]) - np.cos(pars_slices[0][:,2]))
-cp = A * (np.sin(pars_slices[0][:,2]) + np.cos(pars_slices[0][:,2]))
+ybin = yaux[1] - yaux[0]
+y_centers = yaux[:-1] + ybin
+# -
 
-plt.scatter(pars_slices[0][:,2], cp*(0.08**2), c = cross_sec_int_prob_sup_s1s2_m_50)
-plt.ylim(-0.000021, 0.00015)
+plt.contour(x_centers, y_centers, val, levels = 2)
+#plt.scatter(x_centers, y_centers, marker = '*',c = 'red')
+plt.scatter(cp, cn, c = cross_sec_int_prob_sup_s1s2_m_50)
+#plt.scatter(-cp, -cn, c = cross_sec_int_prob_sup_s1s2_m_50)
+plt.ylim(-0.03, 0.03)
+plt.xlim(-0.03, 0.03)
 #plt.yscale('log')
+#plt.xscale('log')
 plt.colorbar()
 
 # +
@@ -4200,13 +4288,13 @@ ax[1,0].grid(which='both')
 
 ax[1,1].grid(which='both')
 
-ax[0,0].set_ylabel('$\sigma [cm^{2}]$')
-ax[1,0].set_ylabel('$\sigma [cm^{2}]$')
-ax[1,0].set_xlabel('$\\theta$')
-ax[1,1].set_xlabel('$\\theta$')
+ax[0,0].set_ylabel('$cn$')
+ax[1,0].set_ylabel('$cn$')
+ax[1,0].set_xlabel('$cp$')
+ax[1,1].set_xlabel('$cp$')
 
-ax[0,0].set_ylim(-0.05, 0.05)
-ax[0,0].set_xlim(-0.05, 0.05)
+#ax[0,0].set_ylim(-0.05, 0.05)
+#ax[0,0].set_xlim(-0.05, 0.05)
 
 fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
@@ -4365,8 +4453,6 @@ pars_true = (pars_slices[imass*30 + icross,:] - pars_min) / (pars_max - pars_min
 
 imass*30 + icross
 
-CR_int_prob_sup_pi_2_s1s2[377]
-
 # +
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
 pars_prior    = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
@@ -4394,9 +4480,9 @@ plot1d(ax[0,0], predictions_s1s2, pars_true, par = 0, color = color_s1s2)
 plot1d(ax[0,0], predictions_rate, pars_true, par = 0, fill = False, linestyle = ':', color = color_rate)
 plot1d(ax[0,0], predictions_drate, pars_true, par = 0, fill = False, linestyle = '--', color = color_drate)
 
-plot2d(ax[1,0], predictions_s1s2, pars_true, color = color_s1s2)
+plot2d(ax[1,0], predictions_s1s2, pars_true, color = color_s1s2, fill=False,line=True)
 plot2d(ax[1,0], predictions_rate, pars_true, fill = False, line = True, linestyle = ':', color = color_rate)
-plot2d(ax[1,0], predictions_drate, pars_true, fill = False, line = True, linestyle = '--', color = color_drate)
+plot2d(ax[1,0], predictions_drate, pars_true, fill = True, line = True, linestyle = '--', color = color_drate)
 
 plot1d(ax[1,1], predictions_s1s2, pars_true, par = 1, flip = True, color = color_s1s2)
 plot1d(ax[1,1], predictions_rate, pars_true, par = 1, flip = True, fill = False, linestyle = ':', color = color_rate)
@@ -4508,6 +4594,99 @@ fig,ax = plt.subplots(1,2)
 ax[0].plot(x, h1)
 ax[0].plot(cross_pred, ratios_s1s2)
 ax[1].plot(masses_pred, m_ratios_s1s2)
+
+# ## Combine everything (NOT WORKING YET)
+
+# +
+x_s1s2 = s1s2_trainset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 64x64
+x_norm_s1s2 = x_s1s2.reshape(len(x_s1s2), 1, 96, 96) # The shape need to be (#obs, #channels, dim, dim)
+
+x_drate = diff_rate_trainset # Observable. Input data. 
+
+# +
+# Let's normalize everything between 0 and 1
+
+pars_min = np.min(pars_trainset, axis = 0)
+pars_max = np.max(pars_trainset, axis = 0)
+
+pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
+
+x_min_drate = np.min(x_drate, axis = 0)
+x_max_drate = np.max(x_drate, axis = 0)
+
+x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+
+# +
+# We have to build a swyft.Samples object that will handle the data
+samples_drate = swyft.Samples(x = x_norm_drate, z = pars_norm)
+
+# We have to build a swyft.SwyftDataModule object that will split the data into training, testing and validation sets
+dm_drate = swyft.SwyftDataModule(samples_drate, fractions = [0.7, 0.25, 0.05], batch_size = 32)
+
+# We have to build a swyft.Samples object that will handle the data
+samples_s1s2 = swyft.Samples(x = x_norm_s1s2, z = pars_norm)
+
+# We have to build a swyft.SwyftDataModule object that will split the data into training, testing and validation sets
+dm_s1s2 = swyft.SwyftDataModule(samples_s1s2, fractions = [0.7, 0.25, 0.05], batch_size = 32)
+# -
+
+samples_comb = swyft.Samples(x = [x_norm_s1s2,x_norm_drate], z = pars_norm)
+
+
+dm_comb = swyft.SwyftDataModule([samples_drate, samples_s1s2], fractions = [0.7, 0.25, 0.05], batch_size = 32)
+
+samples_comb['x'][1].shape
+
+
+# Now let's define a network that estimates all the 1D and 2D marginal posteriors
+class Network(swyft.SwyftModule):
+    def __init__(self, lr = 1e-3, gamma = 1.):
+        super().__init__()
+        self.optimizer_init = swyft.OptimizerInit(torch.optim.Adam, dict(lr = lr, weight_decay=1e-5),
+              torch.optim.lr_scheduler.ExponentialLR, dict(gamma = gamma))
+        self.net = torch.nn.Sequential(
+          torch.nn.Conv2d(1, 10, kernel_size=5),
+          torch.nn.MaxPool2d(2),
+          torch.nn.ReLU(),
+          torch.nn.Dropout(0.2),
+          torch.nn.Conv2d(10, 20, kernel_size=5, padding=2),
+          torch.nn.MaxPool2d(2),
+          torch.nn.ReLU(),
+          torch.nn.Dropout(0.2),
+          torch.nn.Flatten(),
+          torch.nn.Linear(10580, 50),
+          torch.nn.ReLU(),
+          torch.nn.Dropout(0.2),
+          torch.nn.Linear(50, 10),
+        )
+        marginals = ((0, 1), (0, 2), (1, 2))
+        self.logratios1 = swyft.LogRatioEstimator_1dim(num_features = 68, num_params = 3, varnames = 'pars_norm')
+        self.logratios2 = swyft.LogRatioEstimator_Ndim(num_features = 68, marginals = marginals, varnames = 'pars_norm')
+
+    def forward(self, A, B):
+        img = torch.tensor(A['x'][0])
+        #z   = torch.tensor(B['z'])
+        f   = self.net(img)
+        g = torch.cat((f, A['x'][1]))
+        logratios1 = self.logratios1(g, B['z'])
+        logratios2 = self.logratios2(g, B['z'])
+        return logratios1, logratios2
+
+
+# Let's configure, instantiate and traint the network
+torch.manual_seed(28890)
+cb = MetricTracker()
+early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=20, verbose=False, mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+trainer_comb = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2500, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
+network_comb = Network()
+
+# +
+
+# We have to build a swyft.SwyftDataModule object that will split the data into training, testing and validation sets
+#dm_test_comb = swyft.SwyftDataModule(samples_comb, fractions = [0., 0., 1], batch_size = 32)
+trainer_comb.test(network_comb, samples_comb)
+# -
 
 # # Some other plots
 
@@ -4815,7 +4994,7 @@ os.system('convert -delay 60 -loop 0 ../graph/O1_Mass_gif_plot_m_84/{0..30}_s1s2
 
 # +
 # Gif plot
-pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(['../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v5/'])
+pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(['../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v3/'])
 
 x_rate = np.log10(rate_slices)
 x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
@@ -4919,8 +5098,10 @@ for itest in bps_ind:
     
     #ax[0,1].
     #ax[1,0].grid(which = 'both')
-    plt.savefig('../graph/gif_plot_2Dposteriors_m84/' + str(c) + '.png')
+    plt.savefig('../graph/gif_plot_2Dposteriors_m84/' + str(c) + '_v3.png')
 # -
+
+1
 
 # # Paper plots
 
@@ -5222,6 +5403,7 @@ chi2_crit = 6.18
 fig, ax = plt.subplots(1,1)
 
 cs = ax.contourf(x_centers, y_centers, val.T, levels=4, alpha = 0.6, zorder = 1)
+plt.colorbar(cs)
 ax.contour(x_centers, y_centers, val.T, levels=4, linewidths = 2, zorder = 4)
 ax.set_yscale('log')
 ax.set_xscale('log')
@@ -5251,20 +5433,23 @@ chain.configure(kde = 1.5,
 
 chain.analysis.get_summary ()
 
-chain.diagnostic.gelman_rubin()
+# +
+#chain.diagnostic.gelman_rubin()
 
 # +
 #fig,ax = plt.subplots(1,1)
 
-fig = chain.plotter.plot(figsize = (10,10),
+fig = chain.plotter.plot(figsize = (8,8),
                    log_scales = [True, True],
                    extents = [(8, 1e3), (1e-49, 1e-43)],
                    truth = truth)
 ax = fig.axes
 
-ax[0].plot(10**masses_pred, 1e-3*m_ratios_s1s2, ls = '--', color = color_s1s2)
 ax[3].plot(3e44*ratios_s1s2, 10**cross_pred,  ls = '--', color = color_s1s2)
 plot2d(ax[2], predictions_s1s2, pars_true, fill = False, line = True, linestyle = '--', color = color_s1s2)
+plot1d(ax[0], predictions_s1s2, pars_true, par = 0, color = color_s1s2, fac = 1e-3)
+#ax[0].plot(10**masses_pred, 1e-3*m_ratios_s1s2, ls = '--', color = color_s1s2)
+
 # -
 
 
