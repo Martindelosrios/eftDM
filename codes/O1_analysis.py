@@ -2720,12 +2720,6 @@ plt.ylabel('$\sigma_{Pred}$')
 
 x_s1s2 = s1s2_trainset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 64x64
 
-np.max(s1s2_trainset[:,:-1,:-1])
-
-np.max(s1s2_testset[:,:-1,:-1])
-
-np.max(s1s2_valset[:,:-1,:-1])
-
 # +
 # Let's normalize everything between 0 and 1
 
@@ -2737,10 +2731,10 @@ pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 x_min_s1s2 = np.min(x_s1s2, axis = 0)
 x_max_s1s2 = np.max(x_s1s2)
 
-#x_norm_s1s2 = x_s1s2
+x_norm_s1s2 = x_s1s2
 #ind_nonzero = np.where(x_max_s1s2 > 0)
 #x_norm_s1s2[:,ind_nonzero[0], ind_nonzero[1]] = (x_s1s2[:,ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]]) / (x_max_s1s2[ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]])
-x_norm_s1s2 = x_s1s2 / x_max_s1s2
+#x_norm_s1s2 = x_s1s2 / x_max_s1s2
 
 
 # +
@@ -2877,15 +2871,15 @@ cb = MetricTracker()
 torch.manual_seed(28890)
 cb = MetricTracker()
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=20, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_s1s2_norm_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2500, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_s1s2 = Network()
 
 # +
 x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
-
-x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
+# #%x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
 x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
+
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
 # We have to build a swyft.Samples object that will handle the data
@@ -2896,13 +2890,13 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
-    checkpoint_callback.to_yaml("./logs/O1_s1s2_norm.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O1_s1s2_norm.yaml")
+    checkpoint_callback.to_yaml("./logs/O1_s1s2.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O1_s1s2.yaml")
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O1_s1s2_norm.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O1_s1s2.yaml")
 
 # ---------------------------------------
 # Min val loss value at 48 epochs. -3.31
@@ -2911,7 +2905,7 @@ else:
 
 # +
 x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
-x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
+# #%x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
 x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -2941,7 +2935,7 @@ if fit:
     plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.savefig('../graph/O1_loss_s1s2_norm.pdf')
+    plt.savefig('../graph/O1_loss_s1s2.pdf')
 
 # ### Let's make some inference
 
@@ -2950,8 +2944,8 @@ if fit:
 
 pars_norm = (pars_testset - pars_min) / (pars_max - pars_min)
 
-#x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1]
-x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1] / x_max_s1s2
+x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1]
+# #%x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1] / x_max_s1s2
 # -
 
 np.where( (pars_testset[:,1] < -44.5) & (pars_testset[:,1] > -44.8))[0]
@@ -3012,16 +3006,16 @@ fig,ax = plt.subplots(2,2, figsize = (6,6),
 plt.subplots_adjust(hspace = 0.1, wspace = 0.1)
 
 plot1d(ax[0,0], predictions_s1s2, pars_true, par = 0)
-plot1d(ax[0,0], predictions_rate, pars_true, par = 0, fill = False, linestyle = ':', color = color_rate)
-plot1d(ax[0,0], predictions_drate, pars_true, par = 0, fill = False, linestyle = '--', color = color_drate)
+#plot1d(ax[0,0], predictions_rate, pars_true, par = 0, fill = False, linestyle = ':', color = color_rate)
+#plot1d(ax[0,0], predictions_drate, pars_true, par = 0, fill = False, linestyle = '--', color = color_drate)
 
 plot2d(ax[1,0], predictions_s1s2, pars_true)
-plot2d(ax[1,0], predictions_rate, pars_true, fill = False, line = True, linestyle = ':', color = color_rate)
-plot2d(ax[1,0], predictions_drate, pars_true, fill = False, line = True, linestyle = '--', color = color_drate)
+#plot2d(ax[1,0], predictions_rate, pars_true, fill = False, line = True, linestyle = ':', color = color_rate)
+#plot2d(ax[1,0], predictions_drate, pars_true, fill = False, line = True, linestyle = '--', color = color_drate)
 
 plot1d(ax[1,1], predictions_s1s2, pars_true, par = 1, flip = True)
-plot1d(ax[1,1], predictions_rate, pars_true, par = 1, flip = True, fill = False, linestyle = ':', color = color_rate)
-plot1d(ax[1,1], predictions_drate, pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = color_drate)
+#plot1d(ax[1,1], predictions_rate, pars_true, par = 1, flip = True, fill = False, linestyle = ':', color = color_rate)
+#plot1d(ax[1,1], predictions_drate, pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = color_drate)
 
 ax[0,0].set_xlim(8,1e3)
 ax[1,0].set_xlim(8,1e3)
@@ -3998,8 +3992,6 @@ ax[2].legend(handles = custom_lines, loc = 'lower left')
 
 # ### Slices fix mass (NOT IMPLEMENTED)
 
-# !ls ../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v5
-
 # +
 folder = '../data/andresData/O1-slices-5vecescadatheta/SI-slices01-mDM50GeV-v2/'
 
@@ -4015,20 +4007,11 @@ s1s2_radio_slices    = np.loadtxt(folder + 's1s2_radiogenics.txt')
 s1s2_wall_slices     = np.loadtxt(folder + 's1s2_wall.txt')
 # -
 
-folder = folders[0]
-(os.path.exists(folder + 'cross_sec_sigmas_s1s2.txt') & 
-        os.path.exists(folder + 'cross_sec_int_prob_s1s2.txt') &
-        os.path.exists(folder + 'cross_sec_int_prob_sup_s1s2.txt') &
-        os.path.exists(folder + 'masses_int_prob_sup_s1s2.txt') &
-        os.path.exists(folder + 'masses_prob_sup_s1s2.txt') &
-        os.path.exists(folder + 'masses_prob_inf_s1s2.txt') 
-       )
-
-# !ls ../data/andresData/O1-slices-5vecescadatheta/SI-slices01-mDM50GeV-v2
+# !ls ../data/andresData/O1-slices-5vecescadatheta/SI-slices01-mDM50GeV-v3
 
 # +
 force = False
-folders = ['../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v5/'#,
+folders = ['../data/andresData/O1-slices-5vecescadatheta/SI-slices01-mDM50GeV-v3/'#,
            #'../data/andresData/O1-slices-5vecescadatheta/SI-slices01-mDM50GeV-v2/'#,
            #'../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v3/',
            #'../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v4/',
@@ -4249,21 +4232,24 @@ xbins = 20#np.concatenate( (np.linspace(np.min(cp), -0.005, 5), np.logspace(-0.0
 ybins = 20#np.concatenate( (np.logspace(np.min(cn), 0.005, 5), np.linspace(0.005, np.max(cp),5)) )
 
 # +
-val, xaux, yaux,_ = stats.binned_statistic_2d(cp, cn, cross_sec_int_prob_sup_s1s2_m_50, 'mean', bins = [xbins,ybins])
+val, xaux, yaux,_ = stats.binned_statistic_2d(cp, cn, cross_sec_int_prob_sup_s1s2_m_50, 'min', bins = [xbins,ybins])
     
 xbin = xaux[1] - xaux[0]
 x_centers = xaux[:-1] + xbin
 
 ybin = yaux[1] - yaux[0]
 y_centers = yaux[:-1] + ybin
-# -
 
+# +
 plt.contour(x_centers, y_centers, val, levels = 2)
-#plt.scatter(x_centers, y_centers, marker = '*',c = 'red')
+
 plt.scatter(cp, cn, c = cross_sec_int_prob_sup_s1s2_m_50)
-#plt.scatter(-cp, -cn, c = cross_sec_int_prob_sup_s1s2_m_50)
+plt.scatter(-cp, -cn, c = cross_sec_int_prob_sup_s1s2_m_50)
 plt.ylim(-0.03, 0.03)
 plt.xlim(-0.03, 0.03)
+for i in range(len(x_centers)):
+    for j in range(len(y_centers)):
+        plt.scatter(x_centers[i], y_centers[j], marker = '*', c = cross_sec_int_prob_sup_s1s2_m_50[i * len(x_centers) + j])
 #plt.yscale('log')
 #plt.xscale('log')
 plt.colorbar()
