@@ -4007,13 +4007,13 @@ s1s2_radio_slices    = np.loadtxt(folder + 's1s2_radiogenics.txt')
 s1s2_wall_slices     = np.loadtxt(folder + 's1s2_wall.txt')
 # -
 
-# !ls ../data/andresData/O1-slices-5vecescadatheta/SI-slices01-mDM50GeV-v3
+# !ls ../data/andresData/O1-slices-5vecescadatheta/
 
 # +
 force = False
-folders = ['../data/andresData/O1-slices-5vecescadatheta/SI-slices01-mDM50GeV-v3/'#,
-           #'../data/andresData/O1-slices-5vecescadatheta/SI-slices01-mDM50GeV-v2/'#,
-           #'../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v3/',
+folders = [#'../data/andresData/O1-slices-5vecescadatheta/SI-slices01-mDM20GeV-v1/'#,
+           #'../data/andresData/O1-slices-5vecescadatheta/SI-slices01-mDM50GeV-v4/'#,
+           '../data/andresData/O1-slices-5vecescadatheta/SI-slices01-mDM500GeV-v1/',
            #'../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v4/',
            #'../data/andresData/O1-slices-5vecescadatheta/mass50GeV/SI-slices01-mass50GeV-v5/'
          ]
@@ -4165,31 +4165,31 @@ nobs_slices
 cross_section_th = -49
 
 if len(cross_sec_int_prob_full) > 1:
-    cross_sec_int_prob_s1s2_m_50        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
-    cross_sec_int_prob_sup_s1s2_m_50    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    cross_sec_int_prob_sup_s1s2_m_50_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_s1s2_m_50       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_s1s2_m_50_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_prob_sup_s1s2_m_50           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_sup_s1s2_m_50_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_inf_s1s2_m_50           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
-    masses_prob_inf_s1s2_m_50_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
-    cross_sec_sigmas_m_50               = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
+    cross_sec_int_prob_s1s2_m_500        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
+    cross_sec_int_prob_sup_s1s2_m_500    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    cross_sec_int_prob_sup_s1s2_m_500_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_s1s2_m_500       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_s1s2_m_500_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_prob_sup_s1s2_m_500           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_sup_s1s2_m_500_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_inf_s1s2_m_500           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
+    masses_prob_inf_s1s2_m_500_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
+    cross_sec_sigmas_m_500               = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
 else:
-    cross_sec_int_prob_s1s2_m_50     = cross_sec_int_prob
-    cross_sec_int_prob_sup_s1s2_m_50 = cross_sec_int_prob_sup
-    cross_sec_sigmas_m_50            = cross_sec_sigmas
-    masses_int_prob_sup_s1s2_m_50    = masses_int_prob_sup
-    masses_prob_sup_s1s2_m_50        = masses_prob_sup
-    masses_prob_inf_s1s2_m_50        = masses_prob_inf
+    cross_sec_int_prob_s1s2_m_500     = cross_sec_int_prob
+    cross_sec_int_prob_sup_s1s2_m_500 = cross_sec_int_prob_sup
+    cross_sec_sigmas_m_500            = cross_sec_sigmas
+    masses_int_prob_sup_s1s2_m_500    = masses_int_prob_sup
+    masses_prob_sup_s1s2_m_500        = masses_prob_sup
+    masses_prob_inf_s1s2_m_500        = masses_prob_inf
 
-s1s2_1sigma_m_50 = np.ones(nobs_slices) * -99
-s1s2_2sigma_m_50 = np.ones(nobs_slices) * -99
-s1s2_3sigma_m_50 = np.ones(nobs_slices) * -99
+s1s2_1sigma_m_500 = np.ones(nobs_slices) * -99
+s1s2_2sigma_m_500 = np.ones(nobs_slices) * -99
+s1s2_3sigma_m_500 = np.ones(nobs_slices) * -99
 
-s1s2_1sigma_m_50[np.where(cross_sec_sigmas_m_50[:,0] > cross_section_th)[0]] = 1
-s1s2_2sigma_m_50[np.where(cross_sec_sigmas_m_50[:,1] > cross_section_th)[0]] = 1
-s1s2_3sigma_m_50[np.where(cross_sec_sigmas_m_50[:,2] > cross_section_th)[0]] = 1
+s1s2_1sigma_m_500[np.where(cross_sec_sigmas_m_500[:,0] > cross_section_th)[0]] = 1
+s1s2_2sigma_m_500[np.where(cross_sec_sigmas_m_500[:,1] > cross_section_th)[0]] = 1
+s1s2_3sigma_m_500[np.where(cross_sec_sigmas_m_500[:,2] > cross_section_th)[0]] = 1
 
 # +
 fig, ax = plt.subplots(2,2)
@@ -4212,47 +4212,70 @@ sbn.kdeplot(masses_prob_inf_s1s2_m_50, label = '$M_{DM} = 50 [GeV]$', ax = ax[1,
 ax[1,1].legend()
 ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
-#plt.savefig('../graph/O1_int_prob_distribution_s1s2_FixMass.pdf')
+plt.savefig('../graph/O1_int_prob_distribution_s1s2_FixMass_M50.pdf')
 
 # +
 long_planck = 1.616199 * 1e-35 * 1e2 # cm
 masa_planck = 2.435 * 1e18 # GeV
 
-mass = 50
+mass = 500
 mu = mass *1 / (mass +1)
 
 theta = pars_slices[0][:,2]
 cross = pars_slices[0][:,1]
-cp = (1/(masa_planck*long_planck*1e-3)) * ( (np.pi * cross)**0.5 / (2*mu*1e-3) ) * ( np.sin(theta) - np.cos(theta) )
-cn = (1/(masa_planck*long_planck*1e-3)) * ( (np.pi * cross)**0.5 / (2*mu*1e-3) ) * ( np.sin(theta) + np.cos(theta) )
+cp500 = (1/(masa_planck*long_planck*1e-3)) * ( (np.pi * cross)**0.5 / (2*mu*1e-3) ) * ( np.sin(theta) - np.cos(theta) )
+cn500 = (1/(masa_planck*long_planck*1e-3)) * ( (np.pi * cross)**0.5 / (2*mu*1e-3) ) * ( np.sin(theta) + np.cos(theta) )
 
+cp500 = np.concatenate((cp500, -cp500))
+cn500 = np.concatenate((cn500, -cn500))
+cross_sec_int_prob_sup_s1s2_m_500 = np.concatenate((cross_sec_int_prob_sup_s1s2_m_500,cross_sec_int_prob_sup_s1s2_m_500))
 # -
 
-xbins = 20#np.concatenate( (np.linspace(np.min(cp), -0.005, 5), np.logspace(-0.005, np.max(cp),5)) )
-ybins = 20#np.concatenate( (np.logspace(np.min(cn), 0.005, 5), np.linspace(0.005, np.max(cp),5)) )
+xbins = np.linspace(-0.12,0.12,100)
+ybins = np.linspace(-0.12,0.12,100)
 
 # +
-val, xaux, yaux,_ = stats.binned_statistic_2d(cp, cn, cross_sec_int_prob_sup_s1s2_m_50, 'min', bins = [xbins,ybins])
+val500, xaux, yaux,_ = stats.binned_statistic_2d(cp500, cn500, cross_sec_int_prob_sup_s1s2_m_500, 'mean', bins = [xbins,ybins])
     
 xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
+x_centers500 = xaux[:-1] + xbin
 
 ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
+y_centers500 = yaux[:-1] + ybin
+
+#xx,yy=np.meshgrid(x_centers,y_centers)
+
+#coords=np.array((xx.ravel(), yy.ravel())).T
 
 # +
-plt.contour(x_centers, y_centers, val, levels = 2)
+#plt.colorbar()
 
-plt.scatter(cp, cn, c = cross_sec_int_prob_sup_s1s2_m_50)
-plt.scatter(-cp, -cn, c = cross_sec_int_prob_sup_s1s2_m_50)
-plt.ylim(-0.03, 0.03)
-plt.xlim(-0.03, 0.03)
-for i in range(len(x_centers)):
-    for j in range(len(y_centers)):
-        plt.scatter(x_centers[i], y_centers[j], marker = '*', c = cross_sec_int_prob_sup_s1s2_m_50[i * len(x_centers) + j])
+#plt.scatter(cp, cn, c = cross_sec_int_prob_sup_s1s2_m_20)
+plt.contour(x_centers20, y_centers20, val20.T, levels = [0,0.9], colors = ['coral'])
+plt.contour(x_centers50, y_centers50, val50.T, levels = [0,0.9], colors = ['black'])
+plt.contour(x_centers500, y_centers500, val500.T, levels = [0,0.9], colors = ['darkcyan'])
+plt.ylim(-0.08, 0.08)
+plt.xlim(-0.08, 0.08)
+#plt.scatter(coords[:,0], coords[:,1], marker = '*', c = val.T.flatten(), cmap = 'inferno')
 #plt.yscale('log')
 #plt.xscale('log')
-plt.colorbar()
+#plt.plot([-0.1,0.1],[0.1,-0.1], c = 'blue', ls = ':')
+#plt.legend()
+plt.xlabel('$c_{p} [TeV^{-2}]$')
+plt.ylabel('$c_{n} [TeV^{-2}]$')
+#plt.colorbar()
+
+custom_lines = []
+labels = ['M = 20 GeV', 'M = 50 GeV', 'M = 500 GeV']
+markers = ['solid','solid', 'solid']
+colors = ['coral', 'black', 'darkcyan']
+for i in range(3):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+            label = labels[i]) )
+    
+plt.legend(handles = custom_lines, loc = 'lower left')
+plt.savefig('../graph/O1_FixMass_s1s2.pdf')
+
 
 # +
 levels = 5#[0.67, 0.76, 0.84, 0.9, 1]
@@ -4260,8 +4283,8 @@ levels = 5#[0.67, 0.76, 0.84, 0.9, 1]
 fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
 fig.subplots_adjust(hspace = 0, wspace = 0)
 
-#fig00 = ax[0,0].contourf(cross_it, theta_it, cross_sec_int_prob_sup_s1s2_m_50.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
-fig00 = ax[0,0].scatter(cp, cn, c = cross_sec_int_prob_sup_s1s2_m_50)
+fig00 = ax[0,0].contour(x_centers, y_centers, val20.T, levels = [0,0.9,0.95], colors = ['darkcyan',(0.0, 0.55, 0.55, 0.2)])
+ax[0,0].scatter(cp, cn, c = cross_sec_int_prob_sup_s1s2_m_20)
 #ax[0,0].set_yscale('log')
 #ax[0,0].set_xscale('log')
 ax[0,0].grid(which='both')
@@ -4269,6 +4292,8 @@ ax[0,0].grid(which='both')
 ax[0,0].legend(loc = 'lower left')
 
 ax[0,1].grid(which='both')
+fig01 = ax[0,1].contour(x_centers500, y_centers500, val500.T, levels = [0,0.9,0.95], colors = ['darkcyan',(0.0, 0.55, 0.55, 0.2)])
+ax[0,1].scatter(cp, cn, c = cross_sec_int_prob_sup_s1s2_m_500)
 
 ax[1,0].grid(which='both')
 
