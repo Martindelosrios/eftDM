@@ -16,6 +16,9 @@ from scipy.interpolate import CloughTocher2DInterpolator
 from scipy.integrate import simps
 from matplotlib.pyplot import contour, show
 from matplotlib.lines import Line2D
+import emcee
+from chainconsumer import ChainConsumer
+
 
 import torch
 import torchist
@@ -552,6 +555,28 @@ s1s2_current_mpi4 = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-cons
 #s1s2_5sigma_CL_pi2 = [4.08103752331147e-44, 3.8728582352232607e-45, 7.6749453724152e-46, 2.2975988969221325e-46, 9.288997446135513e-47, 4.664935622870835e-47, 2.782878649228596e-47, 1.9095180953326634e-47, 1.4594221461508327e-47, 1.222298847466356e-47, 1.0995347246562162e-47, 1.047606356704776e-47, 1.0489241738296843e-47, 1.0933045131046113e-47, 1.1721516337816972e-47, 1.2873092696940238e-47, 1.443004318368611e-47, 1.6385958732743452e-47, 1.887680081811898e-47, 2.1849135296206085e-47, 2.548145522834008e-47, 2.9833902123045253e-47, 3.5167347974486045e-47, 4.14419793643973e-47, 4.900072164200674e-47, 5.809726041596581e-47, 6.895739696510738e-47, 8.1791181513169555e-47, 9.725433988761545e-47, 1.1558035478070863e-46]
 # -
 
+# ## EMCEE data
+
+# +
+# INPUTS
+
+mdm_emcee = 50
+sigma_emcee = np.log10(2e-46)
+theta_emcee= np.pi/2
+
+m_dm  = np.log10(mdm_emcee) # m_{DM} [GeV]
+sigma = sigma_emcee # sigma [cm^2]
+theta = theta_emcee
+
+# OPEN THE SAVED DATA
+
+h5filename = '../data/andresData/emcee/run_emcee_rate_mDM50_sigma2e-46_theta1.57/run_emcee_rate_mDM' + str(mdm_emcee) + '_sigma2e-46_theta' + str(theta_emcee) + '.h5'
+
+reader = emcee.backends.HDFBackend(h5filename)
+
+samples_reader = reader.get_chain(flat=True)
+# -
+
 # ## Let's make some exploratory plots
 
 sbn.pairplot(pd.DataFrame(np.hstack((pars,np.log10(rate).reshape(nobs,1))), columns = ['$m_{\chi}$','$\sigma$', '$\\theta$', '#']))
@@ -821,7 +846,169 @@ ax[1,1].set_ylabel('')
 ax[1,1].set_yticks([])
 ax[1,1].set_xlabel('$P(\sigma|x)$')
 #ax[1,0].grid(which = 'both')
-plt.savefig('../graph/2d_custom_posteriors_' + str(i) + '_rate.pdf')
+#plt.savefig('../graph/2d_custom_posteriors_' + str(i) + '_rate.pdf')
+
+# +
+chain = ChainConsumer ()
+
+chain.add_chain(chain = samples_reader, parameters = [r"$\log(m_{dm})$ [GeV$]$", r"$\log(\sigma)$ [cm$²]$", r"$\theta$"])
+
+truth ={r"$\log(m_{dm})$ [GeV$]$": mdm_emcee, r"$\log(\sigma)$ [cm$²]$": sigma_emcee, r"$\theta$": theta_emcee}
+
+fig = chain.plotter.plot(figsize = (10,10),
+                   log_scales = False,
+                   extents = [(np.log10(6), 3), (-50, -43), (-1.6, 1.6)],                 
+                   #filename = 'TEST.pdf',
+                   truth = truth)
+
+axes = fig.get_axes()
+
+predictions = predictions_rate
+
+line = False
+linestyle = 'solid'
+color = 'black'
+fill = True
+
+# Sigma-vs-M
+ax = axes[3]
+    
+results_pars = np.asarray(predictions[1].params)
+results      = np.asarray(predictions[1].logratios)
+
+# Let's make an interpolation function 
+interp = CloughTocher2DInterpolator(results_pars[:,0,:], 10**results[:,0])
+
+def interpol(log_m, log_sigma):
+    m_norm = (log_m - pars_min[0]) / (pars_max[0] - pars_min[0])
+    sigma_norm = (log_sigma - pars_min[1]) / (pars_max[1] - pars_min[1])
+    return interp(m_norm, sigma_norm)
+    
+# Let's estimate the value of the posterior in a grid
+nvals = 20
+m_values = np.logspace(0.8, 2.99, nvals)
+s_values = np.logspace(-49., -43.1, nvals)
+m_grid, s_grid = np.meshgrid(m_values, s_values)
+
+ds = np.log10(s_values[1]) - np.log10(s_values[0])
+dm = np.log10(m_values[1]) - np.log10(m_values[0])
+
+res = np.zeros((nvals, nvals))
+for m in range(nvals):
+    for s in range(nvals):
+        res[m,s] = interpol(np.log10(m_values[m]), np.log10(s_values[s]))
+res[np.isnan(res)] = 0
+#print(res)
+# Let's compute the integral
+norm = simps(simps(res, dx=dm, axis=1), dx=ds)
+#print(norm)
+
+# Let's look for the 0.9 probability threshold
+cuts = np.linspace(np.min(res), np.max(res), 100)
+integrals = []
+for c in cuts:
+    res0 = np.copy(res)
+    res0[np.where(res < c)[0], np.where(res < c)[1]] = 0
+    integrals.append( simps(simps(res0, dx=dm, axis=1), dx=ds) / norm )
+integrals = np.asarray(integrals)
+
+cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
+cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
+#print(cut)
+ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut90], colors = [color], linestyles = ['solid'])
+ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut95], colors = [color], linestyles = ['--'])
+
+
+# theta-vs-M
+ax = axes[6]
+    
+results_pars = np.asarray(predictions[1].params)
+results      = np.asarray(predictions[1].logratios)
+
+# Let's make an interpolation function 
+interp = CloughTocher2DInterpolator(results_pars[:,1,:], 10**results[:,1])
+
+def interpol(log_m, theta):
+    m_norm = (log_m - pars_min[0]) / (pars_max[0] - pars_min[0])
+    theta_norm = (theta - pars_min[2]) / (pars_max[2] - pars_min[2])
+    return interp(m_norm, theta_norm)
+    
+# Let's estimate the value of the posterior in a grid
+nvals = 20
+m_values = np.logspace(0.8, 2.99, nvals)
+t_values = np.logspace(-np.pi, np.pi, nvals)
+m_grid, t_grid = np.meshgrid(m_values, t_values)
+
+dt = t_values[1] - t_values[0]
+dm = np.log10(m_values[1]) - np.log10(m_values[0])
+
+res = np.zeros((nvals, nvals))
+for m in range(nvals):
+    for s in range(nvals):
+        res[m,s] = interpol(np.log10(m_values[m]), t_values[s])
+res[np.isnan(res)] = 0
+# Let's compute the integral
+norm = simps(simps(res, dx=dm, axis=1), dx=dt)
+
+# Let's look for the 0.9 probability threshold
+cuts = np.linspace(np.min(res), np.max(res), 100)
+integrals = []
+for c in cuts:
+    res0 = np.copy(res)
+    res0[np.where(res < c)[0], np.where(res < c)[1]] = 0
+    integrals.append( simps(simps(res0, dx=dm, axis=1), dx=dt) / norm )
+integrals = np.asarray(integrals)
+
+cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
+cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
+ax.contour(np.log10(m_values), t_values, res.T, levels = [0,cut90], colors = [color], linestyles = ['solid'])
+ax.contour(np.log10(m_values), t_values, res.T, levels = [0,cut95], colors = [color], linestyles = ['--'])
+
+# theta-vs-sigma
+ax = axes[7]
+    
+results_pars = np.asarray(predictions[1].params)
+results      = np.asarray(predictions[1].logratios)
+
+# Let's make an interpolation function 
+interp = CloughTocher2DInterpolator(results_pars[:,2,:], 10**results[:,2])
+
+def interpol(log_s, theta):
+    s_norm = (log_s - pars_min[1]) / (pars_max[1] - pars_min[1])
+    theta_norm = (theta - pars_min[2]) / (pars_max[2] - pars_min[2])
+    return interp(s_norm, theta_norm)
+    
+# Let's estimate the value of the posterior in a grid
+nvals = 20
+s_values = np.logspace(-49., -43.1, nvals)
+t_values = np.logspace(-np.pi, np.pi, nvals)
+s_grid, t_grid = np.meshgrid(s_values, t_values)
+
+dt = t_values[1] - t_values[0]
+ds = np.log10(s_values[1]) - np.log10(s_values[0])
+
+res = np.zeros((nvals, nvals))
+for m in range(nvals):
+    for s in range(nvals):
+        res[m,s] = interpol(np.log10(s_values[m]), t_values[s])
+res[np.isnan(res)] = 0
+# Let's compute the integral
+norm = simps(simps(res, dx=ds, axis=1), dx=dt)
+
+# Let's look for the 0.9 probability threshold
+cuts = np.linspace(np.min(res), np.max(res), 100)
+integrals = []
+for c in cuts:
+    res0 = np.copy(res)
+    res0[np.where(res < c)[0], np.where(res < c)[1]] = 0
+    integrals.append( simps(simps(res0, dx=ds, axis=1), dx=dt) / norm )
+integrals = np.asarray(integrals)
+
+cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
+cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
+ax.contour(np.log10(s_values), t_values, res.T, levels = [0,cut90], colors = [color], linestyles = ['solid'])
+ax.contour(np.log10(s_values), t_values, res.T, levels = [0,cut95], colors = [color], linestyles = ['--'])
+
 # -
 
 # Let's plot the results
@@ -3262,11 +3449,11 @@ cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
 # +
 force = False
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v5/'
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v5/'
          ]
 
 cross_sec_sigmas_full       = []
@@ -3401,30 +3588,30 @@ for folder in folders:
 cross_section_th = -49
 
 if len(cross_sec_int_prob_full) > 1:
-    cross_sec_int_prob_s1s2_mpi_2        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
-    cross_sec_int_prob_sup_s1s2_mpi_2    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    cross_sec_int_prob_sup_s1s2_mpi_2_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_s1s2_mpi_2       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_int_prob_sup_s1s2_mpi_2_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_prob_sup_s1s2_mpi_2           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_sup_s1s2_mpi_2_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_inf_s1s2_mpi_2           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
-    masses_prob_inf_s1s2_mpi_2_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
-    cross_sec_sigmas_mpi_2               = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
+    cross_sec_int_prob_s1s2_0        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
+    cross_sec_int_prob_sup_s1s2_0    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    cross_sec_int_prob_sup_s1s2_0_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_s1s2_0       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_int_prob_sup_s1s2_0_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
+    masses_prob_sup_s1s2_0           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_sup_s1s2_0_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
+    masses_prob_inf_s1s2_0           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
+    masses_prob_inf_s1s2_0_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
+    cross_sec_sigmas_0               = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
 else:
-    cross_sec_int_prob_s1s2_mpi_2     = cross_sec_int_prob
-    cross_sec_int_prob_sup_s1s2_mpi_2 = cross_sec_int_prob_sup
-    masses_int_prob_sup_s1s2_mpi_2    = masses_int_prob_sup
-    masses_prob_sup_s1s2_mpi_2        = masses_prob_sup
-    masses_prob_inf_s1s2_mpi_2        = masses_prob_inf
+    cross_sec_int_prob_s1s2_0     = cross_sec_int_prob
+    cross_sec_int_prob_sup_s1s2_0 = cross_sec_int_prob_sup
+    masses_int_prob_sup_s1s2_0    = masses_int_prob_sup
+    masses_prob_sup_s1s2_0        = masses_prob_sup
+    masses_prob_inf_s1s2_0        = masses_prob_inf
 
-s1s2_1sigma_mpi_2 = np.ones(900) * -99
-s1s2_2sigma_mpi_2 = np.ones(900) * -99
-s1s2_3sigma_mpi_2 = np.ones(900) * -99
+s1s2_1sigma_0 = np.ones(900) * -99
+s1s2_2sigma_0 = np.ones(900) * -99
+s1s2_3sigma_0 = np.ones(900) * -99
 
-s1s2_1sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,0] > cross_section_th)[0]] = 1
-s1s2_2sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,1] > cross_section_th)[0]] = 1
-s1s2_3sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,2] > cross_section_th)[0]] = 1
+s1s2_1sigma_0[np.where(cross_sec_sigmas_0[:,0] > cross_section_th)[0]] = 1
+s1s2_2sigma_0[np.where(cross_sec_sigmas_0[:,1] > cross_section_th)[0]] = 1
+s1s2_3sigma_0[np.where(cross_sec_sigmas_0[:,2] > cross_section_th)[0]] = 1
 
 # +
 fig, ax = plt.subplots(2,2)
@@ -3553,11 +3740,11 @@ levels = [0,0.1,0.16,0.24,0.32]
 
 sigma = 1.41 # this depends on how noisy your data is, play with it!
 
-CR_int_prob_0_g     = gaussian_filter(cross_sec_int_prob_0, sigma)
-CR_int_prob_pi_2_g  = gaussian_filter(cross_sec_int_prob_pi_2, sigma)
-CR_int_prob_pi_4_g  = gaussian_filter(cross_sec_int_prob_pi_4, sigma)
-CR_int_prob_mpi_2_g = gaussian_filter(cross_sec_int_prob_mpi_2, sigma)
-CR_int_prob_mpi_4_g = gaussian_filter(cross_sec_int_prob_mpi_4, sigma)
+CR_int_prob_0_g     = gaussian_filter(cross_sec_int_prob_s1s2_0, sigma)
+CR_int_prob_pi_2_g  = gaussian_filter(cross_sec_int_prob_s1s2_pi_2, sigma)
+CR_int_prob_pi_4_g  = gaussian_filter(cross_sec_int_prob_s1s2_pi_4, sigma)
+CR_int_prob_mpi_2_g = gaussian_filter(cross_sec_int_prob_s1s2_mpi_2, sigma)
+CR_int_prob_mpi_4_g = gaussian_filter(cross_sec_int_prob_s1s2_mpi_4, sigma)
 
 fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
 fig.subplots_adjust(hspace = 0, wspace = 0)
@@ -3618,7 +3805,7 @@ ax[0,1].plot(masses, s1s2_90_CL_pi4[2,:], color = 'black', linestyle = '-.')
 ax[1,0].plot(masses, s1s2_90_CL_mpi2[2,:], color = 'black', linestyle = '-.')
 ax[1,1].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = '-.')
 
-plt.savefig('../graph/O1_contours_s1s2_int_prob.pdf')
+#plt.savefig('../graph/O1_contours_s1s2_int_prob.pdf')
 
 # +
 sigma = 0.1 # this depends on how noisy your data is, play with it!
@@ -3771,10 +3958,10 @@ fig.subplots_adjust(hspace = 0, wspace = 0)
 ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_s1s2)
 # #%ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_s1s2_max.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_s1s2)
 # #%ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_s1s2_min.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_s1s2)
-ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_rate)
+# #%ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_rate)
 # #%ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_rate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_rate)
 # #%ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_rate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_rate)
-ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_drate)
+# #%ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_drate)
 # #%ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_drate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_drate)
 # #%ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_drate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_drate)
 ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_s1s2)
@@ -3782,19 +3969,19 @@ ax[0].contour(m_vals, cross_vals, M_prob_sup_pi_2_s1s2.reshape(30,30).T, levels 
 #ax[0].contour(m_vals, cross_vals, M_prob_inf_pi_2_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
 # #%ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_s1s2_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
 # #%ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_s1s2_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
-ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
-ax[0].contour(m_vals, cross_vals, M_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
+# #%ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
+# #%ax[0].contour(m_vals, cross_vals, M_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 #ax[0].contour(m_vals, cross_vals, M_prob_inf_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 # #%ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_rate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 # #%ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_rate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
-ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_drate)
-ax[0].contour(m_vals, cross_vals, M_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
+# #%ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_drate)
+# #%ax[0].contour(m_vals, cross_vals, M_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 #ax[0].contour(m_vals, cross_vals, M_prob_inf_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 # #%ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_drate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 # #%ax[0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_drate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 
 ax[0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]', linestyle = ':')
-#ax[0].fill_between(neutrino_fog[:,0], neutrino_fog[:,1], -50, color = 'lightblue', label = '$\\nu$ fog')
+ax[0].fill_between(neutrino_fog[:,0], neutrino_fog[:,1], -50, color = 'lightblue', label = '$\\nu$ fog')
 ax[0].plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = ':', label = 'Bin. Lik. [90%]')
 ax[0].fill_between(masses, s1s2_current_pi2[2,:], 1e-43, color = 'gray', alpha = 1, label = 'Excluded', zorder = 1)
 
@@ -3807,10 +3994,10 @@ ax[0].legend(loc = 'lower left')
 ax[1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_s1s2)
 # #%ax[1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_s1s2_min.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_s1s2)
 # #%ax[1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_s1s2_max.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_s1s2)
-ax[1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_rate)
+# #%ax[1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_rate)
 # #%ax[1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_rate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_rate)
 # #%ax[1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_rate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_rate)
-ax[1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_drate)
+# #%ax[1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_drate)
 # #%ax[1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_drate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_drate)
 # #%ax[1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_drate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_drate)
 ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_s1s2)
@@ -3818,13 +4005,13 @@ ax[1].contour(m_vals, cross_vals, M_prob_sup_pi_4_s1s2.reshape(30,30).T, levels 
 #ax[1].contour(m_vals, cross_vals, M_prob_inf_pi_4_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
 # #%ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_s1s2_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
 # #%ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_s1s2_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
-ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
-ax[1].contour(m_vals, cross_vals, M_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
+# #%ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
+# #%ax[1].contour(m_vals, cross_vals, M_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 #ax[1].contour(m_vals, cross_vals, M_prob_inf_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 # #%ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_rate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 # #%ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_rate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
-ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_drate)
-ax[1].contour(m_vals, cross_vals, M_prob_sup_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
+# #%ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_drate)
+# #%ax[1].contour(m_vals, cross_vals, M_prob_sup_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 #ax[1].contour(m_vals, cross_vals, M_prob_inf_pi_4_drate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 # #%ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_drate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 # #%ax[1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_drate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
@@ -3838,10 +4025,10 @@ ax[1].text(3e2, 1e-44, '$\\theta = \pi/4$')
 ax[2].contour(m_vals, cross_vals, CR_int_prob_sup_0_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_s1s2)
 # #%ax[2].contour(m_vals, cross_vals, CR_int_prob_sup_0_s1s2_min.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_s1s2)
 # #%ax[2].contour(m_vals, cross_vals, CR_int_prob_sup_0_s1s2_max.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_s1s2)
-ax[2].contour(m_vals, cross_vals, CR_int_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_rate)
+# #%ax[2].contour(m_vals, cross_vals, CR_int_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_rate)
 # #%ax[2].contour(m_vals, cross_vals, CR_int_prob_sup_0_rate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_rate)
 # #%ax[2].contour(m_vals, cross_vals, CR_int_prob_sup_0_rate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_rate)
-ax[2].contour(m_vals, cross_vals, CR_int_prob_sup_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_drate)
+# #%ax[2].contour(m_vals, cross_vals, CR_int_prob_sup_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_drate)
 # #%ax[2].contour(m_vals, cross_vals, CR_int_prob_sup_0_drate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_drate)
 # #%ax[2].contour(m_vals, cross_vals, CR_int_prob_sup_0_drate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, colors = color_drate)
 ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_s1s2)
@@ -3849,13 +4036,13 @@ ax[2].contour(m_vals, cross_vals, M_prob_sup_0_s1s2.reshape(30,30).T, levels = [
 #ax[2].contour(m_vals, cross_vals, M_prob_inf_0_s1s2.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
 # #%ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_s1s2_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
 # #%ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_s1s2_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_s1s2)
-ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
-ax[2].contour(m_vals, cross_vals, M_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
+# #%ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
+# #%ax[2].contour(m_vals, cross_vals, M_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 #ax[2].contour(m_vals, cross_vals, M_prob_inf_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 # #%ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_rate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 # #%ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_rate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
-ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_drate)
-ax[2].contour(m_vals, cross_vals, M_prob_sup_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
+# #%ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_drate)
+# #%ax[2].contour(m_vals, cross_vals, M_prob_sup_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 #ax[2].contour(m_vals, cross_vals, M_prob_inf_0_drate.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 # #%ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_drate_min.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
 # #%ax[2].contour(m_vals, cross_vals, M_int_prob_sup_0_drate_max.reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
