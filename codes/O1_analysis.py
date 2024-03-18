@@ -69,6 +69,7 @@ print('torch version:', torch.__version__)
 color_rate = "#d55e00"
 color_drate = "#0072b2"
 color_s1s2 = "#009e73"
+color_comb = 'purple'
 
 # Check if gpu is available
 if torch.cuda.is_available():
@@ -78,6 +79,8 @@ else:
     device = 'cpu'
     print('Using CPU')
 
+
+# # Custom Functions
 
 def read_slice(datFolder):
     nobs_slices = 0
@@ -292,6 +295,116 @@ def plot2d(ax, predictions, pars_true, fill = True, line = False, linestyle = 's
     return ax
 
 
+def plot1d_comb(ax, predictions_rate, predictions_drate, predictions_s1s2, pars_true, par = 1, 
+           xlabel = '$\log_{10}(\sigma)$', ylabel = '$P(\sigma|x)\ /\ P(\sigma)$',
+           flip = False, fill = True, linestyle = 'solid', color = 'black', fac = 1):
+    # Let's put the results in arrays
+    parameter = np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+    ratios = np.exp(np.asarray(predictions_rate[0].logratios[:,par]) + np.asarray(predictions_drate[0].logratios[:,par]) + np.asarray(predictions_s1s2[0].logratios[:,par]))
+    
+    ind_sort  = np.argsort(parameter)
+    ratios    = ratios[ind_sort]
+    parameter = parameter[ind_sort]
+    
+    # Let's compute the integrated probability for different threshold
+    cuts = np.linspace(np.min(ratios), np.max(ratios), 100)
+    integrals = []
+    for c in cuts:
+        ratios0 = np.copy(ratios)
+        ratios0[np.where(ratios < c)[0]] = 0 
+        integrals.append( trapezoid(ratios0, parameter) / trapezoid(ratios, parameter) )
+        
+    integrals = np.asarray(integrals)
+    
+    # Let's compute the thresholds corresponding to 0.9 and 0.95 integrated prob
+    cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
+    cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
+
+    if not flip:
+        ax.plot(10**parameter, fac * ratios, c = color, linestyle = linestyle)
+        if fill:
+            ind = np.where(ratios > cut90)[0]
+            ax.fill_between(10**parameter[ind], fac * ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.3)
+            ind = np.where(ratios > cut95)[0]
+            ax.fill_between(10**parameter[ind], fac * ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.5)
+        ax.axvline(x = 10**(pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_xscale('log')
+    else:
+        ax.plot(fac * ratios, 10**parameter, c = color, linestyle = linestyle)
+        if fill:
+            ind = np.where(ratios > cut90)[0]
+            ax.fill_betweenx(10**parameter[ind], [0] * len(ind), fac * ratios[ind], color = 'darkcyan', alpha = 0.3)
+            ind = np.where(ratios > cut95)[0]
+            ax.fill_betweenx(10**parameter[ind], [0] * len(ind), fac * ratios[ind], color = 'darkcyan', alpha = 0.5) 
+        ax.axhline(y = 10**(pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
+        ax.set_xlabel(ylabel)
+        ax.set_ylabel(xlabel)
+        #ax.set_xlim(-0.1,8)
+        ax.set_ylim(1e-50, 1e-42)
+        ax.set_yscale('log')
+        
+    return ax
+
+
+def plot2d_comb(ax, predictions_rate, predictions_drate, predictions_s1s2, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black'):      
+    results_pars = np.asarray(predictions_rate[1].params)
+    results      = np.asarray(predictions_rate[1].logratios) + np.asarray(predictions_drate[1].logratios) + np.asarray(predictions_s1s2[1].logratios)
+    
+    # Let's make an interpolation function 
+    interp = CloughTocher2DInterpolator(results_pars[:,0,:], 10**results[:,0])
+    
+    def interpol(log_m, log_sigma):
+        m_norm = (log_m - pars_min[0]) / (pars_max[0] - pars_min[0])
+        sigma_norm = (log_sigma - pars_min[1]) / (pars_max[1] - pars_min[1])
+        return interp(m_norm, sigma_norm)
+        
+    # Let's estimate the value of the posterior in a grid
+    nvals = 20
+    m_values = np.logspace(0.8, 2.99, nvals)
+    s_values = np.logspace(-49., -43.1, nvals)
+    m_grid, s_grid = np.meshgrid(m_values, s_values)
+    
+    ds = np.log10(s_values[1]) - np.log10(s_values[0])
+    dm = np.log10(m_values[1]) - np.log10(m_values[0])
+    
+    res = np.zeros((nvals, nvals))
+    for m in range(nvals):
+        for s in range(nvals):
+            res[m,s] = interpol(np.log10(m_values[m]), np.log10(s_values[s]))
+    res[np.isnan(res)] = 0
+    # Let's compute the integral
+    norm = simps(simps(res, dx=dm, axis=1), dx=ds)
+    
+    # Let's look for the 0.9 probability threshold
+    cuts = np.linspace(np.min(res), np.max(res), 100)
+    integrals = []
+    for c in cuts:
+        res0 = np.copy(res)
+        res0[np.where(res < c)[0], np.where(res < c)[1]] = 0
+        integrals.append( simps(simps(res0, dx=dm, axis=1), dx=ds) / norm )
+    integrals = np.asarray(integrals)
+    
+    cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
+    cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
+    if fill:
+        ax.contourf(m_values, s_values, res.T, levels = [0, cut90, np.max(res)], colors = ['white','darkcyan'], alpha = 0.3, linestyles = ['solid'])
+        ax.contourf(m_values, s_values, res.T, levels = [0, cut95, np.max(res)], colors = ['white','darkcyan'], alpha = 0.5, linestyles = ['solid'])
+    if line:
+        ax.contour(m_values, s_values, res.T, levels = [0,cut90], colors = [color], linestyles = ['solid'])
+        ax.contour(m_values, s_values, res.T, levels = [0,cut95], colors = [color], linestyles = ['--'])
+    
+    ax.axvline(x = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'black')
+    ax.axhline(y = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'black')
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_xlabel('$M_{DM}$ [GeV]')
+    ax.set_ylabel('$\sigma$ $[cm^{2}]$')
+
+    return ax
+
+
 # # Let's load the data
 
 # !ls ../data/andresData/SI-run0and1/SI-run01
@@ -396,6 +509,16 @@ print(rate.shape)
 print(diff_rate.shape)
 print(s1s2.shape)
 
+aux_row = np.zeros((11678,1,96))
+aux_row[:,0,:58] = diff_rate
+aux_row[:,0,58]  = rate
+
+aux_row.shape
+
+comb = np.hstack((aux_row,s1s2[:,:-2,:-1]))
+
+comb.shape
+
 # +
 # Let's split in training, validation and testing
 
@@ -403,7 +526,7 @@ ntrain = int(70 * nobs / 100)
 nval   = int(25 * nobs / 100)
 ntest  = int(5 * nobs / 100)
 
-np.random.seed(28890)
+#np.random.seed(28890)
 ind = np.random.choice(np.arange(nobs), size = nobs, replace = False)
 
 train_ind = ind[:ntrain]
@@ -426,6 +549,9 @@ s1s2_trainset = s1s2[train_ind,:,:]
 s1s2_valset   = s1s2[val_ind,:,:]
 s1s2_testset  = s1s2[test_ind,:,:]
 
+comb_trainset = comb[train_ind,:,:]
+comb_valset   = comb[val_ind,:,:]
+comb_testset  = comb[test_ind,:,:]
 # -
 
 # ## Ibarra
@@ -570,11 +696,17 @@ theta = theta_emcee
 
 # OPEN THE SAVED DATA
 
-h5filename = '../data/andresData/emcee/run_emcee_rate_mDM50_sigma2e-46_theta1.57/run_emcee_rate_mDM' + str(mdm_emcee) + '_sigma2e-46_theta' + str(theta_emcee) + '.h5'
+h5filename = '../data/andresData/emcee/run_emcee_example1/run_emcee_rate_mDM' + str(mdm_emcee) + '_sigma2e-46_theta' + str(theta_emcee) + '.h5'
+reader     = emcee.backends.HDFBackend(h5filename)
+MCMC_rate = reader.get_chain(flat=True)
 
-reader = emcee.backends.HDFBackend(h5filename)
+h5filename  = '../data/andresData/emcee/run_emcee_example1/run_emcee_drate_mDM' + str(mdm_emcee) + '_sigma2e-46_theta' + str(theta_emcee) + '.h5'
+reader      = emcee.backends.HDFBackend(h5filename)
+MCMC_drate = reader.get_chain(flat=True)
 
-samples_reader = reader.get_chain(flat=True)
+h5filename = '../data/andresData/emcee/run_emcee_example1/run_emcee_s1s2_mDM' + str(mdm_emcee) + '_sigma2e-46_theta' + str(theta_emcee) + '.h5'
+reader     = emcee.backends.HDFBackend(h5filename)
+MCMC_s1s1 = reader.get_chain(flat=True)
 # -
 
 # ## Let's make some exploratory plots
@@ -614,6 +746,25 @@ ax[0].text(0.5, 0.5, 'Total Rate = {:.3f}'.format(rate_testset[i]), transform = 
 #ax[0].set_yscale('log')
 
 ax[1].imshow(s1s2_testset[i].T, origin = 'lower')
+ax[1].set_xlabel('s1')
+ax[1].set_ylabel('s2')
+
+# +
+print(i)
+fig, ax = plt.subplots(1,2, figsize = (10,5))
+
+ax[0].plot(diff_rate_testset[i,:], c = 'black')
+ax[0].plot(comb_testset[i,0,:58], c = 'red', ls = ':')
+ax[0].plot(diff_rate_WIMP[test_ind[i],:], c = 'black', linestyle = ':')
+ax[0].set_xlabel('$E_{r}$ [keV]' )
+ax[0].set_ylabel('$dR/E_{r}$' )
+ax[0].text(0.5, 0.8,  '$\log_{10} $' + 'm = {:.2f} [?]'.format(pars_testset[i,0]), transform = ax[0].transAxes)
+ax[0].text(0.5, 0.7,  '$\log_{10}\sigma$' + ' = {:.2f} [?]'.format(pars_testset[i,1]), transform = ax[0].transAxes)
+ax[0].text(0.5, 0.6, '$\\theta$ = {:.2f}'.format(pars_testset[i,2]), transform = ax[0].transAxes)
+ax[0].text(0.5, 0.5, 'Total Rate = {:.3f}'.format(rate_testset[i]), transform = ax[0].transAxes)
+#ax[0].set_yscale('log')
+
+ax[1].imshow(comb_testset[i,1:,:].T, origin = 'lower')
 ax[1].set_xlabel('s1')
 ax[1].set_ylabel('s2')
 # -
@@ -771,6 +922,19 @@ if fit:
     plt.ylabel('Loss')
     plt.legend()
     plt.savefig('../graph/O1_loss_rate.pdf')
+
+# +
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+prior_samples = swyft.Samples(z = pars_prior)
+
+coverage_samples = trainer_rate.test_coverage(network_rate, samples_test_rate[:50], prior_samples)
+
+fix, axes = plt.subplots(1, 3, figsize = (12, 4))
+for i in range(3):
+    swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
+plt.tight_layout()
+#plt.savefig('../graph/Coverage_rate.pdf')
+# -
 
 # ### Let's make some inference
 
@@ -2146,6 +2310,19 @@ if fit:
     plt.legend()
     plt.savefig('../graph/O1_loss_drate.pdf')
 
+# +
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+prior_samples = swyft.Samples(z = pars_prior)
+
+coverage_samples = trainer_drate.test_coverage(network_drate, samples_test_drate[:50], prior_samples)
+
+fix, axes = plt.subplots(1, 3, figsize = (12, 4))
+for i in range(3):
+    swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
+plt.tight_layout()
+#plt.savefig('../graph/Coverage_drate.pdf')
+# -
+
 # ### Let's make some inference
 
 # +
@@ -3088,7 +3265,10 @@ else:
 # ---------------------------------------
 # Min val loss value at 48 epochs. -3.31
 # ---------------------------------------
+# -
 
+
+trainer_s1s2.test(network_s1s2, dm_test_s1s2, ckpt_path = ckpt_path)
 
 # +
 x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
@@ -3122,7 +3302,20 @@ if fit:
     plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.savefig('../graph/O1_loss_s1s2.pdf')
+    plt.savefig('../graph/O1_loss_s1s2_temp.pdf')
+
+# +
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+prior_samples = swyft.Samples(z = pars_prior)
+
+coverage_samples = trainer_s1s2.test_coverage(network_s1s2, samples_test_s1s2[:50], prior_samples)
+
+fix, axes = plt.subplots(1, 3, figsize = (12, 4))
+for i in range(3):
+    swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
+plt.tight_layout()
+#plt.savefig('../graph/Coverage_s1s2.pdf')
+# -
 
 # ### Let's make some inference
 
@@ -4795,47 +4988,54 @@ ax[1].plot(masses_pred, m_ratios_s1s2)
 
 # ## Combine everything (NOT WORKING YET)
 
-# +
-x_s1s2 = s1s2_trainset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 64x64
-x_norm_s1s2 = x_s1s2.reshape(len(x_s1s2), 1, 96, 96) # The shape need to be (#obs, #channels, dim, dim)
+# ### training
 
-x_drate = diff_rate_trainset # Observable. Input data. 
+rate_norm  = '0'
+drate_norm = '0'
+s1s2_norm  = 'false'
 
 # +
+x_norm_comb = comb_trainset
+#x_comb[:,0,:]=0
+x_norm_comb = x_norm_comb.reshape(len(x_norm_comb), 1, 96, 96) # The shape need to be (#obs, #channels, dim, dim)
+
 # Let's normalize everything between 0 and 1
-
 pars_min = np.min(pars_trainset, axis = 0)
 pars_max = np.max(pars_trainset, axis = 0)
 
 pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 
-x_min_drate = np.min(x_drate, axis = 0)
-x_max_drate = np.max(x_drate, axis = 0)
+# Rate normalization
+# #%x_min_rate = np.min(x_comb[:,0,0,58], axis = 0)
+# #%x_max_rate = np.max(x_comb[:,0,0,58], axis = 0)
+if rate_norm == 'true':
+    x_norm_comb[:,0,0,58] = (x_norm_comb[:,0,0,58] - x_min_rate) / (x_max_rate - x_min_rate)
+elif rate_norm == '0':
+    x_norm_comb[:,0,0,58] = 0
 
-x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+# Drate normalization
+# #%x_min_drate = np.min(x_comb[:,0,0,:58], axis = 0)
+# #%x_max_drate = np.max(x_comb[:,0,0,:58], axis = 0)
+if drate_norm == 'true':
+    x_norm_comb[:,0,0,:58] = (x_norm_comb[:,0,0,:58] - x_min_drate) / (x_max_drate - x_min_drate)
+elif drate_norm == '0':
+    x_norm_comb[:,0,0,:58] = np.zeros_like(x_norm_comb[:,0,0,:58])
+
+# s1s2 normalization
+if s1s2_norm == 'true':
+    x_max_s1s2 = np.max(x_norm_comb[:,0,1:,:])
+    x_norm_comb[:,0,1:,:] = x_norm_comb[:,0,1:,:] / x_max_s1s2
+
 
 # +
 # We have to build a swyft.Samples object that will handle the data
-samples_drate = swyft.Samples(x = x_norm_drate, z = pars_norm)
+samples_comb = swyft.Samples(x = x_norm_comb, z = pars_norm)
 
 # We have to build a swyft.SwyftDataModule object that will split the data into training, testing and validation sets
-dm_drate = swyft.SwyftDataModule(samples_drate, fractions = [0.7, 0.25, 0.05], batch_size = 32)
-
-# We have to build a swyft.Samples object that will handle the data
-samples_s1s2 = swyft.Samples(x = x_norm_s1s2, z = pars_norm)
-
-# We have to build a swyft.SwyftDataModule object that will split the data into training, testing and validation sets
-dm_s1s2 = swyft.SwyftDataModule(samples_s1s2, fractions = [0.7, 0.25, 0.05], batch_size = 32)
-# -
-
-samples_comb = swyft.Samples(x = [x_norm_s1s2,x_norm_drate], z = pars_norm)
+dm_comb = swyft.SwyftDataModule(samples_comb, fractions = [0.7, 0.25, 0.05], batch_size = 32)
 
 
-dm_comb = swyft.SwyftDataModule([samples_drate, samples_s1s2], fractions = [0.7, 0.25, 0.05], batch_size = 32)
-
-samples_comb['x'][1].shape
-
-
+# +
 # Now let's define a network that estimates all the 1D and 2D marginal posteriors
 class Network(swyft.SwyftModule):
     def __init__(self, lr = 1e-3, gamma = 1.):
@@ -4858,32 +5058,249 @@ class Network(swyft.SwyftModule):
           torch.nn.Linear(50, 10),
         )
         marginals = ((0, 1), (0, 2), (1, 2))
-        self.logratios1 = swyft.LogRatioEstimator_1dim(num_features = 68, num_params = 3, varnames = 'pars_norm')
-        self.logratios2 = swyft.LogRatioEstimator_Ndim(num_features = 68, marginals = marginals, varnames = 'pars_norm')
+        self.logratios1 = swyft.LogRatioEstimator_1dim(num_features = 10, num_params = 3, varnames = 'pars_norm')
+        self.logratios2 = swyft.LogRatioEstimator_Ndim(num_features = 10, marginals = marginals, varnames = 'pars_norm')
 
     def forward(self, A, B):
-        img = torch.tensor(A['x'][0])
+        img = torch.tensor(A['x'])
         #z   = torch.tensor(B['z'])
         f   = self.net(img)
-        g = torch.cat((f, A['x'][1]))
-        logratios1 = self.logratios1(g, B['z'])
-        logratios2 = self.logratios2(g, B['z'])
+        logratios1 = self.logratios1(f, B['z'])
+        logratios2 = self.logratios2(f, B['z'])
         return logratios1, logratios2
 
 
+class MetricTracker(Callback):
+
+    def __init__(self):
+        self.collection = []
+        self.val_loss = []
+        self.train_loss = []
+    
+    def on_validation_epoch_end(self, trainer, module):
+        elogs = trainer.logged_metrics # access it here
+        if 'train_loss' in elogs.keys():
+            self.val_loss.append(elogs['val_loss'])
+            self.train_loss.append(elogs['train_loss'])
+            self.collection.append(elogs)
+
+
+
+# -
+
 # Let's configure, instantiate and traint the network
-torch.manual_seed(28890)
+#torch.manual_seed(28890)
 cb = MetricTracker()
-early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=20, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=50, verbose=False, mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_comb_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_comb = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2500, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_comb = Network()
 
 # +
+pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
+
+x_norm_comb_test = comb_testset
+#x_comb[:,0,:]=0
+
+x_norm_comb_test = x_norm_comb_test.reshape(len(x_norm_comb_test), 1, 96, 96)
+
+# Rate normalization
+if rate_norm == 'true':
+    x_norm_comb_test[:,0,0,58] = (x_norm_comb_test[:,0,0,58] - x_min_rate) / (x_max_rate - x_min_rate)
+elif rate_norm == '0':
+    x_norm_comb_test[:,0,0,58] = 0
+
+# Drate normalization
+if drate_norm == 'true':
+    x_norm_comb_test[:,0,0,:58] = (x_norm_comb_test[:,0,0,:58] - x_min_drate) / (x_max_drate - x_min_drate)
+elif drate_norm == '0':
+    x_norm_comb_test[:,0,0,:58] = np.zeros_like(x_norm_comb_test[:,0,0,:58])
+
+# s1s2 normalization
+if s1s2_norm == 'true':
+    x_norm_comb_test[:,0,1:,:] = x_norm_comb_test[:,0,1:,:] / x_max_s1s2
+
+# We have to build a swyft.Samples object that will handle the data
+samples_test_comb = swyft.Samples(x = x_norm_comb_test, z = pars_norm_test)
 
 # We have to build a swyft.SwyftDataModule object that will split the data into training, testing and validation sets
-#dm_test_comb = swyft.SwyftDataModule(samples_comb, fractions = [0., 0., 1], batch_size = 32)
-trainer_comb.test(network_comb, samples_comb)
+dm_test_comb = swyft.SwyftDataModule(samples_test_comb, fractions = [0., 0., 1], batch_size = 32)
+trainer_comb.test(network_comb, dm_test_comb)
+
+# +
+fit = True
+if fit:
+    trainer_comb.fit(network_comb, dm_comb)
+    checkpoint_callback.to_yaml("./logs/O1_comb.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O1_comb.yaml")
+else:
+    ckpt_path = swyft.best_from_yaml("./logs/O1_comb.yaml")
+
+# ---------------------------------------
+# Min val loss value at  epochs. 
+# ---------------------------------------
+# -
+
+trainer_comb.test(network_comb, dm_test_comb, ckpt_path = ckpt_path)
+
+if fit:
+    val_loss = []
+    train_loss = []
+    for i in range(1, len(cb.collection)):
+        train_loss.append( np.asarray(cb.train_loss[i].cpu()) )
+        val_loss.append( np.asarray(cb.val_loss[i].cpu()) )
+
+    plt.plot(val_loss, label = 'Val Loss')
+    plt.plot(train_loss, label = 'Train Loss')
+    plt.legend()
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.savefig('../graph/O1_loss_comb.pdf')
+
+# +
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+prior_samples = swyft.Samples(z = pars_prior)
+
+coverage_samples = trainer_comb.test_coverage(network_comb, samples_test_comb[:50], prior_samples)
+
+fix, axes = plt.subplots(1, 3, figsize = (12, 4))
+for i in range(3):
+    swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
+plt.tight_layout()
+
+plt.savefig('../graph/Coverage_comb.pdf')
+# -
+
+# ### Let's make some inference
+
+# +
+# First let's create some observation from some "true" theta parameters
+i = np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle) 112
+print(i)
+
+# Rate-----------------------------------
+x_rate = np.log10(rate_testset)
+x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
+x_obs     = x_norm_rate[i,:]
+obs = swyft.Sample(x = x_obs)
+
+# Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+prior_samples = swyft.Samples(z = pars_prior)
+
+# Finally we make the inference
+predictions_rate = trainer_rate.infer(network_rate, obs, prior_samples)
+# -
+
+print(10**x_rate[i])
+
+# +
+# Diff rate
+
+x_drate = diff_rate_testset
+x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+x_obs     = x_norm_drate[i,:]
+
+# We have to put this "observation" into a swyft.Sample object
+obs = swyft.Sample(x = x_obs)
+
+# Finally we make the inference
+predictions_drate = trainer_drate.infer(network_drate, obs, prior_samples)
+
+# +
+# s1s2
+
+x_obs     = s1s2_testset[i,:-1,:-1].reshape(1,96,96)
+
+# We have to put this "observation" into a swyft.Sample object
+obs = swyft.Sample(x = x_obs)
+
+# Finally we make the inference
+predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
+
+# +
+# Comb
+pars_true = pars_norm_test[i,:]
+x_obs     = x_norm_comb_test[i,:,:,:]
+
+if comb_testset[i,0,58] < 2930: 
+    flag = 'exc'
+else:
+    flag = 'disc'
+print(flag)
+print(comb_testset[i,0,58])
+
+# We have to put this "observation" into a swyft.Sample object
+obs = swyft.Sample(x = x_obs)
+
+# Finally we make the inference
+predictions_comb = trainer_comb.infer(network_comb, obs, prior_samples)
+
+fig,ax = plt.subplots(1,2)
+
+ax[0].imshow(comb_testset[i,1:,:].T, origin = 'lower')
+ax[1].plot(comb_testset[i,0,:58])
+
+# +
+fig,ax = plt.subplots(2,2, figsize = (6,6), 
+                      gridspec_kw={'height_ratios': [0.5, 2], 'width_ratios':[2,0.5]})
+
+plt.subplots_adjust(hspace = 0.1, wspace = 0.1)
+
+plot1d(ax[0,0], predictions_s1s2, pars_true, par = 0)
+plot1d(ax[0,0], predictions_rate, pars_true, par = 0, fill = False, linestyle = ':', color = color_rate)
+plot1d(ax[0,0], predictions_drate, pars_true, par = 0, fill = False, linestyle = '--', color = color_drate)
+plot1d(ax[0,0], predictions_comb, pars_true, par = 0, fill = False, linestyle = '--', color = color_comb)
+plot1d_comb(ax[0,0], predictions_rate, predictions_drate, predictions_comb, pars_true, par = 0, fill = False, linestyle = '--', color = 'orange')
+
+plot2d(ax[1,0], predictions_s1s2, pars_true)
+plot2d(ax[1,0], predictions_rate, pars_true, fill = False, line = True, linestyle = ':', color = color_rate)
+plot2d(ax[1,0], predictions_drate, pars_true, fill = False, line = True, linestyle = '--', color = color_drate)
+plot2d(ax[1,0], predictions_comb, pars_true, fill = False, line = True, linestyle = '--', color = color_comb)
+plot2d_comb(ax[1,0], predictions_rate, predictions_drate, predictions_comb, pars_true, fill = False, line = True, linestyle = '--', color = 'orange')
+
+plot1d(ax[1,1], predictions_s1s2, pars_true, par = 1, flip = True)
+plot1d(ax[1,1], predictions_rate, pars_true, par = 1, flip = True, fill = False, linestyle = ':', color = color_rate)
+plot1d(ax[1,1], predictions_drate, pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = color_drate)
+plot1d(ax[1,1], predictions_comb, pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = color_comb)
+plot1d_comb(ax[1,1], predictions_rate, predictions_drate, predictions_comb, pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = 'orange')
+
+ax[0,0].set_xlim(8,1e3)
+ax[1,0].set_xlim(8,1e3)
+ax[1,0].set_ylim(1e-50,1e-43)
+ax[1,1].set_ylim(1e-50,1e-43)
+
+ax[0,0].set_xlabel('')
+ax[0,0].set_ylabel('$P(m|x)$')
+ax[0,0].set_xticks([])
+ax[1,1].set_ylabel('')
+ax[1,1].set_yticks([])
+ax[1,1].set_xlabel('$P(\sigma|x)$')
+
+custom_lines = []
+labels = ['Total Rate', 'Dif. Rate', 'S1-S2', 'Comb']
+markers = [':','--', 'solid','-.']
+colors = [color_rate, color_drate, color_s1s2, color_comb]
+for i in range(4):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+            label = labels[i]) )
+
+ax[0,1].axis('off')
+ax[0,1].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(-0.2,0.05))
+#ax[0,1].remove()
+
+#ax[0,1].
+#ax[1,0].grid(which = 'both')
+#plt.savefig('../graph/2d_custom_posteriors_' + str(i) + '_comb.pdf')
+
+# +
+data = np.random.normal(size = (10,2))
+conditions = [data[:,0] < 5, x < 10, x < 15]
+
+for condition in conditions:
+    indices = np.where(condition)[0]
+    print(indices)
 # -
 
 # # Some other plots
