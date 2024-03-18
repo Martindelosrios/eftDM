@@ -292,6 +292,119 @@ def plot2d(ax, predictions, pars_true, fill = True, line = False, linestyle = 's
     return ax
 
 
+# +
+def plot1d_comb(ax, predictions_rate, predictions_drate, predictions_s1s2, pars_true, par = 1, 
+           xlabel = '$\log_{10}(\sigma)$', ylabel = '$P(\sigma|x)\ /\ P(\sigma)$',
+           flip = False, fill = True, linestyle = 'solid', color = 'black', fac = 1):
+    # Let's put the results in arrays
+    parameter = np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+    ratios = np.exp(np.asarray(predictions_rate[0].logratios[:,par]) + np.asarray(predictions_drate[0].logratios[:,par]) + np.asarray(predictions_s1s2[0].logratios[:,par]))
+    
+    ind_sort  = np.argsort(parameter)
+    ratios    = ratios[ind_sort]
+    parameter = parameter[ind_sort]
+    
+    # Let's compute the integrated probability for different threshold
+    cuts = np.linspace(np.min(ratios), np.max(ratios), 100)
+    integrals = []
+    for c in cuts:
+        ratios0 = np.copy(ratios)
+        ratios0[np.where(ratios < c)[0]] = 0 
+        integrals.append( trapezoid(ratios0, parameter) / trapezoid(ratios, parameter) )
+        
+    integrals = np.asarray(integrals)
+    
+    # Let's compute the thresholds corresponding to 0.9 and 0.95 integrated prob
+    cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
+    cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
+
+    if not flip:
+        ax.plot(10**parameter, fac * ratios, c = color, linestyle = linestyle)
+        if fill:
+            ind = np.where(ratios > cut90)[0]
+            ax.fill_between(10**parameter[ind], fac * ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.3)
+            ind = np.where(ratios > cut95)[0]
+            ax.fill_between(10**parameter[ind], fac * ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.5)
+        ax.axvline(x = 10**(pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_xscale('log')
+    else:
+        ax.plot(fac * ratios, 10**parameter, c = color, linestyle = linestyle)
+        if fill:
+            ind = np.where(ratios > cut90)[0]
+            ax.fill_betweenx(10**parameter[ind], [0] * len(ind), fac * ratios[ind], color = 'darkcyan', alpha = 0.3)
+            ind = np.where(ratios > cut95)[0]
+            ax.fill_betweenx(10**parameter[ind], [0] * len(ind), fac * ratios[ind], color = 'darkcyan', alpha = 0.5) 
+        ax.axhline(y = 10**(pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
+        ax.set_xlabel(ylabel)
+        ax.set_ylabel(xlabel)
+        #ax.set_xlim(-0.1,8)
+        ax.set_ylim(1e-50, 1e-42)
+        ax.set_yscale('log')
+        
+    return ax
+
+
+def plot2d_comb(ax, predictions_rate, predictions_drate, predictions_s1s2, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black'):      
+    results_pars = np.asarray(predictions_rate[1].params)
+    results      = np.asarray(predictions_rate[1].logratios) + np.asarray(predictions_drate[1].logratios) + np.asarray(predictions_s1s2[1].logratios)
+    
+    # Let's make an interpolation function 
+    interp = CloughTocher2DInterpolator(results_pars[:,0,:], 10**results[:,0])
+    
+    def interpol(log_m, log_sigma):
+        m_norm = (log_m - pars_min[0]) / (pars_max[0] - pars_min[0])
+        sigma_norm = (log_sigma - pars_min[1]) / (pars_max[1] - pars_min[1])
+        return interp(m_norm, sigma_norm)
+        
+    # Let's estimate the value of the posterior in a grid
+    nvals = 20
+    m_values = np.logspace(0.8, 2.99, nvals)
+    s_values = np.logspace(-49., -43.1, nvals)
+    m_grid, s_grid = np.meshgrid(m_values, s_values)
+    
+    ds = np.log10(s_values[1]) - np.log10(s_values[0])
+    dm = np.log10(m_values[1]) - np.log10(m_values[0])
+    
+    res = np.zeros((nvals, nvals))
+    for m in range(nvals):
+        for s in range(nvals):
+            res[m,s] = interpol(np.log10(m_values[m]), np.log10(s_values[s]))
+    res[np.isnan(res)] = 0
+    # Let's compute the integral
+    norm = simps(simps(res, dx=dm, axis=1), dx=ds)
+    
+    # Let's look for the 0.9 probability threshold
+    cuts = np.linspace(np.min(res), np.max(res), 100)
+    integrals = []
+    for c in cuts:
+        res0 = np.copy(res)
+        res0[np.where(res < c)[0], np.where(res < c)[1]] = 0
+        integrals.append( simps(simps(res0, dx=dm, axis=1), dx=ds) / norm )
+    integrals = np.asarray(integrals)
+    
+    cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
+    cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
+    if fill:
+        ax.contourf(m_values, s_values, res.T, levels = [0, cut90, np.max(res)], colors = ['white','darkcyan'], alpha = 0.3, linestyles = ['solid'])
+        ax.contourf(m_values, s_values, res.T, levels = [0, cut95, np.max(res)], colors = ['white','darkcyan'], alpha = 0.5, linestyles = ['solid'])
+    if line:
+        ax.contour(m_values, s_values, res.T, levels = [0,cut90], colors = [color], linestyles = ['solid'])
+        ax.contour(m_values, s_values, res.T, levels = [0,cut95], colors = [color], linestyles = ['--'])
+    
+    ax.axvline(x = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'black')
+    ax.axhline(y = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'black')
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_xlabel('$M_{DM}$ [GeV]')
+    ax.set_ylabel('$\sigma$ $[cm^{2}]$')
+
+    return ax
+
+
+# -
+
 # # Let's load the data
 
 # !ls ../data/andresData/SI-run0and1/SI-run01/
@@ -1499,7 +1612,7 @@ x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = 1#np.random.randint(ntest)
+i = 10#np.random.randint(ntest)
 print(i)
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_drate[i,:]
@@ -1521,9 +1634,9 @@ pars_true * (pars_max - pars_min) + pars_min
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+#pars_prior = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
 
-prior_samples = swyft.Samples(z = pars_prior)
+#prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
 predictions_drate = trainer_drate.infer(network_drate, obs, prior_samples)
@@ -2440,9 +2553,9 @@ pars_true * (pars_max - pars_min) + pars_min
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+#pars_prior = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
 #pars_prior[:,2] = np.random.normal(pars_true[2], 0.001, (len(pars_prior)))
-prior_samples = swyft.Samples(z = pars_prior)
+#prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
 predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
@@ -2456,14 +2569,17 @@ plt.subplots_adjust(hspace = 0.1, wspace = 0.1)
 plot1d(ax[0,0], predictions_s1s2, pars_true, par = 0)
 #plot1d(ax[0,0], predictions_rate, pars_true, par = 0, fill = False, linestyle = ':', color = color_rate)
 #plot1d(ax[0,0], predictions_drate, pars_true, par = 0, fill = False, linestyle = '--', color = color_drate)
+plot1d_comb(ax[0,0], predictions_rate, predictions_drate, predictions_s1s2, pars_true, par = 0, fill = False, linestyle = '--', color = 'orange')
 
 plot2d(ax[1,0], predictions_s1s2, pars_true)
-#plot2d(ax[1,0], predictions_rate, pars_true, fill = False, line = True, linestyle = ':', color = color_rate)
-#plot2d(ax[1,0], predictions_drate, pars_true, fill = False, line = True, linestyle = '--', color = color_drate)
+plot2d(ax[1,0], predictions_rate, pars_true, fill = False, line = True, linestyle = ':', color = color_rate)
+plot2d(ax[1,0], predictions_drate, pars_true, fill = False, line = True, linestyle = '--', color = color_drate)
+plot2d_comb(ax[1,0], predictions_rate, predictions_drate, predictions_s1s2, pars_true, fill = False, line = True, linestyle = '--', color = 'orange')
 
 plot1d(ax[1,1], predictions_s1s2, pars_true, par = 1, flip = True)
 #plot1d(ax[1,1], predictions_rate, pars_true, par = 1, flip = True, fill = False, linestyle = ':', color = color_rate)
 #plot1d(ax[1,1], predictions_drate, pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = color_drate)
+plot1d_comb(ax[1,1], predictions_rate, predictions_drate, predictions_s1s2, pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = 'orange')
 
 ax[0,0].set_xlim(8,1e3)
 ax[1,0].set_xlim(8,1e3)
@@ -2558,6 +2674,10 @@ ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut95], co
 ax.axvline(x = (pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'black')
 ax.axhline(y = (pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'black')
 
+
+#plot2d_comb(ax, predictions_rate, predictions_drate, predictions_s1s2, pars_true, fill = False, line = True, linestyle = '--', color = 'orange')
+
+
 # Mass 1D
 ax = axes[0]
 
@@ -2592,6 +2712,8 @@ if fill:
     ind = np.where(ratios > cut95)[0]
     ax.fill_between(parameter[ind], fac * ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.5)
 ax.axvline(x = (pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
+
+plot1d_comb(ax, predictions_rate, predictions_drate, predictions_s1s2, pars_true, par = 0, fill = False, linestyle = '--', color = 'orange')
 
 # Sigma 1D
 ax = axes[3]
@@ -2631,6 +2753,10 @@ ax.axhline(y=np.max(parameter[ind]), color = 'black', ls = '--')
 
 
 ax.axhline(y = (pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
+
+plot1d_comb(ax, predictions_rate, predictions_drate, predictions_s1s2, pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = 'orange')
+
+
 # -
 
 
