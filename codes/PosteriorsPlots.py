@@ -79,6 +79,8 @@ else:
     print('Using CPU')
 
 
+# # Custom functions
+
 def read_slice(datFolder):
     nobs_slices = 0
     for i, folder in enumerate(datFolder):
@@ -237,7 +239,7 @@ def plot2d(ax, predictions, pars_true, fill = True, line = False, linestyle = 's
     results      = np.asarray(predictions[1].logratios)
     
     # Let's make an interpolation function 
-    interp = CloughTocher2DInterpolator(results_pars[:,0,:], 10**results[:,0])
+    interp = CloughTocher2DInterpolator(results_pars[:,0,:], np.exp(results[:,0]))
     
     def interpol(log_m, log_sigma):
         m_norm = (log_m - pars_min[0]) / (pars_max[0] - pars_min[0])
@@ -293,12 +295,15 @@ def plot2d(ax, predictions, pars_true, fill = True, line = False, linestyle = 's
 
 
 # +
-def plot1d_comb(ax, predictions_rate, predictions_drate, predictions_s1s2, pars_true, par = 1, 
+def plot1d_comb(ax, predictions, pars_true, par = 1, 
            xlabel = '$\log_{10}(\sigma)$', ylabel = '$P(\sigma|x)\ /\ P(\sigma)$',
            flip = False, fill = True, linestyle = 'solid', color = 'black', fac = 1):
     # Let's put the results in arrays
-    parameter = np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
-    ratios = np.exp(np.asarray(predictions_rate[0].logratios[:,par]) + np.asarray(predictions_drate[0].logratios[:,par]) + np.asarray(predictions_s1s2[0].logratios[:,par]))
+    parameter = np.asarray(predictions[0][0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+    ratios = np.zeros_like(predictions[0][0].logratios[:,par])
+    for pred in predictions:
+        ratios = ratios + np.asarray(pred[0].logratios[:,par])
+    ratios = np.exp(ratios)
     
     ind_sort  = np.argsort(parameter)
     ratios    = ratios[ind_sort]
@@ -346,12 +351,15 @@ def plot1d_comb(ax, predictions_rate, predictions_drate, predictions_s1s2, pars_
     return ax
 
 
-def plot2d_comb(ax, predictions_rate, predictions_drate, predictions_s1s2, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black'):      
-    results_pars = np.asarray(predictions_rate[1].params)
-    results      = np.asarray(predictions_rate[1].logratios) + np.asarray(predictions_drate[1].logratios) + np.asarray(predictions_s1s2[1].logratios)
+def plot2d_comb(ax, predictions, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black'):    
+    
+    results_pars = np.asarray(predictions[0][1].params)
+    results = np.zeros_like(predictions[0][1].logratios)
+    for pred in predictions:
+        results = results + np.asarray(pred[1].logratios)
     
     # Let's make an interpolation function 
-    interp = CloughTocher2DInterpolator(results_pars[:,0,:], 10**results[:,0])
+    interp = CloughTocher2DInterpolator(results_pars[:,0,:], np.exp(results[:,0]))
     
     def interpol(log_m, log_sigma):
         m_norm = (log_m - pars_min[0]) / (pars_max[0] - pars_min[0])
@@ -466,9 +474,6 @@ s1s2 = s1s2.reshape(nobs, 97, 97)
 pars[:,0] = np.log10(pars[:,0])
 pars[:,1] = np.log10(pars[:,1])
 
-# Let's transform the diff_rate to counts per energy bin
-
-#diff_rate = np.round(diff_rate * 362440)
 # -
 
 # This should be always zero
@@ -555,12 +560,12 @@ for i, folder in enumerate(datFolder):
         emcee_pars      = np.loadtxt(folder + 'pars.txt') # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
         emcee_rate_raw  = np.loadtxt(folder + 'rate.txt') # rate[:,0] = total expected events ; rate[:,1] = expected signal ; rate[:,2] = # events pseudo-experiment ; rate[:,3] = # signal events pseudo-experiment 
         
-        #emcee_diff_rate_WIMP     = np.loadtxt(folder + 'diff_rate_WIMP.txt')
-        #emcee_diff_rate_er       = np.loadtxt(folder + 'diff_rate_er.txt')
-        #emcee_diff_rate_ac       = np.loadtxt(folder + 'diff_rate_ac.txt')
-        #emcee_diff_rate_cevns_SM = np.loadtxt(folder + 'diff_rate_CEVNS-SM.txt')
-        #emcee_diff_rate_radio    = np.loadtxt(folder + 'diff_rate_radiogenics.txt')
-        #emcee_diff_rate_wall     = np.loadtxt(folder + 'diff_rate_wall.txt')
+        emcee_diff_rate_WIMP     = np.loadtxt(folder + 'diff_rate_WIMP.txt')
+        emcee_diff_rate_er       = np.loadtxt(folder + 'diff_rate_er.txt')
+        emcee_diff_rate_ac       = np.loadtxt(folder + 'diff_rate_ac.txt')
+        emcee_diff_rate_cevns_SM = np.loadtxt(folder + 'diff_rate_CEVNS-SM.txt')
+        emcee_diff_rate_radio    = np.loadtxt(folder + 'diff_rate_radiogenics.txt')
+        emcee_diff_rate_wall     = np.loadtxt(folder + 'diff_rate_wall.txt')
         
         emcee_s1s2_WIMP     = np.loadtxt(folder + 's1s2_WIMP.txt')
         emcee_s1s2_er       = np.loadtxt(folder + 's1s2_er.txt')
@@ -572,12 +577,12 @@ for i, folder in enumerate(datFolder):
         emcee_pars      = np.vstack((emcee_pars, np.loadtxt(folder + 'pars.txt'))) # pars[:,0] = mass ; pars[:,1] = cross-section ; pars[:,2] = theta
         emcee_rate_raw  = np.vstack((emcee_rate_raw, np.loadtxt(folder + 'rate.txt'))) # rate[:,0] = total expected events ; rate[:,1] = expected signal ; rate[:,2] = # events pseudo-experiment ; rate[:,3] = # signal events pseudo-experiment 
         
-        #emcee_diff_rate_WIMP     = np.vstack(( emcee_diff_rate_WIMP, np.loadtxt(folder + 'diff_rate_WIMP.txt')))
-        #emcee_diff_rate_er       = np.vstack(( emcee_diff_rate_er, np.loadtxt(folder + 'diff_rate_er.txt')))
-        #emcee_diff_rate_ac       = np.vstack(( emcee_diff_rate_ac, np.loadtxt(folder + 'diff_rate_ac.txt')))
-        #emcee_diff_rate_cevns_SM = np.vstack(( emcee_diff_rate_cevns_SM, np.loadtxt(folder + 'diff_rate_CEVNS-SM.txt')))
-        #emcee_diff_rate_radio    = np.vstack(( emcee_diff_rate_radio, np.loadtxt(folder + 'diff_rate_radiogenics.txt')))
-        #emcee_diff_rate_wall     = np.vstack(( emcee_diff_rate_wall, np.loadtxt(folder + 'diff_rate_wall.txt')))
+        emcee_diff_rate_WIMP     = np.vstack(( emcee_diff_rate_WIMP, np.loadtxt(folder + 'diff_rate_WIMP.txt')))
+        emcee_diff_rate_er       = np.vstack(( emcee_diff_rate_er, np.loadtxt(folder + 'diff_rate_er.txt')))
+        emcee_diff_rate_ac       = np.vstack(( emcee_diff_rate_ac, np.loadtxt(folder + 'diff_rate_ac.txt')))
+        emcee_diff_rate_cevns_SM = np.vstack(( emcee_diff_rate_cevns_SM, np.loadtxt(folder + 'diff_rate_CEVNS-SM.txt')))
+        emcee_diff_rate_radio    = np.vstack(( emcee_diff_rate_radio, np.loadtxt(folder + 'diff_rate_radiogenics.txt')))
+        emcee_diff_rate_wall     = np.vstack(( emcee_diff_rate_wall, np.loadtxt(folder + 'diff_rate_wall.txt')))
         
         emcee_s1s2_WIMP     = np.vstack((emcee_s1s2_WIMP, np.loadtxt(folder + 's1s2_WIMP.txt')))
         emcee_s1s2_er       = np.vstack((emcee_s1s2_er, np.loadtxt(folder + 's1s2_er.txt')))
@@ -590,7 +595,7 @@ for i, folder in enumerate(datFolder):
 emcee_nobs = len(emcee_pars) # Total number of observations
 print('We have ' + str(emcee_nobs) + ' observations...')
 
-#emcee_diff_rate = emcee_diff_rate_WIMP + emcee_diff_rate_er + emcee_diff_rate_ac + emcee_diff_rate_cevns_SM + emcee_diff_rate_radio + emcee_diff_rate_wall
+emcee_diff_rate = emcee_diff_rate_WIMP + emcee_diff_rate_er + emcee_diff_rate_ac + emcee_diff_rate_cevns_SM + emcee_diff_rate_radio + emcee_diff_rate_wall
 
 emcee_s1s2 = emcee_s1s2_WIMP + emcee_s1s2_er + emcee_s1s2_ac + emcee_s1s2_cevns_SM + emcee_s1s2_radio + emcee_s1s2_wall
 emcee_rate = np.sum(emcee_s1s2, axis = 1) # Just to have the same as on the other notebooks. This already includes the backgrounds
@@ -601,9 +606,6 @@ emcee_s1s2 = emcee_s1s2.reshape(emcee_nobs, 97, 97)
 emcee_pars[:,0] = np.log10(emcee_pars[:,0])
 emcee_pars[:,1] = np.log10(emcee_pars[:,1])
 
-# Let's transform the diff_rate to counts per energy bin
-
-#diff_rate = np.round(diff_rate * 362440)
 # -
 
 # ## Ibarra
@@ -916,7 +918,7 @@ x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = 1#np.random.randint(ntest) # 239 (disc) 455 (exc) 203 (middle) #415 (49.67, 9.3e-47, -0.7)
+i = np.random.randint(24) # 239 (disc) 455 (exc) 203 (middle) #415 (49.67, 9.3e-47, -0.7)
 print(i)
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_rate[i,:]
@@ -978,455 +980,6 @@ ax[1,1].set_yticks([])
 ax[1,1].set_xlabel('$P(\sigma|x)$')
 #ax[1,0].grid(which = 'both')
 #plt.savefig('../graph/2d_custom_posteriors_' + str(i) + '_rate.pdf')
-
-# +
-chain = ChainConsumer ()
-
-chain.add_chain(chain = samples_reader[:,0:2], parameters = [r"$\log(m_{dm})$ [GeV$]$", r"$\log(\sigma)$ [cm$²]$"])
-
-fig = chain.plotter.plot(figsize = (10,10),
-                   log_scales = False,
-                   extents = [(np.log10(6), 3), (-50, -43)])
-
-predictions = predictions_rate
-
-line = False
-linestyle = 'solid'
-color = 'black'
-fill = True
-
-axes = fig.get_axes()
-ax = axes[2]
-    
-results_pars = np.asarray(predictions[1].params)
-results      = np.asarray(predictions[1].logratios)
-
-# Let's make an interpolation function 
-interp = CloughTocher2DInterpolator(results_pars[:,0,:], 10**results[:,0])
-
-def interpol(log_m, log_sigma):
-    m_norm = (log_m - pars_min[0]) / (pars_max[0] - pars_min[0])
-    sigma_norm = (log_sigma - pars_min[1]) / (pars_max[1] - pars_min[1])
-    return interp(m_norm, sigma_norm)
-    
-# Let's estimate the value of the posterior in a grid
-nvals = 20
-m_values = np.logspace(0.8, 2.99, nvals)
-s_values = np.logspace(-49., -43.1, nvals)
-m_grid, s_grid = np.meshgrid(m_values, s_values)
-
-ds = np.log10(s_values[1]) - np.log10(s_values[0])
-dm = np.log10(m_values[1]) - np.log10(m_values[0])
-
-res = np.zeros((nvals, nvals))
-for m in range(nvals):
-    for s in range(nvals):
-        res[m,s] = interpol(np.log10(m_values[m]), np.log10(s_values[s]))
-res[np.isnan(res)] = 0
-# Let's compute the integral
-norm = simps(simps(res, dx=dm, axis=1), dx=ds)
-
-# Let's look for the 0.9 probability threshold
-cuts = np.linspace(np.min(res), np.max(res), 100)
-integrals = []
-for c in cuts:
-    res0 = np.copy(res)
-    res0[np.where(res < c)[0], np.where(res < c)[1]] = 0
-    integrals.append( simps(simps(res0, dx=dm, axis=1), dx=ds) / norm )
-integrals = np.asarray(integrals)
-
-cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
-cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
-ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut90], colors = [color], linestyles = ['solid'])
-ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut95], colors = [color], linestyles = ['--'])
-
-ax.axvline(x = (pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'black')
-ax.axhline(y = (pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'black')
-
-# Mass 1D
-ax = axes[0]
-
-par = 0
-parameter = np.asarray(predictions[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
-ratios = np.exp(np.asarray(predictions[0].logratios[:,par]))
-
-ind_sort  = np.argsort(parameter)
-ratios    = ratios[ind_sort]
-parameter = parameter[ind_sort]
-
-# Let's compute the integrated probability for different threshold
-cuts = np.linspace(np.min(ratios), np.max(ratios), 100)
-integrals = []
-for c in cuts:
-    ratios0 = np.copy(ratios)
-    ratios0[np.where(ratios < c)[0]] = 0 
-    integrals.append( trapezoid(ratios0, parameter) / trapezoid(ratios, parameter) )
-    
-integrals = np.asarray(integrals)
-
-# Let's compute the thresholds corresponding to 0.9 and 0.95 integrated prob
-cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
-cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
-
-fac = 5e-1
-ax.plot(parameter, fac * ratios, c = color, linestyle = linestyle)
-fill = False
-if fill:
-    ind = np.where(ratios > cut90)[0]
-    ax.fill_between(parameter[ind], fac * ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.3)
-    ind = np.where(ratios > cut95)[0]
-    ax.fill_between(parameter[ind], fac * ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.5)
-ax.axvline(x = (pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
-
-# Sigma 1D
-ax = axes[3]
-
-par = 1
-parameter = np.asarray(predictions[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
-ratios = np.exp(np.asarray(predictions[0].logratios[:,par]))
-
-ind_sort  = np.argsort(parameter)
-ratios    = ratios[ind_sort]
-parameter = parameter[ind_sort]
-
-# Let's compute the integrated probability for different threshold
-cuts = np.linspace(np.min(ratios), np.max(ratios), 100)
-integrals = []
-for c in cuts:
-    ratios0 = np.copy(ratios)
-    ratios0[np.where(ratios < c)[0]] = 0 
-    integrals.append( trapezoid(ratios0, parameter) / trapezoid(ratios, parameter) )
-    
-integrals = np.asarray(integrals)
-
-# Let's compute the thresholds corresponding to 0.9 and 0.95 integrated prob
-cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
-cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
-
-fac = 2e-1
-ax.plot(fac * ratios, parameter, c = color, linestyle = linestyle)
-
-ind = np.where(ratios > cut95)[0]
-ax.axhline(y=np.min(parameter[ind]), color = 'black', ls = ':')
-ax.axhline(y=np.max(parameter[ind]), color = 'black', ls = ':')
-
-ind = np.where(ratios > cut90)[0]
-ax.axhline(y=np.min(parameter[ind]), color = 'black', ls = '--')
-ax.axhline(y=np.max(parameter[ind]), color = 'black', ls = '--')
-
-
-ax.axhline(y = (pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
-
-plt.savefig('../graph/SWYFT_EMCEE_comparison_rate_m:{}_sigma:{:.2f}_theta:{:.2f}.pdf'.format(mdm_emcee, sigma_emcee, theta_emcee))
-# -
-
-# Let's plot the results
-swyft.corner(predictions_rate, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
-if flag == 'exc':
-    plt.savefig('../graph/O1_cornerplot_rate_exc.pdf')
-else:
-    plt.savefig('../graph/O1_cornerplot_rate.pdf')
-
-# +
-cross_sec = np.asarray(predictions_rate[0].params[:,1,0]) * B + A
-ratios = np.exp(np.asarray(predictions_rate[0].logratios[:,1]))
-
-ind_sort = np.argsort(cross_sec)
-ratios = ratios[ind_sort]
-cross_sec = cross_sec[ind_sort]
-
-plt.plot(cross_sec, ratios, c = 'blue')
-plt.xlabel('$\log_{10}(\sigma)$')
-plt.ylabel('$P(\sigma|x)\ /\ P(\sigma)$')
-# -
-
-plt.plot( (cross_sec - A) / B, ratios, c = 'blue')
-swyft.plot_1d(predictions_rate, "pars_norm[1]", bins = 50, smooth = 1)
-
-trapezoid(ratios, cross_sec)
-
-# +
-cr_th = np.argmin(np.abs(cross_sec + 49))
-
-trapezoid(ratios[cr_th:], cross_sec[cr_th:]) / trapezoid(ratios, cross_sec)
-
-# +
-bins = 50
-logratios_rate = predictions_rate[0].logratios[:,1]
-v              = predictions_rate[0].params[:,1,0]
-low, upp = v.min(), v.max()
-weights  = torch.exp(logratios_rate) / torch.exp(logratios_rate).mean(axis = 0)
-h1       = torchist.histogramdd(predictions_rate[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
-h1      /= len(predictions_rate[0].params[:,1,:]) * (upp - low) / bins
-h1       = np.array(h1)
-
-edges = torch.linspace(v.min(), v.max(), bins + 1)
-x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
-#x     = 10**(x)
-
-# +
-cross_section_th = -49
-vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
-
-low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
-up_1sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
-
-low_2sigma = np.min(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
-up_2sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
-
-low_3sigma = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
-up_3sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
-
-if low_1sigma > cross_section_th: print('Distinguish at 1 $\sigma$')
-if low_2sigma > cross_section_th: print('Distinguish at 2 $\sigma$')
-if low_3sigma > cross_section_th: print('Distinguish at 3 $\sigma$')
-
-
-# +
-plt.plot(x, h1, c = 'black')
-plt.axvline(x = pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1], c = 'orange')
-
-#y0 = 0 #-1.0 * x.max()
-#y1 = 5.0# * x.max()
-#plt.fill_between(x, y0, y1, where = h1 > vals[0], color='red', alpha=0.1)
-#plt.fill_between(x, y0, y1, where = h1 > vals[1], color='red', alpha=0.2)
-#plt.fill_between(x, y0, y1, where = h1 > vals[2], color='red', alpha=0.3)
-
-if low_1sigma > cross_section_th: plt.axvline(low_1sigma, c = 'black')
-if up_1sigma > cross_section_th: plt.axvline(up_1sigma, c = 'black')
-
-if low_2sigma > cross_section_th: plt.axvline(low_2sigma, c = 'black', linestyle = '--')
-if up_2sigma > cross_section_th: plt.axvline(up_2sigma, c = 'black', linestyle = '--')
-
-if low_3sigma > cross_section_th: plt.axvline(low_3sigma, c = 'black', linestyle = ':')
-if up_3sigma > cross_section_th: plt.axvline(up_3sigma, c = 'black', linestyle = ':')
-#plt.ylim(0,4.5)
-#plt.xscale('log')
-plt.xlabel('$log(\sigma)$')
-plt.ylabel('$P(\sigma|x)$')
-plt.text(-50,3, '$m = {:.2e}$'.format(10**(pars_true[0])))
-plt.text(-50,2.8, '$\sigma = {:.2e}$'.format(10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])))
-plt.text(-50,2.5, '$\\theta = {:.2f}$'.format(pars_true[0]))
-plt.plot(cross_sec, ratios, c = 'blue')
-
-if flag == 'exc':
-    plt.savefig('../graph/O1_1Dposterior_rate_exc_' + str(i) + '.pdf')
-else:
-    plt.savefig('../graph/O1_1Dposterior_rate_' + str(i) + '.pdf')
-# -
-
-parameters_rate = np.asarray(predictions_rate[0].params[:,:,0])
-parameters_rate = parameters_rate * (pars_max - pars_min) + pars_min
-parameters_rate.shape
-
-# +
-fig,ax = plt.subplots(1,3, sharey=True)
-
-ax[0].plot(parameters_rate[:,0], predictions_rate[0].logratios[:,0], 'o', rasterized = True)
-ax[0].set_xlabel(r'$m$')
-ax[0].set_ylabel(r'log ratio')
-ax[0].axvline(x = pars_testset[i,0])
-
-ax[1].plot(parameters_rate[:,1], predictions_rate[0].logratios[:,1], 'o', rasterized = True)
-ax[1].set_xlabel(r'$\sigma$')
-ax[1].axvline(x = pars_testset[i,1])
-
-ax[2].plot(parameters_rate[:,2], predictions_rate[0].logratios[:,2], 'o', rasterized = True)
-ax[2].set_xlabel(r'$g$')
-ax[2].axvline(x = pars_testset[i,2])
-
-if flag == 'exc':
-    plt.savefig('../graph/O1_loglikratio_rate_exc.pdf')
-else:
-    plt.savefig('../graph/O1_loglikratio_rate.pdf')
-
-# +
-par = 0
-cross_sec = np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
-ratios = np.exp(np.asarray(predictions_rate[0].logratios[:,par]))
-
-ind_sort  = np.argsort(cross_sec)
-ratios    = ratios[ind_sort]
-cross_sec = cross_sec[ind_sort]
-
-# Let's compute the integrated probability for different threshold
-cuts = np.linspace(np.min(ratios), np.max(ratios), 100)
-integrals = []
-for c in cuts:
-    ratios0 = np.copy(ratios)
-    ratios0[np.where(ratios < c)[0]] = 0 
-    integrals.append( trapezoid(ratios0, cross_sec) / trapezoid(ratios, cross_sec) )
-    
-integrals = np.asarray(integrals)
-
-# Let's compute the thresholds corresponding to 0.9 and 0.95 integrated prob
-cut90 = cuts[np.argmin( np.abs(integrals - 0.95))]
-cut95 = cuts[np.argmin( np.abs(integrals - 0.9))]
-# -
-
-cross_sec[ind]
-
-plt.plot(cross_sec, ratios, c = 'blue')
-ind = np.where(ratios > cut90)[0]
-plt.fill_between(cross_sec[ind], ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.3)
-#plt.scatter(cross_sec[ind], ratios[ind], color = 'darkcyan', alpha = 0.3)
-ind = np.where(ratios > cut95)[0]
-plt.fill_between(cross_sec[ind], ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.5)
-#ax.set_xlabel(xlabel)
-#ax.set_ylabel(ylabel)
-
-# +
-masses_pred = np.asarray(predictions_rate[0].params[:,0,0]) * (pars_max[0] - pars_min[0]) + pars_min[0]
-ratios = np.exp(np.asarray(predictions_rate[0].logratios[:,0]))
-
-ind_sort = np.argsort(masses_pred)
-ratios = ratios[ind_sort]
-masses_pred = masses_pred[ind_sort]
-
-plt.plot(masses_pred, ratios, c = 'blue')
-plt.xlabel('$\log_{10}(m_{DM})$')
-plt.ylabel('$P(m_{DM}|x)\ /\ P(m_{DM})$')
-# -
-
-trapezoid(ratios, masses_pred)
-
-# +
-m_min = np.argmin(np.abs(masses_pred - 1))
-m_max = np.argmin(np.abs(masses_pred - 2.6))
-
-trapezoid(ratios[m_min:m_max], masses_pred[m_min:m_max]) / trapezoid(ratios, masses_pred)
-# -
-
-10**(pars_true * (pars_max - pars_min) + pars_min)
-
-results_pars_rate = np.asarray(predictions_rate[1].params)
-results_rate      = np.asarray(predictions_rate[1].logratios)
-
-print(results_pars_rate[:,0,:].shape)
-print(np.min(results_pars_rate[:,0,:], axis = 0))
-print(np.max(results_pars_rate[:,0,:], axis = 0))
-
-# +
-mbins = np.logspace(0.41, 3.4, 25)
-sbins = np.logspace(-49.9, -40.5, 25)
-tbins = np.linspace(-1.6, 1.6, 25)
-
-fig, ax = plt.subplots(1,3, gridspec_kw = {'hspace':0.7, 'wspace':0.4}, figsize = (12,4))
-
-#  -------------------------------- MAX  ----------------------------------------
-
-# M vs Sigma
-
-m_results     = 10**(results_pars_rate[:,0,0] * (pars_max[0] - pars_min[0]) + pars_min[0])
-m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
-sigma_results = 10**(results_pars_rate[:,0,1] * (pars_max[1] - pars_min[1]) + pars_min[1])
-sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_rate[:,0], 'max', bins = [mbins, sbins])
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, -10, -5, -2, 0, 2, 5, 10, 100], colors = pallete)
-clb = plt.colorbar(im20, ax = ax[0])
-clb.ax.set_title('$\lambda$')
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [mbins, sbins])
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[0].contour(x_centers, y_centers, val.T, levels = [0, 1, 2, 3], cmap = 'inferno')
-ax[0].axhline(y = sigma_true, c = 'red')
-ax[0].axvline(x = m_true, c = 'red')
-ax[0].set_xlabel('m')
-ax[0].set_ylabel('$\sigma$')
-ax[0].set_xscale('log')
-ax[0].set_yscale('log')
-
-ax[0].set_ylim(4e-49, 9e-44)
-ax[0].set_xlim(9, 9e2)
-
-# M vs theta
-
-m_results     = 10**(results_pars_rate[:,1,0] * (pars_max[0] - pars_min[0]) + pars_min[0])
-m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
-theta_results = results_pars_rate[:,1,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
-theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, theta_results, results_rate[:,1], 'max', bins = [mbins, tbins])
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im21 = ax[1].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, -10, -5, -2, 0, 2, 5, 10, 100], colors = pallete)
-clb = plt.colorbar(im21, ax = ax[1])
-clb.ax.set_title('$\lambda$')
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), pars[:,2], np.log10(rate + 7), 'min', bins = [mbins, tbins])
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[1].contour(x_centers, y_centers, val.T, levels = [0, 1, 2, 3], cmap = 'inferno')
-ax[1].axhline(y = theta_true, c = 'red')
-ax[1].axvline(x = m_true, c = 'red')
-ax[1].set_xlabel('m')
-ax[1].set_ylabel('$\\theta$')
-ax[1].set_xscale('log')
-
-ax[1].set_xlim(9, 9e2)
-ax[1].set_ylim(-1.45, 1.45)
-# Sigma vs theta
-
-sigma_results = 10**(results_pars_rate[:,2,0] * (pars_max[1] - pars_min[1]) + pars_min[1])
-sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
-theta_results = results_pars_rate[:,2,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
-theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_rate[:,2], 'max', bins = [sbins, tbins])
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, -10, -5, -2, 0, 2, 5, 10, 100], colors = pallete)
-clb = plt.colorbar(im22, ax = ax[2])
-clb.ax.set_title('$\lambda$')
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [sbins, tbins])
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[2].contour(x_centers, y_centers, val.T, levels = [0, 1, 2, 3], cmap = 'inferno')
-ax[2].axhline(y = theta_true, c = 'red')
-ax[2].axvline(x = sigma_true, c = 'red')
-ax[2].set_xlabel('$\sigma$')
-ax[2].set_ylabel('$\\theta$')
-ax[2].set_xscale('log')
-
-ax[2].set_xlim(4e-49, 9e-44)
-ax[2].set_ylim(-1.45, 1.45)
-
-if flag == 'exc':
-    plt.savefig('../graph/pars_rate_exc.pdf')
-else:
-    plt.savefig('../graph/pars_rate.pdf')
 # -
 
 # ## Only using the total diff_rate
@@ -1607,23 +1160,23 @@ trainer_drate.test(network_drate, dm_test_drate, ckpt_path = ckpt_path)
 
 pars_norm = (emcee_pars - pars_min) / (pars_max - pars_min)
 
-x_drate = diff_rate_testset
+x_drate = emcee_diff_rate
 x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = 10#np.random.randint(ntest)
+#i = np.random.randint(24)
 print(i)
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_drate[i,:]
 
 plt.plot(x_obs)
 plt.text(5,0.5, str(np.sum(x_drate[i,:])))
-if np.sum(diff_rate_WIMP[test_ind[i],:]) < 300: 
+if np.sum(emcee_diff_rate_WIMP[i,:]) < 300: 
     flag = 'exc'
 else:
     flag = 'disc'
-print(np.sum(diff_rate_WIMP[test_ind[i],:]))
+print(np.sum(emcee_diff_rate_WIMP[i,:]))
 print(flag)
 # -
 
@@ -1665,678 +1218,6 @@ ax[1,1].set_yticks([])
 ax[1,1].set_xlabel('$P(\sigma|x)$')
 #ax[1,0].grid(which = 'both')
 #plt.savefig('../graph/2d_custom_posteriors_' + str(i) + '_drate.pdf')
-
-# +
-# Let's plot the results
-swyft.corner(predictions_drate, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
-
-if flag == 'exc':
-    plt.savefig('../graph/cornerplot_drate_exc.pdf')
-else:
-    plt.savefig('../graph/cornerplot_drate.pdf')
-
-# +
-bins = 50
-logratios_drate = predictions_drate[0].logratios[:,1]
-v               = predictions_drate[0].params[:,1,0]
-low, upp = v.min(), v.max()
-weights  = torch.exp(logratios_drate) / torch.exp(logratios_drate).mean(axis = 0)
-h1       = torchist.histogramdd(predictions_drate[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
-h1      /= len(predictions_drate[0].params[:,1,:]) * (upp - low) / bins
-h1       = np.array(h1)
-
-edges = torch.linspace(v.min(), v.max(), bins + 1)
-x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
-
-# +
-vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
-
-low_1sigma = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
-up_1sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
-
-low_2sigma = np.min(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
-up_2sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
-
-low_3sigma = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
-up_3sigma  = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
-
-if low_1sigma > -47.8: print('Distinguish at 1 $\sigma$')
-if low_2sigma > -47.8: print('Distinguish at 2 $\sigma$')
-if low_3sigma > -47.8: print('Distinguish at 3 $\sigma$')
-
-# +
-plt.plot(x, h1, c = 'blue')
-
-#y0 = 0 #-1.0 * x.max()
-#y1 = 5.0# * x.max()
-#plt.fill_between(x, y0, y1, where = h1 > vals[0], color='red', alpha=0.1)
-#plt.fill_between(x, y0, y1, where = h1 > vals[1], color='red', alpha=0.2)
-#plt.fill_between(x, y0, y1, where = h1 > vals[2], color='red', alpha=0.3)
-
-if low_1sigma > -47.8: plt.axvline(low_1sigma, c = 'green')
-if up_1sigma > -47.8: plt.axvline(up_1sigma, c = 'green')
-
-if low_2sigma > -47.8: plt.axvline(low_2sigma, c = 'green', linestyle = '--')
-if up_2sigma > -47.8: plt.axvline(up_2sigma, c = 'green', linestyle = '--')
-
-if low_3sigma > -47.8: plt.axvline(low_3sigma, c = 'green', linestyle = ':')
-if up_3sigma > -47.8: plt.axvline(up_3sigma, c = 'green', linestyle = ':')
-
-# +
-plt.plot(x, h1, c = 'black')
-plt.axvline(x = pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1], c = 'orange')
-
-if low_1sigma > cross_section_th: plt.axvline(low_1sigma, c = 'black')
-if up_1sigma > cross_section_th: plt.axvline(up_1sigma, c = 'black')
-
-if low_2sigma > cross_section_th: plt.axvline(low_2sigma, c = 'black', linestyle = '--')
-if up_2sigma > cross_section_th: plt.axvline(up_2sigma, c = 'black', linestyle = '--')
-
-if low_3sigma > cross_section_th: plt.axvline(low_3sigma, c = 'black', linestyle = ':')
-if up_3sigma > cross_section_th: plt.axvline(up_3sigma, c = 'black', linestyle = ':')
-#plt.ylim(0,4.5)
-#plt.xscale('log')
-plt.xlabel('$log(\sigma)$')
-plt.ylabel('$P(\sigma|x)$')
-plt.text(-50,3, '$m = {:.2e}$'.format(10**(pars_true[0])))
-plt.text(-50,2.8, '$\sigma = {:.2e}$'.format(10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])))
-plt.text(-50,2.5, '$\\theta = {:.2f}$'.format(pars_true[0]))
-if flag == 'exc':
-    plt.savefig('../graph/1Dposterior_drate_exc_' + str(i) + '.pdf')
-else:
-    plt.savefig('../graph/1Dposterior_drate_' + str(i) + '.pdf')
-# -
-
-ratios_drate = np.exp(np.asarray(predictions_drate[0].logratios[:,0]))
-masses_pred  = np.asarray(predictions_drate[0].params[:,0,0]) * (pars_max[0] - pars_min[0]) + pars_min[0]           
-ind_sort     = np.argsort(masses_pred)
-ratios_drate = ratios_drate[ind_sort]
-masses_pred  = masses_pred[ind_sort]
-
-plt.plot(masses_pred, ratios_drate)
-
-m_min = np.argmin(np.abs(masses_pred - 1))
-m_max = np.argmin(np.abs(masses_pred - 2.6))
-print(trapezoid(ratios_drate[m_min:m_max], masses_pred[m_min:m_max]) / trapezoid(ratios_drate, masses_pred))
-print(trapezoid(ratios_drate[m_min:], masses_pred[m_min:]) / trapezoid(ratios_drate, masses_pred))
-print(trapezoid(ratios_drate[:m_max], masses_pred[:m_max]) / trapezoid(ratios_drate, masses_pred))
-
-parameters_drate = np.asarray(predictions_drate[0].params[:,:,0])
-parameters_drate = parameters_drate * (pars_max - pars_min) + pars_min
-parameters_drate.shape
-
-# +
-fig,ax = plt.subplots(1,3, sharey=True)
-
-ax[0].plot(parameters_drate[:,0], predictions_drate[0].logratios[:,0], 'o', rasterized = True)
-ax[0].set_xlabel(r'$m$')
-ax[0].set_ylabel(r'log ratio')
-ax[0].axvline(x = pars_testset[i,0])
-
-ax[1].plot(parameters_drate[:,1], predictions_drate[0].logratios[:,1], 'o', rasterized = True)
-ax[1].set_xlabel(r'$\sigma$')
-ax[1].axvline(x = pars_testset[i,1])
-
-ax[2].plot(parameters_drate[:,2], predictions_drate[0].logratios[:,2], 'o', rasterized = True)
-ax[2].set_xlabel(r'$g$')
-ax[2].axvline(x = pars_testset[i,2])
-
-if flag == 'exc':
-    plt.savefig('../graph/loglikratio_drate_exc.pdf')
-else:
-    plt.savefig('../graph/loglikratio_drate.pdf')
-# -
-
-results_pars_drate = np.asarray(predictions_drate[1].params)
-results_drate = np.asarray(predictions_drate[1].logratios)
-
-# +
-fig, ax = plt.subplots(1,3, gridspec_kw = {'hspace':0.7, 'wspace':0.4}, figsize = (12,4))
-
-#  -------------------------------- MAX  ----------------------------------------
-
-# M vs Sigma
-
-m_results     = 10**(results_pars_drate[:,0,0] * (pars_max[0] - pars_min[0]) + pars_min[0])
-m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
-sigma_results = 10**(results_pars_drate[:,0,1] * (pars_max[1] - pars_min[1]) + pars_min[1])
-sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, sigma_results, results_drate[:,0], 'max', bins = [np.logspace(0.81, 3, 15), np.logspace(-48.2, -41, 15)])
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im20 = ax[0].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, -10, -5, -2, 0, 2, 5, 10, 100], colors = pallete)
-clb = plt.colorbar(im20, ax = ax[0])
-clb.ax.set_title('$\lambda$')
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), 10**(pars[:,1]), np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.logspace(-48.2, -41, 10)])
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[0].contour(x_centers, y_centers, val.T, levels = [0, 1, 2, 3], cmap = 'inferno')
-ax[0].axhline(y = sigma_true, c = 'red')
-ax[0].axvline(x = m_true, c = 'red')
-ax[0].set_xlabel('m')
-ax[0].set_ylabel('$\sigma$')
-ax[0].set_xscale('log')
-ax[0].set_yscale('log')
-
-# M vs theta
-
-m_results     = 10**(results_pars_drate[:,1,0] * (pars_max[0] - pars_min[0]) + pars_min[0])
-m_true        = 10**(pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0])
-theta_results = results_pars_drate[:,1,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
-theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(m_results, theta_results, results_drate[:,1], 'max', bins = [np.logspace(0.81, 3, 15), np.linspace(-1.6, 1.6, 15)])
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im21 = ax[1].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, -10, -5, -2, 0, 2, 5, 10, 100], colors = pallete)
-clb = plt.colorbar(im21, ax = ax[1])
-clb.ax.set_title('$\lambda$')
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,0]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(0.81, 3, 10), np.linspace(-1.6, 1.6, 10)])
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[1].contour(x_centers, y_centers, val.T, levels = [0, 1, 2, 3], cmap = 'inferno')
-ax[1].axhline(y = theta_true, c = 'red')
-ax[1].axvline(x = m_true, c = 'red')
-ax[1].set_xlabel('m')
-ax[1].set_ylabel('$\\theta$')
-ax[1].set_xscale('log')
-
-# Sigma vs theta
-
-sigma_results = 10**(results_pars_drate[:,2,0] * (pars_max[1] - pars_min[1]) + pars_min[1])
-sigma_true    = 10**(pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1])
-theta_results = results_pars_drate[:,2,1] * (pars_max[2] - pars_min[2]) + pars_min[2]
-theta_true    = pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(sigma_results, theta_results, results_drate[:,2], 'max', bins = [np.logspace(-48.2, -41, 15), np.linspace(-1.6, 1.6, 15)])
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-
-im22 = ax[2].contourf(x_centers, y_centers, val.T, alpha = 0.6, levels = [-100, -10, -5, -2, 0, 2, 5, 10, 100], colors = pallete)
-clb = plt.colorbar(im22, ax = ax[2])
-clb.ax.set_title('$\lambda$')
-
-val, xaux, yaux,_ = stats.binned_statistic_2d(10**(pars[:,1]), pars[:,2], np.log10(rate + 7), 'min', bins = [np.logspace(-48.2, -41, 10), np.linspace(-1.6, 1.6, 10)])
-    
-xbin = xaux[1] - xaux[0]
-x_centers = xaux[:-1] + xbin
-
-ybin = yaux[1] - yaux[0]
-y_centers = yaux[:-1] + ybin
-ax[2].contour(x_centers, y_centers, val.T, levels = [0, 1, 2, 3], cmap = 'inferno')
-ax[2].axhline(y = theta_true, c = 'red')
-ax[2].axvline(x = sigma_true, c = 'red')
-ax[2].set_xlabel('$\sigma$')
-ax[2].set_ylabel('$\\theta$')
-ax[2].set_xscale('log')
-
-if flag == 'exc':
-    plt.savefig('../graph/pars_drate_exc.pdf')
-else:
-    plt.savefig('../graph/pars_drate.pdf')
-# -
-
-# ### Let's make the contour plot
-
-# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv4
-
-m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
-cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
-
-# +
-force = False 
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2/SI-slices01-minuspidiv2-v5/'
-         ]
-
-cross_sec_sigmas_full       = []
-cross_sec_int_prob_full     = []
-cross_sec_int_prob_sup_full = []
-
-masses_int_prob_sup_full = []
-masses_prob_sup_full     = []
-masses_prob_inf_full     = []
-
-for folder in folders:
-    pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
-
-    if (os.path.exists(folder + 'cross_sec_sigmas_drate.txt') & 
-        os.path.exists(folder + 'cross_sec_int_prob_drate.txt') &
-        os.path.exists(folder + 'cross_sec_int_prob_sup_drate.txt') &
-        os.path.exists(folder + 'masses_int_prob_sup_drate.txt') &
-        os.path.exists(folder + 'masses_prob_sup_drate.txt') &
-        os.path.exists(folder + 'masses_prob_inf_drate.txt') 
-       ) == False or force == True:
-        # Let's normalize testset between 0 and 1
-        
-        pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
-        x_drate = diff_rate_slices
-        x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
-        
-        cross_sec_sigmas = np.ones((len(pars_slices), 7))
-    
-        cross_sec_int_prob     = np.ones(len(pars_norm)) * -99
-        cross_sec_int_prob_sup = np.ones(len(pars_norm)) * -99
-        masses_int_prob_sup    = np.ones(len(pars_norm)) * -99
-        masses_prob_sup        = np.ones(len(pars_norm)) * -99
-        masses_prob_inf        = np.ones(len(pars_norm)) * -99
-           
-        for itest in tqdm(range(len(pars_norm))):
-            x_obs = x_norm_drate[itest, :]
-            
-            # We have to put this "observation" into a swyft.Sample object
-            obs = swyft.Sample(x = x_obs)
-            
-            # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-            pars_prior    = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
-            prior_samples = swyft.Samples(z = pars_prior)
-            
-            # Finally we make the inference
-            predictions_drate = trainer_drate.infer(network_drate, obs, prior_samples)
-        
-            bins = 50
-            logratios_drate = predictions_drate[0].logratios[:,1]
-            v              = predictions_drate[0].params[:,1,0]
-            low, upp = v.min(), v.max()
-            weights  = torch.exp(logratios_drate) / torch.exp(logratios_drate).mean(axis = 0)
-            h1       = torchist.histogramdd(predictions_drate[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
-            h1      /= len(predictions_drate[0].params[:,1,:]) * (upp - low) / bins
-            h1       = np.array(h1)
-            
-            edges = torch.linspace(v.min(), v.max(), bins + 1)
-            x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
-        
-            vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
-            
-            cross_sec_sigmas[itest,0] = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
-            cross_sec_sigmas[itest,3] = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
-            
-            cross_sec_sigmas[itest,1] = np.min(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
-            cross_sec_sigmas[itest,4] = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
-            
-            cross_sec_sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
-            cross_sec_sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
-
-            cross_sec_sigmas[itest,6] = x[np.argmax(h1)]
-            
-            cr_th = np.argmin(np.abs(x - (-49)))
-            cross_sec_int_prob[itest]     = trapezoid(h1[:cr_th], x[:cr_th]) / trapezoid(h1, x)
-            cross_sec_int_prob_sup[itest] = trapezoid(h1[cr_th:], x[cr_th:]) / trapezoid(h1, x)
-            
-            ratios_drate = np.exp(np.asarray(predictions_drate[0].logratios[:,0]))
-            masses_pred = np.asarray(predictions_drate[0].params[:,0,0]) * (pars_max[0] - pars_min[0]) + pars_min[0]           
-            ind_sort    = np.argsort(masses_pred)
-            ratios_drate = ratios_drate[ind_sort]
-            masses_pred = masses_pred[ind_sort]
-            m_min = np.argmin(np.abs(masses_pred - 1))
-            m_max = np.argmin(np.abs(masses_pred - 2.6))
-            masses_int_prob_sup[itest] = trapezoid(ratios_drate[m_min:m_max], masses_pred[m_min:m_max]) / trapezoid(ratios_drate, masses_pred)
-            masses_prob_sup[itest] = trapezoid(ratios_drate[m_min:], masses_pred[m_min:]) / trapezoid(ratios_drate, masses_pred)
-            masses_prob_inf[itest] = trapezoid(ratios_drate[:m_max], masses_pred[:m_max]) / trapezoid(ratios_drate, masses_pred)
-
-        cross_sec_sigmas_full.append(cross_sec_sigmas)
-        cross_sec_int_prob_full.append(cross_sec_int_prob)
-        cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
-        masses_int_prob_sup_full.append(masses_int_prob_sup)
-        masses_prob_sup_full.append(masses_prob_sup)
-        masses_prob_inf_full.append(masses_prob_inf)
-            
-        np.savetxt(folder + 'cross_sec_sigmas_drate.txt', cross_sec_sigmas)
-        np.savetxt(folder + 'cross_sec_int_prob_drate.txt', cross_sec_int_prob)
-        np.savetxt(folder + 'cross_sec_int_prob_sup_drate.txt', cross_sec_int_prob_sup)
-        np.savetxt(folder + 'masses_int_prob_sup_drate.txt', masses_int_prob_sup)
-        np.savetxt(folder + 'masses_prob_sup_drate.txt', masses_prob_sup)
-        np.savetxt(folder + 'masses_prob_inf_drate.txt', masses_prob_inf)
-    else:
-        print('pre-computed')
-                
-        cross_sec_sigmas = np.loadtxt(folder + 'cross_sec_sigmas_drate.txt')
-        cross_sec_int_prob = np.loadtxt(folder + 'cross_sec_int_prob_drate.txt')
-        cross_sec_int_prob_sup = np.loadtxt(folder + 'cross_sec_int_prob_sup_drate.txt')
-        masses_int_prob_sup = np.loadtxt(folder + 'masses_int_prob_sup_drate.txt')
-        masses_prob_sup = np.loadtxt(folder + 'masses_prob_sup_drate.txt')
-        masses_prob_inf = np.loadtxt(folder + 'masses_prob_inf_drate.txt')
-        
-        cross_sec_sigmas_full.append(cross_sec_sigmas)
-        cross_sec_int_prob_full.append(cross_sec_int_prob)
-        cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
-        masses_int_prob_sup_full.append(masses_int_prob_sup)
-        masses_prob_sup_full.append(masses_prob_sup)
-        masses_prob_inf_full.append(masses_prob_inf)
-email('Termino analisis slice')
-
-# +
-cross_section_th = -49
-
-if len(cross_sec_int_prob_full) > 1:
-    cross_sec_int_prob_drate_mpi_2        = np.mean(np.asarray(cross_sec_int_prob_full), axis = 0)
-    cross_sec_int_prob_drate_sup_mpi_2    = np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    cross_sec_int_prob_drate_sup_mpi_2_sd = np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0)
-    masses_int_prob_drate_sup_mpi_2       = np.mean(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_int_prob_drate_sup_mpi_2_sd    = np.std(np.asarray(masses_int_prob_sup_full), axis = 0)
-    masses_prob_drate_sup_mpi_2           = np.mean(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_drate_sup_mpi_2_sd        = np.std(np.asarray(masses_prob_sup_full), axis = 0)
-    masses_prob_drate_inf_mpi_2           = np.mean(np.asarray(masses_prob_inf_full), axis = 0)
-    masses_prob_drate_inf_mpi_2_sd        = np.std(np.asarray(masses_prob_inf_full), axis = 0)
-    cross_sec_sigmas_mpi_2                = np.mean(np.asarray(cross_sec_sigmas_full), axis = 0)
-else:
-    cross_sec_int_prob_drate_mpi_2     = cross_sec_int_prob
-    cross_sec_int_prob_drate_sup_mpi_2 = cross_sec_int_prob_sup
-    masses_int_prob_drate_sup_mpi_2    = masses_int_prob_sup
-    masses_prob_drate_sup_mpi_2        = masses_prob_sup
-    masses_prob_drate_inf_mpi_2        = masses_prob_inf
-
-rate_1sigma_mpi_2 = np.ones(900) * -99
-rate_2sigma_mpi_2 = np.ones(900) * -99
-rate_3sigma_mpi_2 = np.ones(900) * -99
-
-rate_1sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,0] > cross_section_th)[0]] = 1
-rate_2sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,1] > cross_section_th)[0]] = 1
-rate_3sigma_mpi_2[np.where(cross_sec_sigmas_mpi_2[:,2] > cross_section_th)[0]] = 1
-
-# +
-fig, ax = plt.subplots(2,2)
-
-sbn.kdeplot(cross_sec_int_prob_drate_sup_0, label = '$\\theta = 0$', ax = ax[0,0])
-sbn.kdeplot(cross_sec_int_prob_drate_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[0,0])
-sbn.kdeplot(cross_sec_int_prob_drate_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0,0])
-sbn.kdeplot(cross_sec_int_prob_drate_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0,0])
-sbn.kdeplot(cross_sec_int_prob_drate_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0,0])
-ax[0,0].legend()
-ax[0,0].set_xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
-ax[0,0].set_title('Diff. Rate')
-
-sbn.kdeplot(masses_int_prob_drate_sup_0, label = '$\\theta = 0$', ax = ax[0,1])
-sbn.kdeplot(masses_int_prob_drate_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[0,1])
-sbn.kdeplot(masses_int_prob_drate_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[0,1])
-sbn.kdeplot(masses_int_prob_drate_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[0,1])
-sbn.kdeplot(masses_int_prob_drate_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[0,1])
-ax[0,1].legend()
-ax[0,1].set_xlabel('$\int_{m_{min}}^{m_{max}} P(m_{DM}|x)$')
-ax[0,1].set_title('Diff. Rate')
-
-sbn.kdeplot(masses_prob_drate_sup_0, label = '$\\theta = 0$', ax = ax[1,0])
-sbn.kdeplot(masses_prob_drate_sup_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[1,0])
-sbn.kdeplot(masses_prob_drate_sup_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1,0])
-sbn.kdeplot(masses_prob_drate_sup_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1,0])
-sbn.kdeplot(masses_prob_drate_sup_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1,0])
-ax[1,0].legend()
-ax[1,0].set_xlabel('$\int_{m_{min}}^{\inf} P(m_{DM}|x)$')
-
-sbn.kdeplot(masses_prob_drate_inf_0, label = '$\\theta = 0$', ax = ax[1,1])
-sbn.kdeplot(masses_prob_drate_inf_pi_2, label = '$\\theta = \\frac{\pi}{2}$', ax = ax[1,1])
-sbn.kdeplot(masses_prob_drate_inf_pi_4, label = '$\\theta = \\frac{\pi}{4}$', ax = ax[1,1])
-sbn.kdeplot(masses_prob_drate_inf_mpi_2, label = '$\\theta = - \\frac{\pi}{2}$', ax = ax[1,1])
-sbn.kdeplot(masses_prob_drate_inf_mpi_4, label = '$\\theta = - \\frac{\pi}{4}$', ax = ax[1,1])
-ax[1,1].legend()
-ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
-
-#plt.savefig('../graph/O1_int_prob_distribution_drate.pdf')
-
-# +
-sigma = 0.5 # this depends on how noisy your data is, play with it!
-
-CR_int_prob_sup_0_drate         = gaussian_filter(cross_sec_int_prob_drate_sup_0, sigma)
-CR_int_prob_sup_0_drate_min     = gaussian_filter(cross_sec_int_prob_drate_sup_0 - cross_sec_int_prob_drate_sup_0_sd, sigma)
-CR_int_prob_sup_0_drate_max     = gaussian_filter(cross_sec_int_prob_drate_sup_0 + cross_sec_int_prob_drate_sup_0_sd, sigma)
-CR_int_prob_sup_pi_2_drate      = gaussian_filter(cross_sec_int_prob_drate_sup_pi_2, sigma)
-CR_int_prob_sup_pi_2_drate_min  = gaussian_filter(cross_sec_int_prob_drate_sup_pi_2 - cross_sec_int_prob_drate_sup_pi_2_sd, sigma)
-CR_int_prob_sup_pi_2_drate_max  = gaussian_filter(cross_sec_int_prob_drate_sup_pi_2 + cross_sec_int_prob_drate_sup_pi_2_sd, sigma)
-CR_int_prob_sup_pi_4_drate      = gaussian_filter(cross_sec_int_prob_drate_sup_pi_4, sigma)
-CR_int_prob_sup_pi_4_drate_min  = gaussian_filter(cross_sec_int_prob_drate_sup_pi_4 - cross_sec_int_prob_drate_sup_pi_4_sd, sigma)
-CR_int_prob_sup_pi_4_drate_max  = gaussian_filter(cross_sec_int_prob_drate_sup_pi_4 + cross_sec_int_prob_drate_sup_pi_4_sd, sigma)
-CR_int_prob_sup_mpi_2_drate     = gaussian_filter(cross_sec_int_prob_drate_sup_mpi_2, sigma)
-CR_int_prob_sup_mpi_2_drate_min = gaussian_filter(cross_sec_int_prob_drate_sup_mpi_2 - cross_sec_int_prob_drate_sup_mpi_2_sd, sigma)
-CR_int_prob_sup_mpi_2_drate_max = gaussian_filter(cross_sec_int_prob_drate_sup_mpi_2 + cross_sec_int_prob_drate_sup_mpi_2_sd, sigma)
-CR_int_prob_sup_mpi_4_drate     = gaussian_filter(cross_sec_int_prob_drate_sup_mpi_4, sigma)
-CR_int_prob_sup_mpi_4_drate_min = gaussian_filter(cross_sec_int_prob_drate_sup_mpi_4 - cross_sec_int_prob_drate_sup_mpi_4_sd, sigma)
-CR_int_prob_sup_mpi_4_drate_max = gaussian_filter(cross_sec_int_prob_drate_sup_mpi_4 + cross_sec_int_prob_drate_sup_mpi_4_sd, sigma)
-
-M_int_prob_sup_0_drate         = gaussian_filter(masses_int_prob_drate_sup_0, sigma)
-M_int_prob_sup_0_drate_min     = gaussian_filter(masses_int_prob_drate_sup_0 - masses_int_prob_drate_sup_0_sd, sigma)
-M_int_prob_sup_0_drate_max     = gaussian_filter(masses_int_prob_drate_sup_0 + masses_int_prob_drate_sup_0_sd, sigma)
-M_prob_sup_0_drate             = gaussian_filter(masses_prob_drate_sup_0, sigma)
-M_prob_inf_0_drate             = gaussian_filter(masses_prob_drate_inf_0, sigma)
-
-M_int_prob_sup_pi_2_drate      = gaussian_filter(masses_int_prob_drate_sup_pi_2, sigma)
-M_int_prob_sup_pi_2_drate_min  = gaussian_filter(masses_int_prob_drate_sup_pi_2 - masses_int_prob_drate_sup_pi_2_sd, sigma)
-M_int_prob_sup_pi_2_drate_max  = gaussian_filter(masses_int_prob_drate_sup_pi_2 + masses_int_prob_drate_sup_pi_2_sd, sigma)
-M_prob_sup_pi_2_drate          = gaussian_filter(masses_prob_drate_sup_pi_2, sigma)
-M_prob_inf_pi_2_drate          = gaussian_filter(masses_prob_drate_inf_pi_2, sigma)
-
-M_int_prob_sup_pi_4_drate      = gaussian_filter(masses_int_prob_drate_sup_pi_4, sigma)
-M_int_prob_sup_pi_4_drate_min  = gaussian_filter(masses_int_prob_drate_sup_pi_4 - masses_int_prob_drate_sup_pi_4_sd, sigma)
-M_int_prob_sup_pi_4_drate_max  = gaussian_filter(masses_int_prob_drate_sup_pi_4 + masses_int_prob_drate_sup_pi_4_sd, sigma)
-M_prob_sup_pi_4_drate          = gaussian_filter(masses_prob_drate_sup_pi_4, sigma)
-M_prob_inf_pi_4_drate          = gaussian_filter(masses_prob_drate_inf_pi_4, sigma)
-
-M_int_prob_sup_mpi_2_drate     = gaussian_filter(masses_int_prob_drate_sup_mpi_2, sigma)
-M_int_prob_sup_mpi_2_drate_min = gaussian_filter(masses_int_prob_drate_sup_mpi_2 - masses_int_prob_drate_sup_mpi_2_sd, sigma)
-M_int_prob_sup_mpi_2_drate_max = gaussian_filter(masses_int_prob_drate_sup_mpi_2 + masses_int_prob_drate_sup_mpi_2_sd, sigma)
-M_prob_sup_mpi_2_drate         = gaussian_filter(masses_prob_drate_sup_mpi_2, sigma)
-M_prob_inf_mpi_2_drate         = gaussian_filter(masses_prob_drate_inf_mpi_2, sigma)
-
-M_int_prob_sup_mpi_4_drate     = gaussian_filter(masses_int_prob_drate_sup_mpi_4, sigma)
-M_int_prob_sup_mpi_4_drate_min = gaussian_filter(masses_int_prob_drate_sup_mpi_4 - masses_int_prob_drate_sup_mpi_4_sd, sigma)
-M_int_prob_sup_mpi_4_drate_max = gaussian_filter(masses_int_prob_drate_sup_mpi_4 + masses_int_prob_drate_sup_mpi_4_sd, sigma)
-M_prob_sup_mpi_4_drate         = gaussian_filter(masses_prob_drate_sup_mpi_4, sigma)
-M_prob_inf_mpi_4_drate         = gaussian_filter(masses_prob_drate_inf_mpi_4, sigma)
-
-
-# +
-levels = [0.67, 0.76, 0.84, 0.9, 1] 
-
-fig, ax = plt.subplots(2,2, sharex = True, sharey = True, figsize = (10,10))
-
-fig00 = ax[0,0].contourf(m_vals, cross_vals, CR_int_prob_sup_pi_2_drate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
-ax[0,0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_drate.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
-ax[0,0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
-ax[0,0].contour(m_vals, cross_vals, M_int_prob_sup_pi_2_rate.reshape(30,30).T, levels = levels, linestyles = ':', cmap = 'inferno')
-ax[0,0].contour(m_vals, cross_vals, M_prob_sup_pi_2_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
-ax[0,0].contour(m_vals, cross_vals, M_prob_inf_pi_2_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
-
-ax[0,0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]')
-ax[0,0].set_yscale('log')
-ax[0,0].set_xscale('log')
-ax[0,0].grid(which='both')
-ax[0,0].text(3e2, 1e-44, '$\\theta = \pi/2$')
-ax[0,0].legend(loc = 'lower left')
-
-ax[0,1].contourf(m_vals, cross_vals, CR_int_prob_sup_pi_4_drate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
-ax[0,1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_drate.reshape(30,30).T, levels=levels, linewidths = 2, zorder = 4)
-ax[0,1].contour(m_vals, cross_vals, CR_int_prob_sup_pi_4_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
-ax[0,1].contour(m_vals, cross_vals, M_int_prob_sup_pi_4_rate.reshape(30,30).T, levels = 5, linestyles = '-.', cmap = 'inferno')
-ax[0,1].contour(m_vals, cross_vals, M_prob_sup_pi_4_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
-ax[0,1].contour(m_vals, cross_vals, M_prob_inf_pi_4_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
-
-ax[0,1].grid(which='both')
-ax[0,1].text(3e2, 1e-44, '$\\theta = \pi/4$')
-
-ax[1,0].contourf(m_vals, cross_vals, CR_int_prob_sup_mpi_2_drate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
-ax[1,0].contour(m_vals, cross_vals, CR_int_prob_sup_mpi_2_drate.reshape(30,30).T, levels=levels)
-ax[1,0].contour(m_vals, cross_vals, CR_int_prob_sup_mpi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
-ax[1,0].contour(m_vals, cross_vals, M_int_prob_sup_mpi_2_rate.reshape(30,30).T, levels = 5, linestyles = '-.', cmap = 'inferno')
-ax[1,0].contour(m_vals, cross_vals, M_prob_sup_mpi_2_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
-ax[1,0].contour(m_vals, cross_vals, M_prob_inf_mpi_2_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
-
-ax[1,0].grid(which='both')
-ax[1,0].text(3e2, 1e-44, '$\\theta = -\pi/2$')
-
-ax[1,1].contourf(m_vals, cross_vals, CR_int_prob_sup_0_drate.reshape(30,30).T, levels=levels, alpha = 0.6, zorder = 1)
-ax[1,1].contour(m_vals, cross_vals, CR_int_prob_sup_0_drate.reshape(30,30).T, levels=levels)
-ax[1,1].contour(m_vals, cross_vals, CR_int_prob_sup_0_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, zorder = 4, linestyles = ':', colors = ['magenta'])
-ax[1,1].contour(m_vals, cross_vals, M_int_prob_sup_0_rate.reshape(30,30).T, levels = 5, linestyles = '-.', cmap = 'inferno')
-ax[1,1].contour(m_vals, cross_vals, M_prob_sup_0_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = ['--'])
-ax[1,1].contour(m_vals, cross_vals, M_prob_inf_0_drate.reshape(30,30).T, levels=levels, linewidths = 1, cmap = 'inferno', linestyles = [(0, (3,5,1,5,1,5))])
-
-ax[1,1].grid(which='both')
-ax[1,1].text(3e2, 1e-44, '$\\theta = 0$')
-
-ax[0,0].set_ylabel('$\sigma [cm^{2}]$')
-ax[1,0].set_ylabel('$\sigma [cm^{2}]$')
-ax[1,0].set_xlabel('m [GeV]')
-ax[1,1].set_xlabel('m [GeV]')
-
-
-fig.subplots_adjust(right = 0.8)
-cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
-cbar    = fig.colorbar(fig00, cax = cbar_ax)
-cbar.ax.set_title('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
-
-ax[0,0].set_ylim(1e-49, 1e-43)
-ax[0,0].set_xlim(5, 1e3)
-
-plt.savefig('../graph/O1_contours_drate_int_prob_sup.pdf')
-# -
-
-# ### Testset
-
-# +
-force = False
-folder = '../data/andresData/SI-run0and1/'
-
-pars_slices = pars_testset
-diff_rate_slices = diff_rate_testset
-
-if (os.path.exists(folder + 'test_cross_sec_sigmas_drate.txt') & 
-    os.path.exists(folder + 'test_cross_sec_int_prob_drate.txt') &
-    os.path.exists(folder + 'test_cross_sec_int_prob_sup_drate.txt') &
-    os.path.exists(folder + 'test_masses_int_prob_sup_drate.txt') &
-    os.path.exists(folder + 'test_masses_prob_sup_drate.txt') &
-    os.path.exists(folder + 'test_masses_prob_inf_drate.txt') 
-   ) == False or force == True:
-    # Let's normalize testset between 0 and 1
-
-    
-    pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
-    x_drate = diff_rate_slices
-    x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
-    
-    cross_sec_sigmas = np.ones((len(pars_slices), 7))
-
-    cross_sec_int_prob     = np.ones(len(pars_norm)) * -99
-    cross_sec_int_prob_sup = np.ones(len(pars_norm)) * -99
-    masses_int_prob_sup    = np.ones(len(pars_norm)) * -99
-    masses_prob_sup        = np.ones(len(pars_norm)) * -99
-    masses_prob_inf        = np.ones(len(pars_norm)) * -99
-       
-    for itest in tqdm(range(len(pars_norm))):
-        x_obs = x_norm_drate[itest, :]
-        
-        # We have to put this "observation" into a swyft.Sample object
-        obs = swyft.Sample(x = x_obs)
-        
-        # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-        pars_prior    = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
-        prior_samples = swyft.Samples(z = pars_prior)
-        
-        # Finally we make the inference
-        predictions_drate = trainer_drate.infer(network_drate, obs, prior_samples)
-    
-        bins = 50
-        logratios_drate = predictions_drate[0].logratios[:,1]
-        v              = predictions_drate[0].params[:,1,0]
-        low, upp = v.min(), v.max()
-        weights  = torch.exp(logratios_drate) / torch.exp(logratios_drate).mean(axis = 0)
-        h1       = torchist.histogramdd(predictions_drate[0].params[:,1,:], bins, weights = weights, low=low, upp=upp)
-        h1      /= len(predictions_drate[0].params[:,1,:]) * (upp - low) / bins
-        h1       = np.array(h1)
-        
-        edges = torch.linspace(v.min(), v.max(), bins + 1)
-        x     = np.array((edges[1:] + edges[:-1]) / 2) * (pars_max[1] - pars_min[1]) + pars_min[1]
-    
-        vals = sorted(swyft.plot.plot2.get_HDI_thresholds(h1, cred_level=[0.68268, 0.95450, 0.99730]))
-        
-        drate_cross_sec_sigmas[itest,0] = np.min(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
-        drate_cross_sec_sigmas[itest,3] = np.max(x[np.where(np.array(h1) > np.array(vals[2]))[0]])
-        
-        drate_cross_sec_sigmas[itest,1] = np.min(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
-        drate_cross_sec_sigmas[itest,4] = np.max(x[np.where(np.array(h1) > np.array(vals[1]))[0]])
-        
-        drate_cross_sec_sigmas[itest,2] = np.min(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
-        drate_cross_sec_sigmas[itest,5] = np.max(x[np.where(np.array(h1) > np.array(vals[0]))[0]])
-
-        drate_cross_sec_sigmas[itest,6] = x[np.argmax(h1)]
-        
-        cr_th = np.argmin(np.abs(x - (-49)))
-        drate_cross_sec_int_prob[itest]     = trapezoid(h1[:cr_th], x[:cr_th]) / trapezoid(h1, x)
-        drate_cross_sec_int_prob_sup[itest] = trapezoid(h1[cr_th:], x[cr_th:]) / trapezoid(h1, x)
-        
-        ratios_drate = np.exp(np.asarray(predictions_drate[0].logratios[:,0]))
-        masses_pred = np.asarray(predictions_drate[0].params[:,0,0]) * (pars_max[0] - pars_min[0]) + pars_min[0]           
-        ind_sort    = np.argsort(masses_pred)
-        ratios_drate = ratios_drate[ind_sort]
-        masses_pred = masses_pred[ind_sort]
-        m_min = np.argmin(np.abs(masses_pred - 1))
-        m_max = np.argmin(np.abs(masses_pred - 2.6))
-        drate_masses_int_prob_sup[itest] = trapezoid(ratios_drate[m_min:m_max], masses_pred[m_min:m_max]) / trapezoid(ratios_drate, masses_pred)
-        drate_masses_prob_sup[itest] = trapezoid(ratios_drate[m_min:], masses_pred[m_min:]) / trapezoid(ratios_drate, masses_pred)
-        drate_masses_prob_inf[itest] = trapezoid(ratios_drate[:m_max], masses_pred[:m_max]) / trapezoid(ratios_drate, masses_pred)
-
-    np.savetxt(folder + 'test_cross_sec_sigmas_drate.txt', drate_cross_sec_sigmas)
-    np.savetxt(folder + 'test_cross_sec_int_prob_drate.txt', drate_cross_sec_int_prob)
-    np.savetxt(folder + 'test_cross_sec_int_prob_sup_drate.txt', drate_cross_sec_int_prob_sup)
-    np.savetxt(folder + 'test_masses_int_prob_sup_drate.txt', drate_masses_int_prob_sup)
-    np.savetxt(folder + 'test_masses_prob_sup_drate.txt', drate_masses_prob_sup)
-    np.savetxt(folder + 'test_masses_prob_inf_drate.txt', drate_masses_prob_inf)
-else:
-    print('pre-computed')
-            
-    drate_cross_sec_sigmas = np.loadtxt(folder + 'test_cross_sec_sigmas_drate.txt')
-    drate_cross_sec_int_prob = np.loadtxt(folder + 'test_cross_sec_int_prob_drate.txt')
-    drate_cross_sec_int_prob_sup = np.loadtxt(folder + 'test_cross_sec_int_prob_sup_drate.txt')
-    drate_masses_int_prob_sup = np.loadtxt(folder + 'test_masses_int_prob_sup_drate.txt')
-    drate_masses_prob_sup = np.loadtxt(folder + 'test_masses_prob_sup_drate.txt')
-    drate_masses_prob_inf = np.loadtxt(folder + 'test_masses_prob_inf_drate.txt')
-
-
-# +
-#plt.scatter(pars_slices[:,1], cross_sec_sigmas_pi_2[:,6], c = CR_int_prob_sup_pi_2_rate)
-rec_ind = np.where(drate_cross_sec_int_prob_sup > .9)[0]
-norec_ind = np.where(drate_cross_sec_int_prob_sup < .9)[0]
-plt.errorbar(x = pars_slices[rec_ind,1], y = drate_cross_sec_sigmas[rec_ind,6], 
-             yerr = np.abs(drate_cross_sec_sigmas[rec_ind,0] - drate_cross_sec_sigmas[rec_ind,6]),
-            fmt = '.', zorder = 2, capsize = 2)
-
-plt.scatter(x = pars_slices[rec_ind,1], y = drate_cross_sec_sigmas[rec_ind,6], c = drate_cross_sec_int_prob_sup[rec_ind],
-            zorder=5, cmap = 'inferno') 
-plt.plot([-49,-42], [-49,-42])
-plt.xlim(-49,-42)
-plt.ylim(-49,-42)
-plt.colorbar()
-
-plt.xlabel('$\sigma_{Real}$')
-plt.ylabel('$\sigma_{Pred}$')
-
-#plt.savefig('../graph/O1_testset_predVSreal_drate.pdf')
 # -
 
 # ## Using s1s2
@@ -2513,7 +1394,7 @@ x_norm_s1s2 = x_s1s2 = emcee_s1s2[:,:-1,:-1]
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = 19#np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
+#i = np.random.randint(24) # 
 print(i)
 
 pars_true = pars_norm[i,:]
@@ -2523,23 +1404,6 @@ if np.sum(x_obs) < 2930:
     flag = 'exc'
 else:
     print(np.sum(x_obs))
-    flag = 'disc'
-print(flag)
-
-plt.imshow(x_obs[0].T, origin = 'lower')
-
-# +
-# First let's create some observation from some "true" theta parameters
-i = 2#np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
-print(i)
-
-pars_true = pars_norm[i,:]
-x_obs     = x_norm_s1s2[i,:].reshape(1,96,96)
-
-if np.sum(x_obs * x_max_s1s2) < 2930: 
-    flag = 'exc'
-else:
-    print(np.sum(x_obs * x_max_s1s2))
     flag = 'disc'
 print(flag)
 
@@ -2566,20 +1430,25 @@ fig,ax = plt.subplots(2,2, figsize = (6,6),
 
 plt.subplots_adjust(hspace = 0.1, wspace = 0.1)
 
-plot1d(ax[0,0], predictions_s1s2, pars_true, par = 0)
+#plot1d(ax[0,0], predictions_s1s2, pars_true, par = 0)
 #plot1d(ax[0,0], predictions_rate, pars_true, par = 0, fill = False, linestyle = ':', color = color_rate)
 #plot1d(ax[0,0], predictions_drate, pars_true, par = 0, fill = False, linestyle = '--', color = color_drate)
-plot1d_comb(ax[0,0], predictions_rate, predictions_drate, predictions_s1s2, pars_true, par = 0, fill = False, linestyle = '--', color = 'orange')
+plot1d_comb(ax[0,0], [predictions_rate], pars_true, par = 0, fill = False, linestyle = ':', color = color_rate)
+plot1d_comb(ax[0,0], [predictions_rate, predictions_drate], pars_true, par = 0, fill = False, linestyle = '--', color = color_drate)
+plot1d_comb(ax[0,0], [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 0, fill = True, linestyle = 'solid', color = color_s1s2)
 
-plot2d(ax[1,0], predictions_s1s2, pars_true)
+#plot2d(ax[1,0], predictions_s1s2, pars_true)
 plot2d(ax[1,0], predictions_rate, pars_true, fill = False, line = True, linestyle = ':', color = color_rate)
-plot2d(ax[1,0], predictions_drate, pars_true, fill = False, line = True, linestyle = '--', color = color_drate)
-plot2d_comb(ax[1,0], predictions_rate, predictions_drate, predictions_s1s2, pars_true, fill = False, line = True, linestyle = '--', color = 'orange')
+#plot2d(ax[1,0], predictions_drate, pars_true, fill = False, line = True, linestyle = '--', color = color_drate)
+plot2d_comb(ax[1,0], [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyle = '--', color = color_drate)
+plot2d_comb(ax[1,0], [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = True, line = True, linestyle = 'solid', color = color_s1s2)
 
-plot1d(ax[1,1], predictions_s1s2, pars_true, par = 1, flip = True)
+#plot1d(ax[1,1], predictions_s1s2, pars_true, par = 1, flip = True)
 #plot1d(ax[1,1], predictions_rate, pars_true, par = 1, flip = True, fill = False, linestyle = ':', color = color_rate)
 #plot1d(ax[1,1], predictions_drate, pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = color_drate)
-plot1d_comb(ax[1,1], predictions_rate, predictions_drate, predictions_s1s2, pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = 'orange')
+plot1d_comb(ax[1,1], [predictions_rate], pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = color_rate)
+plot1d_comb(ax[1,1], [predictions_rate, predictions_drate], pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = color_drate)
+plot1d_comb(ax[1,1], [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 1, flip = True, fill = True, linestyle = 'solid', color = color_s1s2)
 
 ax[0,0].set_xlim(8,1e3)
 ax[1,0].set_xlim(8,1e3)
@@ -2596,7 +1465,7 @@ ax[1,1].set_xlabel('$P(\sigma|x)$')
 custom_lines = []
 labels = ['Total Rate', 'Dif. Rate', 'S1-S2']
 markers = [':','--', 'solid']
-colors = [color_rate, color_drate, 'black']
+colors = [color_rate, color_drate, color_s1s2]
 for i in range(3):
     custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
             label = labels[i]) )
@@ -2607,7 +1476,7 @@ ax[0,1].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox
 
 #ax[0,1].
 #ax[1,0].grid(which = 'both')
-#plt.savefig('../graph/2d_custom_posteriors_' + str(i) + '_s1s2.pdf')
+plt.savefig('../graph/2d_custom_posteriors_emcee' + str(i) + '.pdf')
 
 
 # +
