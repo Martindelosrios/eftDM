@@ -411,6 +411,153 @@ def plot2d_comb(ax, predictions, pars_true, fill = True, line = False, linestyle
     return ax
 
 
+# +
+def plot1d_emcee(ax, predictions, pars_true, par = 1, 
+           xlabel = '$\log_{10}(\sigma)$', ylabel = '$P(\sigma|x)\ /\ P(\sigma)$',
+           flip = False, fill = True, linestyle = 'solid', color = 'black', fac = 1, probs = [0.9, 0.95]):
+               
+    # Let's put the results in arrays
+    parameter = np.asarray(predictions[0][0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+    ratios = np.zeros_like(predictions[0][0].logratios[:,par])
+    for pred in predictions:
+        ratios = ratios + np.asarray(pred[0].logratios[:,par])
+    ratios = np.exp(ratios)
+    
+    ind_sort  = np.argsort(parameter)
+    ratios    = ratios[ind_sort]
+    parameter = parameter[ind_sort]
+    
+    # Let's compute the integrated probability for different threshold
+    cuts = np.linspace(np.min(ratios), np.max(ratios), 100)
+    integrals = []
+    for c in cuts:
+        ratios0 = np.copy(ratios)
+        ratios0[np.where(ratios < c)[0]] = 0 
+        integrals.append( trapezoid(ratios0, parameter) / trapezoid(ratios, parameter) )
+        
+    integrals = np.asarray(integrals)
+    
+    # Let's compute the thresholds corresponding to 0.9 and 0.95 integrated prob
+    cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
+    cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
+    for prob in probs:
+        cut_p = cuts[np.argmin( np.abs(integrals - prob))]
+        
+        if not flip:
+            ax.plot(parameter, fac * ratios, c = color, linestyle = linestyle)
+            if fill:
+                ind = np.where(ratios > cut_p)[0]
+                pars_aux = parameter[ind]
+                ratios_aux = ratios[ind]
+                ind = np.argmin(pars_aux)
+                ax.plot([pars_aux[ind], pars_aux[ind]], [fac * ratios_aux[ind], 0], color = 'darkcyan', alpha = 1)
+                ind = np.argmax(pars_aux)
+                ax.plot([pars_aux[ind], pars_aux[ind]], [fac * ratios_aux[ind], 0], color = 'darkcyan', alpha = 1)
+                
+                # #%ind = np.where(ratios > cut95)[0]
+                # #%pars_aux = parameter[ind]
+                # #%ratios_aux = ratios[ind]
+                # #%ind = np.argmin(pars_aux)
+                # #%ax.plot([pars_aux[ind], pars_aux[ind]], [fac * ratios_aux[ind], 0], color = 'darkcyan', alpha = 1, ls = '--')
+                # #%ind = np.argmax(pars_aux)
+                # #%ax.plot([pars_aux[ind], pars_aux[ind]], [fac * ratios_aux[ind], 0], color = 'darkcyan', alpha = 1, ls = '--')
+                
+                #ax.fill_between(parameter[ind], fac * ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.3)
+                #ind = np.where(ratios > cut95)[0]
+                #ax.fill_between(parameter[ind], fac * ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.5)
+            ax.axvline(x = (pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
+            ax.set_xlabel(xlabel)
+            ax.set_ylabel(ylabel)
+        else:
+            ax.plot(fac * ratios, parameter, c = color, linestyle = linestyle)
+            if fill:
+                ind = np.where(ratios > cut_p)[0]
+                pars_aux = parameter[ind]
+                ratios_aux = ratios[ind]
+                ind = np.argmin(pars_aux)
+                ax.plot([fac * ratios_aux[ind], 0],[pars_aux[ind], pars_aux[ind]],  color = 'darkcyan', alpha = 1)
+                ind = np.argmax(pars_aux)
+                ax.plot([fac * ratios_aux[ind], 0],[pars_aux[ind], pars_aux[ind]],  color = 'darkcyan', alpha = 1)
+                
+                # #%ind = np.where(ratios > cut95)[0]
+                # #%pars_aux = parameter[ind]
+                # #%ratios_aux = ratios[ind]
+                # #%ind = np.argmin(pars_aux)
+                # #%ax.plot([fac * ratios_aux[ind], 0],[pars_aux[ind], pars_aux[ind]],  color = 'darkcyan', alpha = 1, ls = '--')
+                # #%ind = np.argmax(pars_aux)
+                # #%ax.plot([fac * ratios_aux[ind], 0],[pars_aux[ind], pars_aux[ind]],  color = 'darkcyan', alpha = 1, ls = '--')
+                
+                #ax.fill_betweenx(parameter[ind], [0] * len(ind), fac * ratios[ind], color = 'darkcyan', alpha = 0.3)
+                #ind = np.where(ratios > cut95)[0]
+                #ax.fill_betweenx(parameter[ind], [0] * len(ind), fac * ratios[ind], color = 'darkcyan', alpha = 0.5) 
+        ax.axhline(y = (pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
+        ax.set_xlabel(ylabel)
+        ax.set_ylabel(xlabel)
+        
+    return ax
+
+
+def plot2d_emcee(ax, predictions, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black', probs = [0.9, 0.95], zorder = 0):    
+    
+    results_pars = np.asarray(predictions[0][1].params)
+    results = np.zeros_like(predictions[0][1].logratios)
+    for pred in predictions:
+        results = results + np.asarray(pred[1].logratios)
+    
+    # Let's make an interpolation function 
+    interp = CloughTocher2DInterpolator(results_pars[:,0,:], np.exp(results[:,0]))
+    
+    def interpol(log_m, log_sigma):
+        m_norm = (log_m - pars_min[0]) / (pars_max[0] - pars_min[0])
+        sigma_norm = (log_sigma - pars_min[1]) / (pars_max[1] - pars_min[1])
+        return interp(m_norm, sigma_norm)
+        
+    # Let's estimate the value of the posterior in a grid
+    nvals = 20
+    m_values = np.logspace(0.8, 2.99, nvals)
+    s_values = np.logspace(-49., -43.1, nvals)
+    m_grid, s_grid = np.meshgrid(m_values, s_values)
+    
+    ds = np.log10(s_values[1]) - np.log10(s_values[0])
+    dm = np.log10(m_values[1]) - np.log10(m_values[0])
+    
+    res = np.zeros((nvals, nvals))
+    for m in range(nvals):
+        for s in range(nvals):
+            res[m,s] = interpol(np.log10(m_values[m]), np.log10(s_values[s]))
+    res[np.isnan(res)] = 0
+    # Let's compute the integral
+    norm = simps(simps(res, dx=dm, axis=1), dx=ds)
+    
+    # Let's look for the 0.9 probability threshold
+    cuts = np.linspace(np.min(res), np.max(res), 100)
+    integrals = []
+    for c in cuts:
+        res0 = np.copy(res)
+        res0[np.where(res < c)[0], np.where(res < c)[1]] = 0
+        integrals.append( simps(simps(res0, dx=dm, axis=1), dx=ds) / norm )
+    integrals = np.asarray(integrals)
+    
+    cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
+    cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
+    for prob in probs:
+        cut_p = cuts[np.argmin( np.abs(integrals - prob))]
+        
+        if fill:
+            ax.contourf(np.log10(m_values), np.log10(s_values), res.T, levels = [0, cut_p, np.max(res)], colors = ['white',color], alpha = 0.3, linestyles = ['solid'], zorder = zorder)
+            #ax.contourf(np.log10(m_values), np.log10(s_values), res.T, levels = [0, cut95, np.max(res)], colors = ['white','darkcyan'], alpha = 0.5, linestyles = ['solid'], zorder = zorder)
+        if line:
+            ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0, cut_p], colors = [color], linestyles = ['solid'], zorder = zorder)
+            #ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut95], colors = [color], linestyles = ['--'], zorder = zorder)
+    
+    ax.axvline(x = (pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'black')
+    ax.axhline(y = (pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'black')
+    ax.set_xlabel('$M_{DM}$ [GeV]')
+    ax.set_ylabel('$\sigma$ $[cm^{2}]$')
+
+    return ax
+
+
 # -
 
 # # Let's load the data
@@ -918,7 +1065,7 @@ x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = np.random.randint(24) # 239 (disc) 455 (exc) 203 (middle) #415 (49.67, 9.3e-47, -0.7)
+i = 19#np.random.randint(24) # 239 (disc) 455 (exc) 203 (middle) #415 (49.67, 9.3e-47, -0.7)
 print(i)
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_rate[i,:]
@@ -1005,8 +1152,8 @@ x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
 
 
-for i in range(50):
-    ax[0,0].plot(x_norm_drate[i])
+for ii in range(50):
+    ax[0,0].plot(x_norm_drate[ii])
 ax[0,0].set_xlabel('$E_{r}$')
 
 ax[1,0].hist(pars_norm[:,0])
@@ -1394,7 +1541,7 @@ x_norm_s1s2 = x_s1s2 = emcee_s1s2[:,:-1,:-1]
 
 # +
 # First let's create some observation from some "true" theta parameters
-#i = np.random.randint(24) # 
+i = 19#np.random.randint(24) # 
 print(i)
 
 pars_true = pars_norm[i,:]
@@ -1476,158 +1623,64 @@ ax[0,1].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox
 
 #ax[0,1].
 #ax[1,0].grid(which = 'both')
-plt.savefig('../graph/2d_custom_posteriors_emcee' + str(i) + '.pdf')
+#plt.savefig('../graph/2d_custom_posteriors_emcee' + str(i) + '.pdf')
 
 
 # +
 chain = ChainConsumer ()
+chain.add_chain(chain = MCMC_rate[:,0:2], parameters = [r"$\log(m_{dm})$ [GeV$]$", r"$\log(\sigma)$ [cm$²]$"],
+                    color = color_rate, kde = 2, shade = False, linestyle = '--', linewidth = 1.5, name = 'Rate', zorder = 4)
 
-chain.add_chain(chain = MCMC_s1s1[:,0:2], parameters = [r"$\log(m_{dm})$ [GeV$]$", r"$\log(\sigma)$ [cm$²]$"])
+chain.add_chain(chain = MCMC_drate[:,0:2], parameters = [r"$\log(m_{dm})$ [GeV$]$", r"$\log(\sigma)$ [cm$²]$"],
+                    color = color_drate, kde = 2, shade = False, linestyle = '--', linewidth = 1.5, name = 'Rate + Dif.Rate', zorder = 5, smooth = 3)
+
+chain.add_chain(chain = MCMC_s1s1[:,0:2], parameters = [r"$\log(m_{dm})$ [GeV$]$", r"$\log(\sigma)$ [cm$²]$"],
+                    color = color_s1s2, kde = 2, shade = False, linestyle = '--', linewidth = 1.5, name = 'Rate + Dif.Rate + s1s2', zorder = 6)
+
+chain.configure(sigmas = [2], legend_location = (0,-1))
 
 fig = chain.plotter.plot(figsize = (10,10),
                    log_scales = False,
-                   extents = [(np.log10(6), 3), (-50, -43)])
-
-predictions = predictions_s1s2
-
-line = False
-linestyle = 'solid'
-color = 'black'
-fill = True
+                   extents = [(np.log10(6), 2.8), (-50, -43)])
 
 axes = fig.get_axes()
+
+
 ax = axes[2]
-    
-results_pars = np.asarray(predictions[1].params)
-results      = np.asarray(predictions[1].logratios)
-
-# Let's make an interpolation function 
-interp = CloughTocher2DInterpolator(results_pars[:,0,:], 10**results[:,0])
-
-def interpol(log_m, log_sigma):
-    m_norm = (log_m - pars_min[0]) / (pars_max[0] - pars_min[0])
-    sigma_norm = (log_sigma - pars_min[1]) / (pars_max[1] - pars_min[1])
-    return interp(m_norm, sigma_norm)
-    
-# Let's estimate the value of the posterior in a grid
-nvals = 20
-m_values = np.logspace(0.8, 2.99, nvals)
-s_values = np.logspace(-49., -43.1, nvals)
-m_grid, s_grid = np.meshgrid(m_values, s_values)
-
-ds = np.log10(s_values[1]) - np.log10(s_values[0])
-dm = np.log10(m_values[1]) - np.log10(m_values[0])
-
-res = np.zeros((nvals, nvals))
-for m in range(nvals):
-    for s in range(nvals):
-        res[m,s] = interpol(np.log10(m_values[m]), np.log10(s_values[s]))
-res[np.isnan(res)] = 0
-# Let's compute the integral
-norm = simps(simps(res, dx=dm, axis=1), dx=ds)
-
-# Let's look for the 0.9 probability threshold
-cuts = np.linspace(np.min(res), np.max(res), 100)
-integrals = []
-for c in cuts:
-    res0 = np.copy(res)
-    res0[np.where(res < c)[0], np.where(res < c)[1]] = 0
-    integrals.append( simps(simps(res0, dx=dm, axis=1), dx=ds) / norm )
-integrals = np.asarray(integrals)
-
-cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
-cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
-ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut90], colors = [color], linestyles = ['solid'])
-ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut95], colors = [color], linestyles = ['--'])
-
-ax.axvline(x = (pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'black')
-ax.axhline(y = (pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'black')
+plot2d_emcee(ax, [predictions_rate], pars_true, fill = True, line = True, linestyle = ':', 
+             color = color_rate, probs = [0.9], zorder = 0)
+plot2d_emcee(ax, [predictions_rate, predictions_drate], pars_true, fill = True, line = True, linestyle = '--', 
+             color = color_drate, probs = [0.9], zorder = 1)
+plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = True, line = True, linestyle = 'solid', 
+             color = color_s1s2, probs = [0.9], zorder = 2)
+ax.set_xlabel('$Log_{10}(M_{DM} \ [GeV])$')
+ax.set_ylabel('$Log_{10}(\\sigma \ [cm^{2}])$')
 
 
-#plot2d_comb(ax, predictions_rate, predictions_drate, predictions_s1s2, pars_true, fill = False, line = True, linestyle = '--', color = 'orange')
-
-
-# Mass 1D
 ax = axes[0]
+plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 0, 
+             fill = True, linestyle = 'solid', color = color_s1s2, fac = 0.45, probs = [0.9])
+ax.set_xlabel('')
+ax.set_ylabel('')
 
-par = 0
-parameter = np.asarray(predictions[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
-ratios = np.exp(np.asarray(predictions[0].logratios[:,par]))
-
-ind_sort  = np.argsort(parameter)
-ratios    = ratios[ind_sort]
-parameter = parameter[ind_sort]
-
-# Let's compute the integrated probability for different threshold
-cuts = np.linspace(np.min(ratios), np.max(ratios), 100)
-integrals = []
-for c in cuts:
-    ratios0 = np.copy(ratios)
-    ratios0[np.where(ratios < c)[0]] = 0 
-    integrals.append( trapezoid(ratios0, parameter) / trapezoid(ratios, parameter) )
-    
-integrals = np.asarray(integrals)
-
-# Let's compute the thresholds corresponding to 0.9 and 0.95 integrated prob
-cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
-cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
-
-fac = 5e-1
-ax.plot(parameter, fac * ratios, c = color, linestyle = linestyle)
-fill = False
-if fill:
-    ind = np.where(ratios > cut90)[0]
-    ax.fill_between(parameter[ind], fac * ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.3)
-    ind = np.where(ratios > cut95)[0]
-    ax.fill_between(parameter[ind], fac * ratios[ind], [0] * len(ind), color = 'darkcyan', alpha = 0.5)
-ax.axvline(x = (pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
-
-plot1d_comb(ax, predictions_rate, predictions_drate, predictions_s1s2, pars_true, par = 0, fill = False, linestyle = '--', color = 'orange')
-
-# Sigma 1D
 ax = axes[3]
+plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 1, 
+             flip = True, fill = True, linestyle = 'solid', color = color_s1s2, fac = 0.015, probs = [0.9])
+ax.set_ylabel('')
+ax.set_xlabel('')
 
-par = 1
-parameter = np.asarray(predictions[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
-ratios = np.exp(np.asarray(predictions[0].logratios[:,par]))
+ax = axes[0]
+custom_lines = []
+labels = ['SWYFT', 'MCMC']
+markers = ['solid','--']
+colors = ['black', 'black']
+for i in range(len(labels)):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+            label = labels[i]) )
 
-ind_sort  = np.argsort(parameter)
-ratios    = ratios[ind_sort]
-parameter = parameter[ind_sort]
+ax.legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(1.03,0.4))
 
-# Let's compute the integrated probability for different threshold
-cuts = np.linspace(np.min(ratios), np.max(ratios), 100)
-integrals = []
-for c in cuts:
-    ratios0 = np.copy(ratios)
-    ratios0[np.where(ratios < c)[0]] = 0 
-    integrals.append( trapezoid(ratios0, parameter) / trapezoid(ratios, parameter) )
-    
-integrals = np.asarray(integrals)
-
-# Let's compute the thresholds corresponding to 0.9 and 0.95 integrated prob
-cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
-cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
-
-fac = 2e-1
-ax.plot(fac * ratios, parameter, c = color, linestyle = linestyle)
-
-ind = np.where(ratios > cut95)[0]
-ax.axhline(y=np.min(parameter[ind]), color = 'black', ls = ':')
-ax.axhline(y=np.max(parameter[ind]), color = 'black', ls = ':')
-
-ind = np.where(ratios > cut90)[0]
-ax.axhline(y=np.min(parameter[ind]), color = 'black', ls = '--')
-ax.axhline(y=np.max(parameter[ind]), color = 'black', ls = '--')
-
-
-ax.axhline(y = (pars_true[par] * (pars_max[par] - pars_min[par]) + pars_min[par]), color = 'black')
-
-plot1d_comb(ax, predictions_rate, predictions_drate, predictions_s1s2, pars_true, par = 1, flip = True, fill = False, linestyle = '--', color = 'orange')
-
-
+plt.savefig('../graph/contours_MCMC_SWYFT.pdf')
 # -
-
-
 
 
