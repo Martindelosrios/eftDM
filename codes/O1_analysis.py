@@ -532,7 +532,7 @@ ntrain = int(70 * nobs / 100)
 nval   = int(25 * nobs / 100)
 ntest  = int(5 * nobs / 100)
 
-#np.random.seed(28890)
+np.random.seed(28890)
 ind = np.random.choice(np.arange(nobs), size = nobs, replace = False)
 
 train_ind = ind[:ntrain]
@@ -951,10 +951,13 @@ pars_norm = (pars_testset - pars_min) / (pars_max - pars_min)
 x_rate = np.log10(rate_testset)
 x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
 x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
+# -
+
+pars_norm[321,:]
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = 189#np.random.randint(ntest) # 239 (disc) 455 (exc) 203 (middle)
+i = 321#np.random.randint(ntest) # 239 (disc) 455 (exc) 203 (middle)
 print(i)
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_rate[i,:]
@@ -2336,26 +2339,13 @@ pars_norm = (pars_testset - pars_min) / (pars_max - pars_min)
 
 x_drate = diff_rate_testset
 x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+# -
+
+x_norm_drate.shape
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = 66#np.random.randint(ntest)
-print(i)
-pars_true = pars_norm[i,:]
-x_obs     = x_norm_drate[i,:]
-
-plt.plot(x_obs)
-plt.text(5,0.5, str(np.sum(x_drate[i,:])))
-if np.sum(diff_rate_WIMP[test_ind[i],:]) < 300: 
-    flag = 'exc'
-else:
-    flag = 'disc'
-print(np.sum(diff_rate_WIMP[test_ind[i],:]))
-print(flag)
-
-# +
-# First let's create some observation from some "true" theta parameters
-i = 66#np.random.randint(ntest)
+i = 321#np.random.randint(ntest)
 print(i)
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_drate[i,:]
@@ -2407,7 +2397,7 @@ ax[1,1].set_ylabel('')
 ax[1,1].set_yticks([])
 ax[1,1].set_xlabel('$P(\sigma|x)$')
 #ax[1,0].grid(which = 'both')
-plt.savefig('../graph/2d_custom_posteriors_' + str(i) + '_drate.pdf')
+#plt.savefig('../graph/2d_custom_posteriors_' + str(i) + '_drate.pdf')
 
 # +
 # Let's plot the results
@@ -3331,29 +3321,18 @@ x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1]
 # #%x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1] / x_max_s1s2
 # -
 
-np.where( (pars_testset[:,1] < -44.5) & (pars_testset[:,1] > -44.8))[0]
+import h5py
 
-10**pars_testset[np.where( (pars_testset[:,1] < -44.5) & (pars_testset[:,1] > -44.8))[0],0]
 
-# +
-# First let's create some observation from some "true" theta parameters
-i = 66#np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
-print(i)
-
-pars_true = pars_norm[i,:]
-x_obs     = x_norm_s1s2[i,:].reshape(1,96,96)
-
-if np.sum(x_obs * x_max_s1s2) < 2930: 
-    flag = 'exc'
-else:
-    flag = 'disc'
-print(flag)
-
-plt.imshow(x_obs[0].T, origin = 'lower')
+with h5py.File('testset.h5', 'w') as data:
+    data.create_dataset('pars_norm', data = pars_norm)
+    data.create_dataset('rate_norm', data = x_norm_rate)
+    data.create_dataset('drate_norm', data = x_norm_drate)
+    data.create_dataset('s1s2_norm', data = x_norm_s1s2.reshape(585,1,96,96))
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = 189#np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
+#i = 66#np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
 print(i)
 
 pars_true = pars_norm[i,:]
