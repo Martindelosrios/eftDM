@@ -5306,7 +5306,7 @@ m_max_th = 2.6 # Max Mass for 1d analysis
 
 rate  = True # Flag to use the information of the rate analysis
 drate = True # Flag to use the information of the drate analysis
-s1s2  = False # Flag to use the information of the s1s2 analysis
+s1s2  = True # Flag to use the information of the s1s2 analysis
 
 if rate: 
     flag = 'rate_T'
@@ -5525,17 +5525,17 @@ ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
 
 # +
-CR_int_prob_sup_drate = []
-M_int_prob_sup_drate = []
-M_prob_sup_drate = []
-M_prob_inf_drate = []
+CR_int_prob_sup_comb = []
+M_int_prob_sup_comb = []
+M_prob_sup_comb = []
+M_prob_inf_comb = []
 
 sigma = 1.1
 for i in range(len(thetas)):
-    CR_int_prob_sup_drate.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
-    M_int_prob_sup_drate.append( gaussian_filter(masses_int_prob_sup_aux[i], 1.5) )
-    M_prob_sup_drate.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
-    M_prob_inf_drate.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
+    CR_int_prob_sup_comb.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
+    M_int_prob_sup_comb.append( gaussian_filter(masses_int_prob_sup_aux[i], 1.5) )
+    M_prob_sup_comb.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
+    M_prob_inf_comb.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
     
 # -
 
@@ -5628,7 +5628,7 @@ for i in range(2):
     
 ax[2].legend(handles = custom_lines, loc = 'lower left')
 
-plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB.pdf')
+#plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB.pdf')
 # -
 
 # # Some other plots
@@ -6048,16 +6048,18 @@ for itest in bps_ind:
 
 # # Paper plots
 
-# ## Figure 1
+# ## Figure 3&4
 
 linestyle = ['solid','--',':','-.']
 
+# !ls ../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2
+
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-theta0-v5/'
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0-v5/'
          ]
 
 sigmas_full       = []
@@ -6238,52 +6240,50 @@ low_1sigma_rate_0 = np.mean(low_1sigma_rate, axis = 1)
 up_1sigma_rate_0  = np.mean(up_1sigma_rate, axis = 1)  
 
 # +
-fig, ax = plt.subplots(2,2, sharex = True, sharey=True)
+fig, ax = plt.subplots(2,2, sharex = True, sharey=False)
 fig.subplots_adjust(hspace = 0, wspace = 0)
 
-ax[0,0].plot(cross_sec, ratios_s1s2_mpi2[0,:], linestyle = linestyle[0], color = color_s1s2, label = 'S1-S2')
-ax[0,1].plot(cross_sec, ratios_s1s2_mpi2[1,:], linestyle = linestyle[0], color = color_s1s2)
-ax[1,0].plot(cross_sec, ratios_s1s2_mpi2[2,:], linestyle = linestyle[0], color = color_s1s2)
-ax[1,1].plot(cross_sec, ratios_s1s2_mpi2[3,:], linestyle = linestyle[0], color = color_s1s2)
+ax[0,0].plot(cross_sec, ratios_s1s2_mpi2[0,:] * ratios_drate_mpi2[0,:] * ratios_rate_mpi2[0,:], linestyle = linestyle[0], color = color_s1s2, label = 'Rate + Dif.Rate + s1s2')
+ax[0,1].plot(cross_sec, ratios_s1s2_mpi2[1,:] * ratios_drate_mpi2[1,:] * ratios_rate_mpi2[1,:], linestyle = linestyle[0], color = color_s1s2)
+ax[1,0].plot(cross_sec, ratios_s1s2_mpi2[2,:] * ratios_drate_mpi2[2,:] * ratios_rate_mpi2[2,:], linestyle = linestyle[0], color = color_s1s2)
+ax[1,1].plot(cross_sec, ratios_s1s2_mpi2[3,:] * ratios_drate_mpi2[3,:] * ratios_rate_mpi2[3,:], linestyle = linestyle[0], color = color_s1s2)
 
-ax[0,0].plot(cross_sec, ratios_drate_mpi2[0,:], linestyle = linestyle[1], color = color_drate, label = 'Dif. Rate')
-ax[0,1].plot(cross_sec, ratios_drate_mpi2[1,:], linestyle = linestyle[1], color = color_drate)
-ax[1,0].plot(cross_sec, ratios_drate_mpi2[2,:], linestyle = linestyle[1], color = color_drate)
-ax[1,1].plot(cross_sec, ratios_drate_mpi2[3,:], linestyle = linestyle[1], color = color_drate)
+ax[0,0].plot(cross_sec, ratios_drate_mpi2[0,:] * ratios_rate_mpi2[0,:], linestyle = linestyle[1], color = color_drate, label = 'Rate + Dif. Rate')
+ax[0,1].plot(cross_sec, ratios_drate_mpi2[1,:] * ratios_rate_mpi2[1,:], linestyle = linestyle[1], color = color_drate)
+ax[1,0].plot(cross_sec, ratios_drate_mpi2[2,:] * ratios_rate_mpi2[2,:], linestyle = linestyle[1], color = color_drate)
+ax[1,1].plot(cross_sec, ratios_drate_mpi2[3,:] * ratios_rate_mpi2[3,:], linestyle = linestyle[1], color = color_drate)
 
 ax[0,0].plot(cross_sec, ratios_rate_mpi2[0,:], linestyle = linestyle[2], color = color_rate, label = 'Rate')
 ax[0,1].plot(cross_sec, ratios_rate_mpi2[1,:], linestyle = linestyle[2], color = color_rate)
 ax[1,0].plot(cross_sec, ratios_rate_mpi2[2,:], linestyle = linestyle[2], color = color_rate)
 ax[1,1].plot(cross_sec, ratios_rate_mpi2[3,:], linestyle = linestyle[2], color = color_rate)
 
-#ax[0,0].text(-50,7, '$m_{DM} = $' + '{:.2e}'.format(10**m_true[0]))
-ax[0,0].text(-50,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[0]))
-#ax[0,1].text(-50,7, '$m_{DM} = $' + '{:.2e}'.format(10**m_true[1]))
-ax[0,1].text(-50,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[1]))
-#ax[1,0].text(-50,7, '$m_{DM} = $' + '{:.2e}'.format(10**m_true[2]))
-ax[1,0].text(-50,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[2]))
-#ax[1,1].text(-50,7, '$m_{DM} = $' + '{:.2e}'.format(10**m_true[3]))
-ax[1,1].text(-50,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[3]))
+#ax[0,0].text(-50,0.5, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[0]))
+#ax[0,1].text(-50,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[1]))
+#ax[1,0].text(-50,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[2]))
+#ax[1,1].text(-50,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[3]))
 
-ax[0,0].legend(loc = 'upper right')
+ax[0,0].legend(loc = 'upper right', bbox_to_anchor=(1.95, 1.22), ncol = 3, frameon = False)
 
 
-ax[0,0].axvline(x = sigma_true[0], color = 'black')
-ax[0,1].axvline(x = sigma_true[1], color = 'black')
-ax[1,0].axvline(x = sigma_true[2], color = 'black')
-ax[1,1].axvline(x = sigma_true[3], color = 'black')
+ax[0,0].axvline(x = sigma_true[0], color = 'black', alpha = 0.7)
+ax[0,1].axvline(x = sigma_true[1], color = 'black', alpha = 0.7)
+ax[1,0].axvline(x = sigma_true[2], color = 'black', alpha = 0.7)
+ax[1,1].axvline(x = sigma_true[3], color = 'black', alpha = 0.7)
 
 ax[0,0].set_ylabel('$P(\sigma|x)$')
 ax[1,0].set_ylabel('$P(\sigma|x)$')
-ax[1,0].set_xlabel('$\log_{10}(\sigma)$')
-ax[1,1].set_xlabel('$\log_{10}(\sigma)$')
+ax[1,0].set_xlabel('$\log_{10}(\sigma [cm^{2}])$')
+ax[1,1].set_xlabel('$\log_{10}(\sigma [cm^{2}])$')
 
+ax[0,1].yaxis.tick_right()
+ax[1,1].yaxis.tick_right()
 plt.savefig('../graph/PosteriorsExamples_fixSigma.pdf')
 
 # +
-plt.plot(cross_sec, ratios_s1s2_mpi2[1,:], linestyle = linestyle[0], color = color_s1s2, label = 'S1-S2')
-plt.plot(cross_sec, ratios_s1s2_mpi4[1,:], linestyle = linestyle[1], color = color_s1s2)
-plt.plot(cross_sec, ratios_s1s2_0[1,:], linestyle = linestyle[2], color = color_s1s2)
+plt.plot(cross_sec, ratios_rate_mpi2[1,:] * ratios_drate_mpi2[1,:] * ratios_s1s2_mpi2[1,:], linestyle = linestyle[0], color = color_s1s2, label = 'S1-S2')
+plt.plot(cross_sec, ratios_rate_mpi4[1,:] * ratios_drate_mpi4[1,:] * ratios_s1s2_mpi4[1,:], linestyle = linestyle[1], color = color_s1s2)
+plt.plot(cross_sec, ratios_rate_0[1,:] * ratios_drate_0[1,:] * ratios_s1s2_0[1,:], linestyle = linestyle[2], color = color_s1s2)
 
 #plt.plot(cross_sec, ratios_drate_mpi2[1,:], linestyle = linestyle[0], color = color_drate, label = 'Dif. Rate')
 #plt.plot(cross_sec, ratios_drate_mpi4[1,:], linestyle = linestyle[1], color = color_drate)
@@ -6293,7 +6293,7 @@ plt.plot(cross_sec, ratios_s1s2_0[1,:], linestyle = linestyle[2], color = color_
 #plt.plot(cross_sec, ratios_rate_mpi4[1,:], linestyle = linestyle[1], color = color_rate)
 #plt.plot(cross_sec, ratios_rate_0[1,:], linestyle = linestyle[2], color = color_rate)
 
-plt.text(-44.5,4.3, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[1]))
+plt.text(-49.5,9.3, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[1]))
 
 legend0 = plt.legend(loc = 'upper left')
 
@@ -6314,7 +6314,7 @@ plt.gca().add_artist(legend1)
 plt.axvline(x = sigma_true[1], color = 'black')
 
 plt.ylabel('$P(\sigma|x)$')
-plt.xlabel('$\log_{10}(\sigma)$')
+plt.xlabel('$\log_{10}(\sigma \ [cm^{2}])$')
 
 plt.savefig('../graph/PosteriorsExamples_varSigma.pdf')
 # -
