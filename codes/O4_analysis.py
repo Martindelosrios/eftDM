@@ -494,7 +494,7 @@ dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1],
 trainer_rate.test(network_rate, dm_test_rate)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_rate.fit(network_rate, dm_rate)
     checkpoint_callback.to_yaml("./logs/O4_rate.yaml") 
@@ -538,7 +538,19 @@ if fit:
     plt.legend()
     plt.savefig('../graph/O4_loss_rate.pdf')
     email()
+
+
+if fit:
+    pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+    prior_samples = swyft.Samples(z = pars_prior)
     
+    coverage_samples = trainer_rate.test_coverage(network_rate, samples_test_rate[:50], prior_samples)
+    
+    fix, axes = plt.subplots(1, 3, figsize = (12, 4))
+    for i in range(3):
+        swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
+    plt.tight_layout()
+    plt.savefig('../graph/O4_Coverage_rate.pdf')
 
 # ### Let's make some inference
 
@@ -1519,7 +1531,7 @@ cb = MetricTracker()
 
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
-early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=50, verbose=False, mode='min')
+early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=100, verbose=False, mode='min')
 checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
@@ -1539,7 +1551,7 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_drate.fit(network_drate, dm_drate)
     checkpoint_callback.to_yaml("./logs/O4_drate.yaml") 
@@ -1582,6 +1594,18 @@ if fit:
     plt.ylabel('Loss')
     plt.legend()
     plt.savefig('../graph/O4_loss_drate.pdf')
+
+if fit:
+    pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+    prior_samples = swyft.Samples(z = pars_prior)
+    
+    coverage_samples = trainer_drate.test_coverage(network_drate, samples_test_drate[:50], prior_samples)
+    
+    fix, axes = plt.subplots(1, 3, figsize = (12, 4))
+    for i in range(3):
+        swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
+    plt.tight_layout()
+    plt.savefig('../graph/O4_Coverage_drate.pdf')
 
 # ### Let's make some inference
 
@@ -2405,7 +2429,7 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
     checkpoint_callback.to_yaml("./logs/O4_s1s2.yaml") 
@@ -2449,6 +2473,18 @@ if fit:
     plt.ylabel('Loss')
     plt.legend()
     plt.savefig('../graph/O4_loss_s1s2.pdf')
+
+if fit:
+    pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+    prior_samples = swyft.Samples(z = pars_prior)
+    
+    coverage_samples = trainer_s1s2.test_coverage(network_s1s2, samples_test_s1s2[:50], prior_samples)
+    
+    fix, axes = plt.subplots(1, 3, figsize = (12, 4))
+    for i in range(3):
+        swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
+    plt.tight_layout()
+    plt.savefig('../graph/O4_Coverage_s1s2.pdf')
 
 # ### Let's make some inference
 
@@ -3513,8 +3549,8 @@ cross_vals
 10**(pars_norm[330:350,:] * (pars_max - pars_min) + pars_min)
 
 # +
-plotMass = True
-plotCross = True
+plotMass = False
+plotCross = False
 iplot = [342,343,344]#np.arange(330,350)#[325,326,327,328,329,330,331,332,333,334,335]
 
 cross_section_th = -42 # Cross-section threshold for 1d analysis 
@@ -3522,8 +3558,8 @@ m_min_th = 1 # Min Mass for 1d analysis
 m_max_th = 2.6 # Max Mass for 1d analysis
 
 rate  = True # Flag to use the information of the rate analysis
-drate = True # Flag to use the information of the drate analysis
-s1s2  = True # Flag to use the information of the s1s2 analysis
+drate = False # Flag to use the information of the drate analysis
+s1s2  = False # Flag to use the information of the s1s2 analysis
 
 if rate: 
     flag = 'rate_T'
@@ -3540,7 +3576,7 @@ if s1s2:
 else:
     flag = flag + '_s1s2_F'
     
-force = True # Flag to force to compute everything again although it was pre-computed
+force = False # Flag to force to compute everything again although it was pre-computed
 
 thetas = ['0', 'minuspidiv2', 'minuspidiv4', 'pluspidiv2', 'pluspidiv4']
 cross_sec_int_prob_sup_aux    = []
@@ -3743,21 +3779,21 @@ ax[1,0].set_xlabel('$\int_{m_{min}}^{\inf} P(m_{DM}|x)$')
 ax[1,1].legend()
 ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
-#plt.savefig('../graph/O4_int_prob_distribution_s1s2.pdf')
+plt.savefig('../graph/O4_int_prob_distribution_s1s2.pdf')
 
 # +
-CR_int_prob_sup_comb = []
-M_int_prob_sup_comb = []
-M_prob_sup_comb = []
-M_prob_inf_comb = []
+CR_int_prob_sup_rate = []
+M_int_prob_sup_rate = []
+M_prob_sup_rate = []
+M_prob_inf_rate = []
 
 sigma = 1.1
 for i in range(len(thetas)):
-    CR_int_prob_sup_comb.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
-    M_int_prob_sup_comb.append( gaussian_filter(masses_int_prob_sup_aux[i], 1.5) )
-    M_prob_sup_comb.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
-    M_prob_inf_comb.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
-    
+    CR_int_prob_sup_rate.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
+    M_int_prob_sup_rate.append( gaussian_filter(masses_int_prob_sup_aux[i], 1.5) )
+    M_prob_sup_rate.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
+    M_prob_inf_rate.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
+
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]
@@ -3777,12 +3813,12 @@ for i, theta in enumerate([3,4,0]):
     ax[i].contour(m_vals, cross_vals, M_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_comb)
 
     ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_rate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_rate)
-    #ax[i].contour(m_vals, cross_vals, M_int_prob_sup_rate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
+    #ax[i].contour(m_vals, cross_vals, M_int_prob_sup_rate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = ':', colors = color_rate)
     #ax[i].contour(m_vals, cross_vals, M_prob_sup_rate[theta].reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 
     ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_drate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_drate)
     #ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_drate2[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = 'magenta')
-    #ax[i].contour(m_vals, cross_vals, M_int_prob_sup_drate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_drate)
+    #ax[i].contour(m_vals, cross_vals, M_int_prob_sup_drate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = ':', colors = color_drate)
     #ax[i].contour(m_vals, cross_vals, M_prob_sup_drate[theta].reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
     
     # #%ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_s1s2[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = 'magenta')
