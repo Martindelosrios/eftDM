@@ -717,62 +717,60 @@ MCMC_s1s1 = reader.get_chain(flat=True)
 
 # ## Let's make some exploratory plots
 
-sbn.pairplot(pd.DataFrame(np.hstack((pars,np.log10(rate).reshape(nobs,1))), columns = ['$m_{\chi}$','$\sigma$', '$\\theta$', '#']))
+# +
+#sbn.pairplot(pd.DataFrame(np.hstack((pars,np.log10(rate).reshape(nobs,1))), columns = ['$m_{\chi}$','$\sigma$', '$\\theta$', '#']))
 
 # +
-fig, ax = plt.subplots(1,3, figsize = (10,5))
+# #%fig, ax = plt.subplots(1,3, figsize = (10,5))
 
-ax[0].hist(pars[:,0], histtype = 'step')
-ax[0].set_xlabel('$\log_{10}$(m [GeV?] )')
+# #%ax[0].hist(pars[:,0], histtype = 'step')
+# #%ax[0].set_xlabel('$\log_{10}$(m [GeV?] )')
 #ax[0].set_xscale('log')
 
-ax[1].hist(pars[:,1], histtype = 'step')
-ax[1].set_xlabel('$\log_{10}{\sigma}$ [?]')
+# #%ax[1].hist(pars[:,1], histtype = 'step')
+# #%ax[1].set_xlabel('$\log_{10}{\sigma}$ [?]')
 #ax[1].set_xscale('log')
 
-ax[2].hist(pars[:,2], histtype = 'step')
-ax[2].set_xlabel('$\\theta$')
-# -
-
-diff_rate_WIMP[test_ind[i],:]
+# #%ax[2].hist(pars[:,2], histtype = 'step')
+# #%ax[2].set_xlabel('$\\theta$')
 
 # +
-i = np.random.randint(len(pars_testset))
-print(i)
-fig, ax = plt.subplots(1,2, figsize = (10,5))
+# #%i = np.random.randint(len(pars_testset))
+# #%print(i)
+# #%fig, ax = plt.subplots(1,2, figsize = (10,5))
 
-ax[0].plot(diff_rate_testset[i,:], c = 'black')
-ax[0].plot(diff_rate_WIMP[test_ind[i],:], c = 'black', linestyle = ':')
-ax[0].set_xlabel('$E_{r}$ [keV]' )
-ax[0].set_ylabel('$dR/E_{r}$' )
-ax[0].text(0.5, 0.8,  '$\log_{10} $' + 'm = {:.2f} [?]'.format(pars_testset[i,0]), transform = ax[0].transAxes)
-ax[0].text(0.5, 0.7,  '$\log_{10}\sigma$' + ' = {:.2f} [?]'.format(pars_testset[i,1]), transform = ax[0].transAxes)
-ax[0].text(0.5, 0.6, '$\\theta$ = {:.2f}'.format(pars_testset[i,2]), transform = ax[0].transAxes)
-ax[0].text(0.5, 0.5, 'Total Rate = {:.3f}'.format(rate_testset[i]), transform = ax[0].transAxes)
+# #%ax[0].plot(diff_rate_testset[i,:], c = 'black')
+# #%ax[0].plot(diff_rate_WIMP[test_ind[i],:], c = 'black', linestyle = ':')
+# #%ax[0].set_xlabel('$E_{r}$ [keV]' )
+# #%ax[0].set_ylabel('$dR/E_{r}$' )
+# #%ax[0].text(0.5, 0.8,  '$\log_{10} $' + 'm = {:.2f} [?]'.format(pars_testset[i,0]), transform = ax[0].transAxes)
+# #%ax[0].text(0.5, 0.7,  '$\log_{10}\sigma$' + ' = {:.2f} [?]'.format(pars_testset[i,1]), transform = ax[0].transAxes)
+# #%ax[0].text(0.5, 0.6, '$\\theta$ = {:.2f}'.format(pars_testset[i,2]), transform = ax[0].transAxes)
+# #%ax[0].text(0.5, 0.5, 'Total Rate = {:.3f}'.format(rate_testset[i]), transform = ax[0].transAxes)
 #ax[0].set_yscale('log')
 
-ax[1].imshow(s1s2_testset[i].T, origin = 'lower')
-ax[1].set_xlabel('s1')
-ax[1].set_ylabel('s2')
+# #%ax[1].imshow(s1s2_testset[i].T, origin = 'lower')
+# #%ax[1].set_xlabel('s1')
+# #%ax[1].set_ylabel('s2')
 
 # +
-print(i)
-fig, ax = plt.subplots(1,2, figsize = (10,5))
+# #%print(i)
+# #%fig, ax = plt.subplots(1,2, figsize = (10,5))
 
-ax[0].plot(diff_rate_testset[i,:], c = 'black')
-ax[0].plot(comb_testset[i,0,:58], c = 'red', ls = ':')
-ax[0].plot(diff_rate_WIMP[test_ind[i],:], c = 'black', linestyle = ':')
-ax[0].set_xlabel('$E_{r}$ [keV]' )
-ax[0].set_ylabel('$dR/E_{r}$' )
-ax[0].text(0.5, 0.8,  '$\log_{10} $' + 'm = {:.2f} [?]'.format(pars_testset[i,0]), transform = ax[0].transAxes)
-ax[0].text(0.5, 0.7,  '$\log_{10}\sigma$' + ' = {:.2f} [?]'.format(pars_testset[i,1]), transform = ax[0].transAxes)
-ax[0].text(0.5, 0.6, '$\\theta$ = {:.2f}'.format(pars_testset[i,2]), transform = ax[0].transAxes)
-ax[0].text(0.5, 0.5, 'Total Rate = {:.3f}'.format(rate_testset[i]), transform = ax[0].transAxes)
+# #%ax[0].plot(diff_rate_testset[i,:], c = 'black')
+# #%ax[0].plot(comb_testset[i,0,:58], c = 'red', ls = ':')
+# #%ax[0].plot(diff_rate_WIMP[test_ind[i],:], c = 'black', linestyle = ':')
+# #%ax[0].set_xlabel('$E_{r}$ [keV]' )
+# #%ax[0].set_ylabel('$dR/E_{r}$' )
+# #%ax[0].text(0.5, 0.8,  '$\log_{10} $' + 'm = {:.2f} [?]'.format(pars_testset[i,0]), transform = ax[0].transAxes)
+# #%ax[0].text(0.5, 0.7,  '$\log_{10}\sigma$' + ' = {:.2f} [?]'.format(pars_testset[i,1]), transform = ax[0].transAxes)
+# #%ax[0].text(0.5, 0.6, '$\\theta$ = {:.2f}'.format(pars_testset[i,2]), transform = ax[0].transAxes)
+# #%ax[0].text(0.5, 0.5, 'Total Rate = {:.3f}'.format(rate_testset[i]), transform = ax[0].transAxes)
 #ax[0].set_yscale('log')
 
-ax[1].imshow(comb_testset[i,1:,:].T, origin = 'lower')
-ax[1].set_xlabel('s1')
-ax[1].set_ylabel('s2')
+# #%ax[1].imshow(comb_testset[i,1:,:].T, origin = 'lower')
+# #%ax[1].set_xlabel('s1')
+# #%ax[1].set_ylabel('s2')
 # -
 
 # # Let's play with SWYFT
@@ -5305,8 +5303,8 @@ m_min_th = 1 # Min Mass for 1d analysis
 m_max_th = 2.6 # Max Mass for 1d analysis
 
 rate  = True # Flag to use the information of the rate analysis
-drate = True # Flag to use the information of the drate analysis
-s1s2  = True # Flag to use the information of the s1s2 analysis
+drate = False # Flag to use the information of the drate analysis
+s1s2  = False # Flag to use the information of the s1s2 analysis
 
 if rate: 
     flag = 'rate_T'
@@ -5525,17 +5523,17 @@ ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
 
 # +
-CR_int_prob_sup_comb = []
-M_int_prob_sup_comb = []
-M_prob_sup_comb = []
-M_prob_inf_comb = []
+CR_int_prob_sup_rate = []
+M_int_prob_sup_rate = []
+M_prob_sup_rate = []
+M_prob_inf_rate = []
 
 sigma = 1.1
 for i in range(len(thetas)):
-    CR_int_prob_sup_comb.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
-    M_int_prob_sup_comb.append( gaussian_filter(masses_int_prob_sup_aux[i], 1.5) )
-    M_prob_sup_comb.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
-    M_prob_inf_comb.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
+    CR_int_prob_sup_rate.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
+    M_int_prob_sup_rate.append( gaussian_filter(masses_int_prob_sup_aux[i], 1.5) )
+    M_prob_sup_rate.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
+    M_prob_inf_rate.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
     
 # -
 
@@ -5557,7 +5555,7 @@ fig.subplots_adjust(hspace = 0, wspace = 0)
 for i, theta in enumerate([3,4,0]):
     
     ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_comb)
-    #ax[i].contour(m_vals, cross_vals, M_int_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_comb)
+    ax[i].contour(m_vals, cross_vals, M_int_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = ':', colors = color_comb)
     ax[i].contour(m_vals, cross_vals, M_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_comb)
 
     ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_rate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_rate)
@@ -5574,7 +5572,7 @@ for i, theta in enumerate([3,4,0]):
     #ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_rate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_rate)
     #ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_drate)
 
-ax[0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]', linestyle = ':')
+# #%ax[0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]', linestyle = ':')
 ax[0].fill_between(neutrino_fog[:,0], neutrino_fog[:,1], -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
 ax[0].plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = ':', label = 'Bin. Lik. [90%]')
 ax[0].fill_between(masses, s1s2_current_pi2[2,:], 1e-43, color = 'black', alpha = 0.2, label = 'Excluded', zorder = 1)
@@ -5628,7 +5626,7 @@ for i in range(2):
     
 ax[2].legend(handles = custom_lines, loc = 'lower left')
 
-#plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB.pdf')
+plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB.pdf')
 # -
 
 # # Some other plots

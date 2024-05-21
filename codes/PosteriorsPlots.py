@@ -19,6 +19,8 @@ from matplotlib.lines import Line2D
 import emcee
 from chainconsumer import ChainConsumer
 import chainconsumer
+import pymultinest
+import corner
 
 import torch
 import torchist
@@ -912,6 +914,79 @@ reader     = emcee.backends.HDFBackend(h5filename)
 MCMC_s1s1 = reader.get_chain(flat=True)
 # -
 
+# ## Multinest
+
+# !ls ../data/andresData/multinest/
+
+# +
+folder = '../data/andresData/multinest/paras1scross21046/'
+parameters = [r'$m_{DM}$', r'$\sigma$', r'$\theta$']
+n_params = len(parameters)
+
+a = pymultinest.Analyzer(outputfiles_basename= folder + 'mDM50_sigma2e-46_thetapidiv2_', n_params = n_params)
+
+data     = a.get_data()[:,2:]
+_2loglik = a.get_data()[:,1] # -2LogLik = -2*log_prob(data)
+weights  = a.get_data()[:,0]
+
+mask = weights > 1e-10
+# -
+
+p = corner.corner(data[mask,:], weights=weights[mask],
+                  truths=[m_dm, sigma, theta],
+                  labels=parameters, show_titles=True)
+
+plt.hist(np.log10(weights))
+
+sum(np.where(mask == True)[0])
+
+data[:,0] = 10**(data[:,0])
+data[:,1] = 10**(data[:,1])
+
+np.max(_2loglik)
+
+# +
+q = _2loglik - np.min(_2loglik)
+plt.scatter(data[:,0], data[:,1], c = q, cmap = 'Greens')
+
+ind = np.where(q < 6.18)[0]
+plt.scatter(data[ind,0], data[ind,1], c = q[ind], cmap = 'Reds')
+plt.yscale('log')
+plt.xscale('log')
+plt.colorbar()
+
+plt.axhline(y = 10**sigma)
+plt.axvline(x = 10**m_dm)
+# -
+
+plt.scatter(data[:,0], data[:,1], c = np.log10(weights))
+plt.yscale('log')
+plt.xscale('log')
+plt.colorbar()
+
+# +
+p = corner.corner(data[mask,:], weights=weights[mask],
+                  truths=[10**m_dm, 10**sigma, theta],
+                  range = [(5, 1e3),(1e-49, 1e-45),(-1.6, 1.6)],
+                  labels=parameters, show_titles=True)
+
+ax = p.get_axes()[0]
+ax.set_xscale('log')
+
+ax = p.get_axes()[3]
+ax.set_xscale('log')
+ax.set_yscale('log')
+
+ax = p.get_axes()[4]
+ax.set_xscale('log')
+
+ax = p.get_axes()[6]
+ax.set_xscale('log')
+
+ax = p.get_axes()[7]
+ax.set_xscale('log')
+# -
+
 # # Let's play with SWYFT
 
 # ## Using only the total rate with background 
@@ -1680,7 +1755,7 @@ for i in range(len(labels)):
 
 ax.legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(1.03,0.4))
 
-plt.savefig('../graph/contours_MCMC_SWYFT.pdf')
+#plt.savefig('../graph/contours_MCMC_SWYFT.pdf')
 # -
 
 
