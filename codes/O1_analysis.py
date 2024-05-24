@@ -136,7 +136,7 @@ def read_slice(datFolder):
     pars_slices[:,0] = np.log10(pars_slices[:,0])
     pars_slices[:,1] = np.log10(pars_slices[:,1])
     
-    return pars_slices, rate_slices, diff_rate_slices, s1s2_slices
+    return pars_slices, rate_slices, diff_rate_slices, s1s2_slices,diff_rate_WIMP
 
 
 def plot_1dpost(x, h1, ax, low_1sigma = None, up_1sigma = None, alpha = 1, color = 'black', real_val = True):
@@ -479,8 +479,8 @@ pars[:,1] = np.log10(pars[:,1])
 
 # This should be always zero
 i = np.random.randint(nobs)
-rate_raw[i,2] - rate[i]
-rate_raw[i,2] - np.sum(diff_rate[i,:])
+print(rate_raw[i,2] - rate[i])
+print(rate_raw[i,2] - np.sum(diff_rate[i,:]))
 
 # +
 ###################
@@ -716,6 +716,76 @@ MCMC_s1s1 = reader.get_chain(flat=True)
 # -
 
 # ## Let's make some exploratory plots
+
+pars_slices, rate_slices, diff_rate_slices, s1s2_slices,diff_rate_WIMP = read_slice(['../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v4/'])
+
+np.log10(3e-47)
+
+ind = np.where( (pars_slices[:,1] < -46.8) & (pars_slices[:,1] > -47.0))[0]
+
+pars_slices[ind,1]
+
+print(np.sum(diff_rate_WIMP[i,:]))
+
+# +
+i = ind[0]#np.random.randint(len(pars_slices))
+print(i)
+fig, ax = plt.subplots(1,2, figsize = (10,5))
+
+ax[0].plot(diff_rate_slices[i,:], c = 'black')
+ax[0].plot(diff_rate_WIMP[i,:], c = 'black', linestyle = ':')
+
+ax[0].set_xlabel('$E_{r}$ [keV]' )
+ax[0].set_ylabel('$dR/E_{r}$' )
+ax[0].text(2.3, 0.8,  '$\log_{10} $' + 'm = {:.2f} [?]'.format(pars_slices[i,0]), transform = ax[0].transAxes)
+ax[0].text(2.3, 0.75,  '$\log_{10}\sigma$' + ' = {:.2f} [?]'.format(pars_slices[i,1]), transform = ax[0].transAxes)
+ax[0].text(2.3, 0.7, '$\\theta$ = {:.2f}'.format(pars_slices[i,2]), transform = ax[0].transAxes)
+ax[0].text(2.3, 0.65, 'Total Rate = {:.3f}'.format(rate_slices[i]), transform = ax[0].transAxes)
+ax[0].text(2.3, 0.6, 'WIMP Rate = {:.3f}'.format(rate_slices[i] - rate_slices[0]), transform = ax[0].transAxes)
+#ax[0].set_yscale('log')
+
+
+i = ind[15]
+ax[0].plot(diff_rate_slices[i,:], c = 'magenta')
+ax[0].plot(diff_rate_WIMP[i,:], c = 'magenta', linestyle = ':')
+ax[0].text(2.3, 0.5,  '$\log_{10} $' + 'm = {:.2f} [?]'.format(pars_slices[i,0]), transform = ax[0].transAxes, color = 'magenta')
+ax[0].text(2.3, 0.45,  '$\log_{10}\sigma$' + ' = {:.2f} [?]'.format(pars_slices[i,1]), transform = ax[0].transAxes, color = 'magenta')
+ax[0].text(2.3, 0.4, '$\\theta$ = {:.2f}'.format(pars_slices[i,2]), transform = ax[0].transAxes, color = 'magenta')
+ax[0].text(2.3, 0.35, 'Total Rate = {:.3f}'.format(rate_slices[i]), transform = ax[0].transAxes, color = 'magenta')
+ax[0].text(2.3, 0.3, 'WIMP Rate = {:.3f}'.format(rate_slices[i] - rate_slices[0]), transform = ax[0].transAxes, color = 'magenta')
+
+ax[1].imshow(s1s2_slices[i].T, origin = 'lower')
+ax[1].set_xlabel('s1')
+ax[1].set_ylabel('s2')
+
+plt.savefig('../graph/O1_diff_rates_mass_v2.pdf')
+
+# +
+from matplotlib.colors import Normalize
+from matplotlib.cm import ScalarMappable
+
+cmap = plt.get_cmap('viridis')
+norm = Normalize(vmin=np.min(pars_slices[:,0]), vmax=np.max(pars_slices[:,0]))
+
+fig, ax = plt.subplots(1,2, figsize = (10,5))
+
+for i in ind:
+    im = ax[0].plot(diff_rate_slices[i,:], color = cmap(norm(pars_slices[i,0])))
+
+sm = ScalarMappable(cmap=cmap, norm=norm)
+sm.set_array([])  # Only needed for compatibility; the data array is not used
+
+# Add a color bar to show the color scale
+cbar = fig.colorbar(sm, ax=ax[0])
+ax[0].set_xlabel('$E_{r}$ [keV]' )
+ax[0].set_ylabel('$dR/E_{r}$' )
+
+im1 = ax[1].imshow(s1s2_slices[i].T, origin = 'lower')
+
+ax[1].set_xlabel('s1')
+ax[1].set_ylabel('s2')
+
+plt.savefig('../graph/O1_diff_rates_mass.pdf')
 
 # +
 #sbn.pairplot(pd.DataFrame(np.hstack((pars,np.log10(rate).reshape(nobs,1))), columns = ['$m_{\chi}$','$\sigma$', '$\\theta$', '#']))

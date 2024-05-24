@@ -932,7 +932,11 @@ weights  = a.get_data()[:,0]
 mask = weights > 1e-10
 # -
 
-p = corner.corner(data[mask,:], weights=weights[mask],
+values = a.get_equal_weighted_posterior()
+
+plt.hist(values[:,2])
+
+p = corner.corner(data[mask,:],# weights=weights[mask],
                   truths=[m_dm, sigma, theta],
                   labels=parameters, show_titles=True)
 
