@@ -697,11 +697,11 @@ s1s2_testset  = s1s2[test_ind,:,:]
 
 # ## Data to match emcee
 
-# !ls ../data/andresData/examples-to-match-emcee/mDM50GeV-sigma2e-46-thetapidiv2
+# !ls ../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma5e-47-thetapidiv2
 
 # +
 # where are your files?
-datFolder = ['../data/andresData/examples-to-match-emcee/mDM50GeV-sigma2e-46-thetapidiv2/']
+datFolder = ['../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma5e-47-thetapidiv2/']
 emcee_nobs = 0
 for i, folder in enumerate(datFolder):
     print(i)
@@ -757,33 +757,16 @@ emcee_pars[:,1] = np.log10(emcee_pars[:,1])
 
 # -
 
-# ## Ibarra
+# ## Neutrino Floor
 
-# +
-ibarra_solid = np.loadtxt('../data/ibarra_cp1_solid.csv', skiprows = 1, delimiter = ',')
-ibarra_dashed = np.loadtxt('../data/ibarra_cp1_dashed.csv', skiprows = 1, delimiter = ',')
-ibarra_dotted = np.loadtxt('../data/ibarra_cp1_dotted.csv', skiprows = 1, delimiter = ',')
+# !ls ../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/
 
-mu = ibarra_solid[:,0] * 1 / (ibarra_solid[:,0] + 1)
-ibarra_solid[:,1] = ( 4 * ibarra_solid[:,1]**2 / (80**4) ) * (long_planck**2) * (masa_planck**2) * (mu**2) / np.pi
-#ibarra_solid[:,1] = (2 * fac * ibarra_solid[:,1])**2 * (mu**2) / np.pi
-
-mu = ibarra_dashed[:,0] * 1 / (ibarra_dashed[:,0] + 1)
-ibarra_dashed[:,1] = ( 4 * ibarra_dashed[:,1]**2 / (80**4) ) * (long_planck**2) * (masa_planck**2) * (mu**2) / np.pi
-#ibarra_dashed[:,1] = ibarra_dashed[:,1] / (0.08**2)
-#ibarra_dashed[:,1] = (2 * fac * ibarra_dashed[:,1])**2 * (mu**2) / np.pi
-
-mu = ibarra_dotted[:,0] * 1 / (ibarra_dotted[:,0] + 1)
-ibarra_dotted[:,1] = ( 4 * ibarra_dotted[:,1]**2 / (80**4) ) * (long_planck**2) * (masa_planck**2) * (mu**2) / np.pi
-#ibarra_dotted[:,1] = ibarra_dotted[:,1] / (0.08**2)
-#ibarra_dotted[:,1] = (2 * fac * ibarra_dotted[:,1])**2 * (mu**2) / np.pi
-# -
-
-# ## Neutrino Fog
-
-neutrino_fog = np.loadtxt('../data/neutrino_fog.csv', skiprows = 1, delimiter = ',')
-
-neutrino_fog.shape
+neutrino_floor_minuspidiv2 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/floor_rate_minuspidiv2.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_minuspidiv4 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/floor_rate_minuspidiv4.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_pluspidiv2 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/floor_rate_pidiv2.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_pluspidiv4 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/floor_rate_pidiv4.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_zero = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/floor_rate_zero.txt', skiprows = 1, delimiter = ',')
+neutrino_mDM = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/mDM_range.txt', skiprows = 1, delimiter = ',')
 
 # ## Xenon data
 #
