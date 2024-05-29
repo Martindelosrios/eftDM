@@ -21,6 +21,8 @@ from chainconsumer import ChainConsumer
 import chainconsumer
 import pymultinest
 import corner
+import bilby
+
 
 import torch
 import torchist
@@ -562,6 +564,128 @@ def plot2d_emcee(ax, predictions, pars_true, fill = True, line = False, linestyl
 
 # -
 
+def plot2d_emcee_m_theta(ax, predictions, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black', probs = [0.9, 0.95], zorder = 0):    
+    
+    results_pars = np.asarray(predictions[0][1].params)
+    results = np.zeros_like(predictions[0][1].logratios)
+    for pred in predictions:
+        results = results + np.asarray(pred[1].logratios)
+    
+    # Let's make an interpolation function 
+    interp = CloughTocher2DInterpolator(results_pars[:,1,:], np.exp(results[:,1]))
+    
+    def interpol(log_m, theta):
+        m_norm = (log_m - pars_min[0]) / (pars_max[0] - pars_min[0])
+        t_norm = (theta - pars_min[2]) / (pars_max[2] - pars_min[2])
+        return interp(m_norm, t_norm)
+        
+    # Let's estimate the value of the posterior in a grid
+    nvals = 20
+    m_values = np.logspace(0.8, 2.99, nvals)
+    t_values = np.linspace(-1.6, 1.6, nvals)
+    m_grid, t_grid = np.meshgrid(m_values, t_values)
+    
+    dt = (t_values[1] - t_values[0])
+    dm = np.log10(m_values[1]) - np.log10(m_values[0])
+    
+    res = np.zeros((nvals, nvals))
+    for m in range(nvals):
+        for t in range(nvals):
+            res[m,t] = interpol(np.log10(m_values[m]), t_values[t])
+    res[np.isnan(res)] = 0
+    # Let's compute the integral
+    norm = simps(simps(res, dx=dm, axis=1), dx=dt)
+    
+    # Let's look for the 0.9 probability threshold
+    cuts = np.linspace(np.min(res), np.max(res), 100)
+    integrals = []
+    for c in cuts:
+        res0 = np.copy(res)
+        res0[np.where(res < c)[0], np.where(res < c)[1]] = 0
+        integrals.append( simps(simps(res0, dx=dm, axis=1), dx=dt) / norm )
+    integrals = np.asarray(integrals)
+    
+    cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
+    cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
+    for prob in probs:
+        cut_p = cuts[np.argmin( np.abs(integrals - prob))]
+        
+        if fill:
+            ax.contourf(np.log10(m_values), t_values, res.T, levels = [0, cut_p, np.max(res)], colors = ['white',color], alpha = 0.3, linestyles = ['solid'], zorder = zorder)
+            #ax.contourf(np.log10(m_values), np.log10(s_values), res.T, levels = [0, cut95, np.max(res)], colors = ['white','darkcyan'], alpha = 0.5, linestyles = ['solid'], zorder = zorder)
+        if line:
+            ax.contour(np.log10(m_values), t_values, res.T, levels = [0, cut_p], colors = [color], linestyles = ['solid'], zorder = zorder)
+            #ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut95], colors = [color], linestyles = ['--'], zorder = zorder)
+    
+    ax.axvline(x = (pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'black')
+    ax.axhline(y = (pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]), color = 'black')
+    ax.set_xlabel('$M_{DM}$ [GeV]')
+    ax.set_ylabel('$\theta$')
+
+    return ax
+
+
+def plot2d_emcee_sigma_theta(ax, predictions, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black', probs = [0.9, 0.95], zorder = 0):    
+    
+    results_pars = np.asarray(predictions[0][1].params)
+    results = np.zeros_like(predictions[0][1].logratios)
+    for pred in predictions:
+        results = results + np.asarray(pred[1].logratios)
+    
+    # Let's make an interpolation function 
+    interp = CloughTocher2DInterpolator(results_pars[:,2,:], np.exp(results[:,2]))
+    
+    def interpol(log_s, theta):
+        s_norm = (log_s - pars_min[1]) / (pars_max[1] - pars_min[1])
+        t_norm = (theta - pars_min[2]) / (pars_max[2] - pars_min[2])
+        return interp(s_norm, t_norm)
+        
+    # Let's estimate the value of the posterior in a grid
+    nvals = 20
+    s_values = np.logspace(-49., -43.1, nvals)
+    t_values = np.linspace(-1.6, 1.6, nvals)
+    s_grid, t_grid = np.meshgrid(s_values, t_values)
+    
+    dt = (t_values[1] - t_values[0])
+    ds = np.log10(s_values[1]) - np.log10(s_values[0])
+    
+    res = np.zeros((nvals, nvals))
+    for s in range(nvals):
+        for t in range(nvals):
+            res[s,t] = interpol(np.log10(s_values[s]), t_values[t])
+    res[np.isnan(res)] = 0
+    # Let's compute the integral
+    norm = simps(simps(res, dx=ds, axis=1), dx=dt)
+    
+    # Let's look for the 0.9 probability threshold
+    cuts = np.linspace(np.min(res), np.max(res), 100)
+    integrals = []
+    for c in cuts:
+        res0 = np.copy(res)
+        res0[np.where(res < c)[0], np.where(res < c)[1]] = 0
+        integrals.append( simps(simps(res0, dx=ds, axis=1), dx=dt) / norm )
+    integrals = np.asarray(integrals)
+    
+    cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
+    cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
+    for prob in probs:
+        cut_p = cuts[np.argmin( np.abs(integrals - prob))]
+        
+        if fill:
+            ax.contourf(np.log10(s_values), t_values, res.T, levels = [0, cut_p, np.max(res)], colors = ['white',color], alpha = 0.3, linestyles = ['solid'], zorder = zorder)
+            #ax.contourf(np.log10(m_values), np.log10(s_values), res.T, levels = [0, cut95, np.max(res)], colors = ['white','darkcyan'], alpha = 0.5, linestyles = ['solid'], zorder = zorder)
+        if line:
+            ax.contour(np.log10(s_values), t_values, res.T, levels = [0, cut_p], colors = [color], linestyles = ['solid'], zorder = zorder)
+            #ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut95], colors = [color], linestyles = ['--'], zorder = zorder)
+    
+    ax.axvline(x = (pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'black')
+    ax.axhline(y = (pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]), color = 'black')
+    ax.set_xlabel('$\sigma$ $[cm^{2}]$')
+    ax.set_ylabel('$\theta$')
+
+    return ax
+
+
 # # Let's load the data
 
 # !ls ../data/andresData/SI-run0and1/SI-run01/
@@ -697,7 +821,7 @@ s1s2_testset  = s1s2[test_ind,:,:]
 
 # ## Data to match emcee
 
-# !ls ../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma5e-47-thetapidiv2
+# !ls ../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma2e-47-thetapidiv2
 
 # +
 # where are your files?
@@ -869,13 +993,13 @@ s1s2_current_mpi4 = np.loadtxt('../data/andresData/BL-constraints-PARAO1/BL-cons
 
 # ## EMCEE data
 
-# !ls ../data/andresData/emcee/run_emcee_example1
+# !ls ../data/andresData/28-05-24-files/emcee-21046-and-51047/
 
 # +
 # INPUTS
 
 mdm_emcee = 50
-sigma_emcee = np.log10(2e-46)
+sigma_emcee = np.log10(5e-47)
 theta_emcee= np.pi/2
 
 m_dm  = np.log10(mdm_emcee) # m_{DM} [GeV]
@@ -884,41 +1008,52 @@ theta = theta_emcee
 
 # OPEN THE SAVED DATA
 
-h5filename = '../data/andresData/emcee/run_emcee_example1/run_emcee_rate_mDM' + str(mdm_emcee) + '_sigma2e-46_theta' + str(theta_emcee) + '.h5'
+h5filename = '../data/andresData/28-05-24-files/emcee-21046-and-51047/run_emcee_rate_mDM' + str(mdm_emcee) + '_sigma2e-46_theta' + str(theta_emcee) + '.h5'
 reader     = emcee.backends.HDFBackend(h5filename)
 MCMC_rate = reader.get_chain(flat=True)
 
-h5filename  = '../data/andresData/emcee/run_emcee_example1/run_emcee_drate_mDM' + str(mdm_emcee) + '_sigma2e-46_theta' + str(theta_emcee) + '.h5'
+h5filename  = '../data/andresData/28-05-24-files/emcee-21046-and-51047/run_emcee_drate_mDM' + str(mdm_emcee) + '_sigma2e-46_theta' + str(theta_emcee) + '.h5'
 reader      = emcee.backends.HDFBackend(h5filename)
 MCMC_drate = reader.get_chain(flat=True)
 
-h5filename = '../data/andresData/emcee/run_emcee_example1/run_emcee_s1s2_mDM' + str(mdm_emcee) + '_sigma2e-46_theta' + str(theta_emcee) + '.h5'
+h5filename = '../data/andresData/28-05-24-files/emcee-21046-and-51047/run_emcee_s1s2bin_mDM' + str(mdm_emcee) + '_sigma2e-46_theta' + str(theta_emcee) + '.h5'
 reader     = emcee.backends.HDFBackend(h5filename)
 MCMC_s1s1 = reader.get_chain(flat=True)
 # -
 
 # ## Multinest
 
-# !ls ../data/andresData/multinest/
+# !ls ../data/andresData/28-05-24-files/multinest-21046-and-51047/s1s2bin
 
 # +
-folder = '../data/andresData/multinest/paras1scross21046/'
+folder = '../data/andresData/28-05-24-files/multinest-21046-and-51047/'
 parameters = [r'$m_{DM}$', r'$\sigma$', r'$\theta$']
 n_params = len(parameters)
 
-a = pymultinest.Analyzer(outputfiles_basename= folder + 'mDM50_sigma2e-46_thetapidiv2_', n_params = n_params)
+a = pymultinest.Analyzer(outputfiles_basename= folder + '/rate/mDM50_sigma2e-46_thetapidiv2_', n_params = n_params)
 
-data     = a.get_data()[:,2:]
-_2loglik = a.get_data()[:,1] # -2LogLik = -2*log_prob(data)
-weights  = a.get_data()[:,0]
+multinest_data_rate     = a.get_data()[:,2:]
+multinest_2loglik_rate = a.get_data()[:,1] # -2LogLik = -2*log_prob(data)
+multinest_weights_rate  = a.get_data()[:,0]
 
-mask = weights > 1e-10
+a = pymultinest.Analyzer(outputfiles_basename= folder + '/drate/mDM50_sigma2e-46_thetapidiv2_', n_params = n_params)
+
+multinest_data_drate     = a.get_data()[:,2:]
+multinest_2loglik_drate = a.get_data()[:,1] # -2LogLik = -2*log_prob(data)
+multinest_weights_drate  = a.get_data()[:,0]
+
+a = pymultinest.Analyzer(outputfiles_basename= folder + '/s1s2bin/mDM50_sigma2e-46_thetapidiv2_', n_params = n_params)
+
+multinest_data_s1s2     = a.get_data()[:,2:]
+multinest_2loglik_s1s2 = a.get_data()[:,1] # -2LogLik = -2*log_prob(data)
+multinest_weights_s1s2  = a.get_data()[:,0]
 # -
 
 values = a.get_equal_weighted_posterior()
 
 plt.hist(values[:,2])
 
+mask = weights > 1e-10
 p = corner.corner(data[mask,:],# weights=weights[mask],
                   truths=[m_dm, sigma, theta],
                   labels=parameters, show_titles=True)
@@ -973,6 +1108,13 @@ ax.set_xscale('log')
 ax = p.get_axes()[7]
 ax.set_xscale('log')
 # -
+
+# ## Bilby
+
+# !ls ../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-multinest/drate/pm_PyMultiNest-drate-21047
+
+bilby_rate = bilby.result.read_in_result(filename='../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-multinest/rate/PyMultiNest-rate-21047_result.json')
+bilby_drate = bilby.result.read_in_result(filename='../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-multinest/drate/PyMultiNest-drate-21047_result.json')
 
 # # Let's play with SWYFT
 
@@ -1127,7 +1269,7 @@ x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = 19#np.random.randint(24) # 239 (disc) 455 (exc) 203 (middle) #415 (49.67, 9.3e-47, -0.7)
+i = np.random.randint(24) # 239 (disc) 455 (exc) 203 (middle) #415 (49.67, 9.3e-47, -0.7)
 print(i)
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_rate[i,:]
@@ -1603,7 +1745,7 @@ x_norm_s1s2 = x_s1s2 = emcee_s1s2[:,:-1,:-1]
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = 19#np.random.randint(24) # 
+#i = 19#np.random.randint(24) # 
 print(i)
 
 pars_true = pars_norm[i,:]
@@ -1689,6 +1831,68 @@ ax[0,1].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox
 
 
 # +
+fig = bilby_drate.plot_corner(outdir='.', color = 'grey', levels=(0.9,0.68), smooth = 2)
+
+prob = 0.9
+axes = fig.get_axes()
+
+
+ax = axes[0]
+plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 0, 
+             fill = True, linestyle = 'solid', color = color_s1s2, fac = 0.45, probs = [prob])
+ax.set_xlabel('')
+ax.set_ylabel('')
+
+ax = axes[3]
+plot2d_emcee(ax, [predictions_rate], pars_true, fill = False, line = True, linestyle = ':', 
+             color = color_rate, probs = [prob], zorder = 2)
+plot2d_emcee(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyle = '--', 
+             color = color_drate, probs = [prob], zorder = 3)
+plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyle = 'solid', 
+             color = color_s1s2, probs = [prob], zorder = 4)
+ax.set_ylabel('$Log_{10}(\\sigma \ [cm^{2}])$')
+
+ax = axes[4]
+plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 1, 
+             flip = False, fill = True, linestyle = 'solid', color = color_s1s2, fac = 0.02, probs = [prob])
+ax.set_ylabel('')
+ax.set_xlabel('')
+
+ax = axes[6]
+
+plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyle = 'solid', 
+            color = color_s1s2, probs = [prob], zorder = 2)
+#plot2d_emcee(ax, [predictions_rate], pars_true, fill = False, line = True, linestyle = ':', 
+#             color = color_rate, probs = [0.9], zorder = 0)
+#plot2d_emcee(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyle = '--', 
+#             color = color_drate, probs = [0.9], zorder = 1)
+#plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyle = 'solid', 
+#             color = color_s1s2, probs = [0.9], zorder = 2)
+ax.set_ylabel('$\\theta$')
+ax.set_xlabel('$Log_{10}(M_{DM} \ [GeV])$')
+
+ax = axes[7]
+
+plot2d_emcee_sigma_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyle = 'solid', 
+            color = color_s1s2, probs = [prob], zorder = 2)
+#plot2d_emcee(ax, [predictions_rate], pars_true, fill = False, line = True, linestyle = ':', 
+#             color = color_rate, probs = [0.9], zorder = 0)
+#plot2d_emcee(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyle = '--', 
+#             color = color_drate, probs = [0.9], zorder = 1)
+#plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyle = 'solid', 
+#             color = color_s1s2, probs = [0.9], zorder = 2)
+ax.set_xlabel('$Log_{10}(\\sigma \ [cm^{2}])$')
+ax.set_ylabel('')
+
+ax = axes[8]
+plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 2, 
+             flip = False, fill = True, linestyle = 'solid', color = color_s1s2, fac = 0.30, probs = [prob])
+ax.set_ylabel('')
+ax.set_xlabel('')
+
+fig
+
+# +
 chain = ChainConsumer ()
 chain.add_chain(chain = MCMC_rate[:,0:2], parameters = [r"$\log(m_{dm})$ [GeV$]$", r"$\log(\sigma)$ [cm$²]$"],
                     color = color_rate, kde = 2, shade = False, linestyle = '--', linewidth = 1.5, name = 'Rate', zorder = 4)
@@ -1744,5 +1948,7 @@ ax.legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_a
 
 #plt.savefig('../graph/contours_MCMC_SWYFT.pdf')
 # -
+
+
 
 
