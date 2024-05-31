@@ -136,7 +136,7 @@ def read_slice(datFolder):
     pars_slices[:,0] = np.log10(pars_slices[:,0])
     pars_slices[:,1] = np.log10(pars_slices[:,1])
     
-    return pars_slices, rate_slices, diff_rate_slices, s1s2_slices,diff_rate_WIMP
+    return pars_slices, rate_slices, diff_rate_slices, s1s2_slices, rate_raw_slices
 
 
 def plot_1dpost(x, h1, ax, low_1sigma = None, up_1sigma = None, alpha = 1, color = 'black', real_val = True):
@@ -587,6 +587,14 @@ ibarra_dotted[:,1] = ( 4 * ibarra_dotted[:,1]**2 / (80**4) ) * (long_planck**2) 
 neutrino_fog = np.loadtxt('../data/neutrino_fog.csv', skiprows = 1, delimiter = ',')
 
 neutrino_fog.shape
+
+neutrino_floor_minuspidiv2 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/floor_rate_minuspidiv2.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_minuspidiv4 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/floor_rate_minuspidiv4.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_pluspidiv2 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/floor_rate_pidiv2.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_pluspidiv4 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/floor_rate_pidiv4.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_zero = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/floor_rate_zero.txt', skiprows = 1, delimiter = ',')
+neutrino_mDM = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/mDM_range.txt', skiprows = 1, delimiter = ',')
+
 
 # ## Xenon data
 #
@@ -5357,7 +5365,7 @@ for condition in conditions:
 
 # !ls ../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0/cross_sec_int_prob_sup_rate*
 
-pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0/'])
+pars_slices, rate_slices, diff_rate_slices, s1s2_slices, rate_raw_slices = read_slice(['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0/'])
 
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
@@ -5426,7 +5434,7 @@ for theta in thetas:
     masses_prob_inf_full     = []
 
     for folder in folders:
-        pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
+        pars_slices, rate_slices, diff_rate_slices, s1s2_slices, rate_raw_slices = read_slice([folder])
         
         if (
             os.path.exists(folder + 'cross_sec_int_prob_sup_' + flag + '.txt') &
@@ -5605,11 +5613,25 @@ for i in range(len(thetas)):
     M_prob_sup_rate.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
     M_prob_inf_rate.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
     
-# -
 
-np.where((M_prob_sup_s1s2[3] > 0.9) & (M_prob_sup_comb[3] < 0.9))[0]
+# +
+from matplotlib.legend_handler import HandlerBase
 
-thetas
+class AnyObjectHandler(HandlerBase):
+    def create_artists(self, legend, orig_handle,
+                       x0, y0, width, height, fontsize, trans):
+        l1 = plt.Line2D([x0,y0+width], [0.9*height,0.9*height], color=orig_handle[0], lw = 2)
+        l2 = plt.Line2D([x0,y0+width], [0.45*height,0.45*height], color=orig_handle[1], lw = 2)
+        l3 = plt.Line2D([x0,y0+width], [0.*height,0.*height], color=orig_handle[2], lw = 2)
+        return [l1, l2, l3]
+
+class AnyObjectHandler2(HandlerBase):
+    def create_artists(self, legend, orig_handle,
+                       x0, y0, width, height, fontsize, trans):
+        l1 = plt.Line2D([x0,y0+width], [0.9*height,0.9*height], color=color_comb, linestyle = orig_handle[0], lw = 2)
+        l2 = plt.Line2D([x0,y0+width], [0.1*height,0.1*height], color=color_comb, linestyle = orig_handle[1], lw = 2)
+        return [l1, l2]
+
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]
@@ -5619,10 +5641,15 @@ color_drate = "#0072b2"
 color_s1s2  = "#009e73"
 color_comb = "#009e73"
 
-fig, ax = plt.subplots(1,3, sharex = True, sharey = True, figsize = (12,5))
+fig, ax = plt.subplots(1,3, sharex = True, sharey = True, figsize = (13,5))
 fig.subplots_adjust(hspace = 0, wspace = 0)
 
 for i, theta in enumerate([3,4,0]):
+    pars_slices, rate_slices, diff_rate_slices, s1s2_slices, rate_raw_slices  = read_slice(['../data/andresData/O1-slices-5vecescadatheta/theta-' + thetas[theta] + '/SI-slices01-' + thetas[theta] + '/'])
+    #cs = ax[i].contour(m_vals, cross_vals, np.sum(diff_rate_WIMP, axis = 1).reshape(30,30).T, levels = [10,100,1000], colors = ['black'], linestyles = ['solid'])
+    #ax[i].clabel(cs, cs.levels, fmt = '%1.0e', inline=True, fontsize=10)
+    ax[i].contour(m_vals, cross_vals, rate_raw_slices[:,1].reshape(30,30).T, levels = [10,100,1000,10000], colors = ['purple','purple','purple'], alpha = 0.4, linestyles = ['solid','--',':','-.'])
+    
     
     ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_comb)
     ax[i].contour(m_vals, cross_vals, M_int_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = ':', colors = color_comb)
@@ -5643,7 +5670,8 @@ for i, theta in enumerate([3,4,0]):
     #ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_drate)
 
 # #%ax[0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]', linestyle = ':')
-ax[0].fill_between(neutrino_fog[:,0], neutrino_fog[:,1], -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
+# #%ax[0].plot(neutrino_fog[:,0], neutrino_fog[:,1], color = "green")
+ax[0].fill_between(neutrino_mDM, neutrino_floor_pluspidiv2, -50, color = "none", edgecolor='black', label = '$1$-$\\nu$ floor', alpha = 0.8, hatch = '///')
 ax[0].plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = ':', label = 'Bin. Lik. [90%]')
 ax[0].fill_between(masses, s1s2_current_pi2[2,:], 1e-43, color = 'black', alpha = 0.2, label = 'Excluded', zorder = 1)
 
@@ -5655,12 +5683,14 @@ ax[0].legend(loc = 'lower left')
 
 ax[1].plot(masses, s1s2_90_CL_pi4[2,:], color = 'black', linestyle = ':')
 ax[1].fill_between(masses, s1s2_current_pi4[2,:], 1e-43, color = 'black', alpha = 0.2)
+ax[1].fill_between(neutrino_mDM, neutrino_floor_pluspidiv4, -50, color = "none", edgecolor='black', label = '$1$-$\\nu$ floor', alpha = 0.8, hatch = '///')
 
 #ax[1].grid(which='both')
 ax[1].text(3e2, 2e-44, '$\\theta = \pi/4$')
 
 ax[2].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = ':')
 ax[2].fill_between(masses, s1s2_current_0[2,:], 1e-43, color = 'black', alpha = 0.2, label = 'Excluded')
+ax[2].fill_between(neutrino_mDM, neutrino_floor_zero, -50, color = "none", edgecolor='black', label = '$1$-$\\nu$ floor', alpha = 0.8, hatch = '///')
 ax[2].legend(loc = 'lower right')
 
 #ax[2].grid(which='both')
@@ -5686,17 +5716,27 @@ for i in range(3):
     
 ax[1].legend(handles = custom_lines, loc = 'lower left')
 
+
+leg0 = ax[2].legend([(color_comb, color_drate, color_rate)], ['$\\mathcal{P}_{\\sigma}$'],
+           handler_map={tuple: AnyObjectHandler()}, loc = 'lower left', fontsize = 12)
+ax[2].add_artist(leg0)
+
 custom_lines = []
 #labels = ['$\\sigma$', '$M_{DM}$']
-labels = ['$\\mathcal{P}_{\\sigma}$', '$\\mathcal{P}_{M_{DM}}$']
-markers = ['solid','--']
-for i in range(2):
-    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = 'black', 
-            label = labels[i]) )
+labels = ['$\\mathcal{P}^{sup}_{M_{DM}}$', '$\\mathcal{P}^{tot}_{M_{DM}}$']
+markers = ['--', ':']
+#for i in range(len(labels)):
+#    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = color_comb, 
+#            label = labels[i]) )
     
-ax[2].legend(handles = custom_lines, loc = 'lower left')
+#leg1 = ax[2].legend(handles = custom_lines, loc = 'lower right', fontsize = 12)
+#ax[2].add_artist(leg1)
 
-plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB.pdf')
+leg1 = ax[2].legend([('--', ':')], ['$\\mathcal{P}_{M_{DM}}$'],
+           handler_map={tuple: AnyObjectHandler2()}, loc = 'lower right', fontsize = 12)
+ax[2].add_artist(leg1)
+
+plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB.pdf', bbox_inches='tight')
 # -
 
 # # Some other plots

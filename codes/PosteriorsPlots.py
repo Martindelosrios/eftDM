@@ -418,7 +418,7 @@ def plot2d_comb(ax, predictions, pars_true, fill = True, line = False, linestyle
 # +
 def plot1d_emcee(ax, predictions, pars_true, par = 1, 
            xlabel = '$\log_{10}(\sigma)$', ylabel = '$P(\sigma|x)\ /\ P(\sigma)$',
-           flip = False, fill = True, linestyle = 'solid', color = 'black', fac = 1, probs = [0.9, 0.95]):
+           flip = False, fill = True, color = 'black', fac = 1, probs = [0.9, 0.95], linestyles = ['solid', '--']):
                
     # Let's put the results in arrays
     parameter = np.asarray(predictions[0][0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
@@ -444,11 +444,11 @@ def plot1d_emcee(ax, predictions, pars_true, par = 1,
     # Let's compute the thresholds corresponding to 0.9 and 0.95 integrated prob
     cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
     cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
-    for prob in probs:
+    for iprob, prob in enumerate(probs):
         cut_p = cuts[np.argmin( np.abs(integrals - prob))]
         
         if not flip:
-            ax.plot(parameter, fac * ratios, c = color, linestyle = linestyle)
+            ax.plot(parameter, fac * ratios, c = color, linestyle = linestyles[iprob])
             if fill:
                 ind = np.where(ratios > cut_p)[0]
                 pars_aux = parameter[ind]
@@ -473,7 +473,7 @@ def plot1d_emcee(ax, predictions, pars_true, par = 1,
             ax.set_xlabel(xlabel)
             ax.set_ylabel(ylabel)
         else:
-            ax.plot(fac * ratios, parameter, c = color, linestyle = linestyle)
+            ax.plot(fac * ratios, parameter, c = color, linestyle = linestyles[iprob])
             if fill:
                 ind = np.where(ratios > cut_p)[0]
                 pars_aux = parameter[ind]
@@ -501,7 +501,7 @@ def plot1d_emcee(ax, predictions, pars_true, par = 1,
     return ax
 
 
-def plot2d_emcee(ax, predictions, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black', probs = [0.9, 0.95], zorder = 0):    
+def plot2d_emcee(ax, predictions, pars_true, fill = True, line = False, color = 'black', probs = [0.9, 0.95], zorder = 0, linestyles = ['solid', '--']):    
     
     results_pars = np.asarray(predictions[0][1].params)
     results = np.zeros_like(predictions[0][1].logratios)
@@ -544,14 +544,14 @@ def plot2d_emcee(ax, predictions, pars_true, fill = True, line = False, linestyl
     
     cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
     cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
-    for prob in probs:
+    for iprob, prob in enumerate(probs):
         cut_p = cuts[np.argmin( np.abs(integrals - prob))]
         
         if fill:
-            ax.contourf(np.log10(m_values), np.log10(s_values), res.T, levels = [0, cut_p, np.max(res)], colors = ['white',color], alpha = 0.3, linestyles = ['solid'], zorder = zorder)
+            ax.contourf(np.log10(m_values), np.log10(s_values), res.T, levels = [0, cut_p, np.max(res)], colors = ['white',color], alpha = 0.3, linestyles = linestyles, zorder = zorder)
             #ax.contourf(np.log10(m_values), np.log10(s_values), res.T, levels = [0, cut95, np.max(res)], colors = ['white','darkcyan'], alpha = 0.5, linestyles = ['solid'], zorder = zorder)
         if line:
-            ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0, cut_p], colors = [color], linestyles = ['solid'], zorder = zorder)
+            ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0, cut_p], colors = [color], linestyles = linestyles[iprob], zorder = zorder)
             #ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut95], colors = [color], linestyles = ['--'], zorder = zorder)
     
     ax.axvline(x = (pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'black')
@@ -564,7 +564,7 @@ def plot2d_emcee(ax, predictions, pars_true, fill = True, line = False, linestyl
 
 # -
 
-def plot2d_emcee_m_theta(ax, predictions, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black', probs = [0.9, 0.95], zorder = 0):    
+def plot2d_emcee_m_theta(ax, predictions, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black', probs = [0.9, 0.95], zorder = 0, linestyles = ['solid', '--']):    
     
     results_pars = np.asarray(predictions[0][1].params)
     results = np.zeros_like(predictions[0][1].logratios)
@@ -607,14 +607,14 @@ def plot2d_emcee_m_theta(ax, predictions, pars_true, fill = True, line = False, 
     
     cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
     cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
-    for prob in probs:
+    for iprob, prob in enumerate(probs):
         cut_p = cuts[np.argmin( np.abs(integrals - prob))]
         
         if fill:
-            ax.contourf(np.log10(m_values), t_values, res.T, levels = [0, cut_p, np.max(res)], colors = ['white',color], alpha = 0.3, linestyles = ['solid'], zorder = zorder)
+            ax.contourf(np.log10(m_values), t_values, res.T, levels = [0, cut_p, np.max(res)], colors = ['white',color], alpha = 0.3, linestyles = linestyles, zorder = zorder)
             #ax.contourf(np.log10(m_values), np.log10(s_values), res.T, levels = [0, cut95, np.max(res)], colors = ['white','darkcyan'], alpha = 0.5, linestyles = ['solid'], zorder = zorder)
         if line:
-            ax.contour(np.log10(m_values), t_values, res.T, levels = [0, cut_p], colors = [color], linestyles = ['solid'], zorder = zorder)
+            ax.contour(np.log10(m_values), t_values, res.T, levels = [0, cut_p], colors = [color], linestyles = linestyles[iprob], zorder = zorder)
             #ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut95], colors = [color], linestyles = ['--'], zorder = zorder)
     
     ax.axvline(x = (pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'black')
@@ -625,7 +625,7 @@ def plot2d_emcee_m_theta(ax, predictions, pars_true, fill = True, line = False, 
     return ax
 
 
-def plot2d_emcee_sigma_theta(ax, predictions, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black', probs = [0.9, 0.95], zorder = 0):    
+def plot2d_emcee_sigma_theta(ax, predictions, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black', probs = [0.9, 0.95], zorder = 0, linestyles = ['solid', '--']):    
     
     results_pars = np.asarray(predictions[0][1].params)
     results = np.zeros_like(predictions[0][1].logratios)
@@ -668,14 +668,14 @@ def plot2d_emcee_sigma_theta(ax, predictions, pars_true, fill = True, line = Fal
     
     cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
     cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
-    for prob in probs:
+    for iprob, prob in enumerate(probs):
         cut_p = cuts[np.argmin( np.abs(integrals - prob))]
         
         if fill:
-            ax.contourf(np.log10(s_values), t_values, res.T, levels = [0, cut_p, np.max(res)], colors = ['white',color], alpha = 0.3, linestyles = ['solid'], zorder = zorder)
+            ax.contourf(np.log10(s_values), t_values, res.T, levels = [0, cut_p, np.max(res)], colors = ['white',color], alpha = 0.3, linestyles = linestyles[iprob], zorder = zorder)
             #ax.contourf(np.log10(m_values), np.log10(s_values), res.T, levels = [0, cut95, np.max(res)], colors = ['white','darkcyan'], alpha = 0.5, linestyles = ['solid'], zorder = zorder)
         if line:
-            ax.contour(np.log10(s_values), t_values, res.T, levels = [0, cut_p], colors = [color], linestyles = ['solid'], zorder = zorder)
+            ax.contour(np.log10(s_values), t_values, res.T, levels = [0, cut_p], colors = [color], linestyles = linestyles[iprob], zorder = zorder)
             #ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut95], colors = [color], linestyles = ['--'], zorder = zorder)
     
     ax.axvline(x = (pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'black')
@@ -825,7 +825,7 @@ s1s2_testset  = s1s2[test_ind,:,:]
 
 # +
 # where are your files?
-datFolder = ['../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma5e-47-thetapidiv2/']
+datFolder = ['../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma2e-47-thetapidiv2/']
 emcee_nobs = 0
 for i, folder in enumerate(datFolder):
     print(i)
@@ -1113,6 +1113,11 @@ ax.set_xscale('log')
 
 # !ls ../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-multinest/drate/pm_PyMultiNest-drate-21047
 
+# !ls ../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-rate-21047-OBSsaved0/
+
+bilby_rate = bilby.result.read_in_result(filename='../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-rate-21047-OBSsaved0/rate-21047_result.json')
+
+
 bilby_rate = bilby.result.read_in_result(filename='../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-multinest/rate/PyMultiNest-rate-21047_result.json')
 bilby_drate = bilby.result.read_in_result(filename='../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-multinest/drate/PyMultiNest-drate-21047_result.json')
 
@@ -1269,7 +1274,7 @@ x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = np.random.randint(24) # 239 (disc) 455 (exc) 203 (middle) #415 (49.67, 9.3e-47, -0.7)
+i = 0#np.random.randint(24) # 239 (disc) 455 (exc) 203 (middle) #415 (49.67, 9.3e-47, -0.7)
 print(i)
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_rate[i,:]
@@ -1831,66 +1836,104 @@ ax[0,1].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox
 
 
 # +
-fig = bilby_drate.plot_corner(outdir='.', color = 'grey', levels=(0.9,0.68), smooth = 2)
+rate  = True
+drate = False
+s1s2  = True
+# #%fig = bilby_drate.plot_corner(outdir='.', color = 'grey', levels=(0.9,0.68), smooth = 2)
+fig = bilby_rate.plot_corner(outdir='.', color = 'grey', levels=(0.9,0.68), smooth = 2)
 
-prob = 0.9
+prob = [0.68, 0.9]
 axes = fig.get_axes()
 
 
 ax = axes[0]
-plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 0, 
-             fill = True, linestyle = 'solid', color = color_s1s2, fac = 0.45, probs = [prob])
+if rate:
+    plot1d_emcee(ax, [predictions_rate], pars_true, par = 0, 
+                 fill = True, linestyles = ['solid',':'], color = color_rate, fac = 0.45, probs = prob)
+if drate: 
+    plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 0, 
+             fill = True, linestyles = ['solid',':'], color = color_drate, fac = 0.45, probs = prob)
+if s1s2:
+    plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 0, 
+                 fill = True, linestyles = ['solid',':'], color = color_s1s2, fac = 0.45, probs = prob)
 ax.set_xlabel('')
 ax.set_ylabel('')
 
 ax = axes[3]
-plot2d_emcee(ax, [predictions_rate], pars_true, fill = False, line = True, linestyle = ':', 
-             color = color_rate, probs = [prob], zorder = 2)
-plot2d_emcee(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyle = '--', 
-             color = color_drate, probs = [prob], zorder = 3)
-plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyle = 'solid', 
-             color = color_s1s2, probs = [prob], zorder = 4)
+if rate:
+    plot2d_emcee(ax, [predictions_rate], pars_true, fill = False, line = True, linestyles = ['solid','--'], 
+                 color = color_rate, probs = prob, zorder = 2)
+if drate:
+    plot2d_emcee(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid','--'], 
+                 color = color_drate, probs = prob, zorder = 3)
+if s1s2:
+    plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                 color = color_s1s2, probs = prob, zorder = 4)
 ax.set_ylabel('$Log_{10}(\\sigma \ [cm^{2}])$')
 
 ax = axes[4]
-plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 1, 
-             flip = False, fill = True, linestyle = 'solid', color = color_s1s2, fac = 0.02, probs = [prob])
+if rate:
+    plot1d_emcee(ax, [predictions_rate], pars_true, par = 1, 
+                 flip = False, fill = True, linestyles = ['solid', ':'], color = color_rate, fac = 0.02, probs = prob)
+if drate:
+    plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 1, 
+                 flip = False, fill = True, linestyles = ['solid', ':'], color = color_drate, fac = 0.02, probs = prob)
+if s1s2:
+    plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 1, 
+                 flip = False, fill = True, linestyles = ['solid', ':'], color = color_s1s2, fac = 0.02, probs = prob)
 ax.set_ylabel('')
 ax.set_xlabel('')
 
 ax = axes[6]
 
-plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyle = 'solid', 
-            color = color_s1s2, probs = [prob], zorder = 2)
-#plot2d_emcee(ax, [predictions_rate], pars_true, fill = False, line = True, linestyle = ':', 
-#             color = color_rate, probs = [0.9], zorder = 0)
-#plot2d_emcee(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyle = '--', 
-#             color = color_drate, probs = [0.9], zorder = 1)
-#plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyle = 'solid', 
-#             color = color_s1s2, probs = [0.9], zorder = 2)
+if rate:
+    plot2d_emcee_m_theta(ax, [predictions_rate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                color = color_rate, probs = prob, zorder = 2)
+if drate:
+    plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                color = color_drate, probs = prob, zorder = 2)
+if s1s2:
+    plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                color = color_s1s2, probs = prob, zorder = 2)
 ax.set_ylabel('$\\theta$')
 ax.set_xlabel('$Log_{10}(M_{DM} \ [GeV])$')
 
 ax = axes[7]
 
-plot2d_emcee_sigma_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyle = 'solid', 
-            color = color_s1s2, probs = [prob], zorder = 2)
-#plot2d_emcee(ax, [predictions_rate], pars_true, fill = False, line = True, linestyle = ':', 
-#             color = color_rate, probs = [0.9], zorder = 0)
-#plot2d_emcee(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyle = '--', 
-#             color = color_drate, probs = [0.9], zorder = 1)
-#plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyle = 'solid', 
-#             color = color_s1s2, probs = [0.9], zorder = 2)
+if rate:
+    plot2d_emcee_sigma_theta(ax, [predictions_rate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                color = color_rate, probs = prob, zorder = 2)
+if drate:
+    plot2d_emcee_sigma_theta(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                color = color_drate, probs = prob, zorder = 2)
+if s1s2:
+    plot2d_emcee_sigma_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                color = color_s1s2, probs = prob, zorder = 2)
 ax.set_xlabel('$Log_{10}(\\sigma \ [cm^{2}])$')
 ax.set_ylabel('')
 
 ax = axes[8]
-plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 2, 
-             flip = False, fill = True, linestyle = 'solid', color = color_s1s2, fac = 0.30, probs = [prob])
+if rate:
+    plot1d_emcee(ax, [predictions_rate], pars_true, par = 2, 
+                 flip = False, fill = True, linestyles = ['solid',':'], color = color_rate, fac = 0.30, probs = prob)
+if drate:
+    plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 2, 
+                 flip = False, fill = True, linestyles = ['solid',':'], color = color_drate, fac = 0.30, probs = prob)
+if s1s2:
+    plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 2, 
+                 flip = False, fill = True, linestyles = ['solid',':'], color = color_s1s2, fac = 0.30, probs = prob)
 ax.set_ylabel('')
-ax.set_xlabel('')
+ax.set_xlabel('$\\theta$')
 
 fig
+# -
+
+
+
+
+
+
+
 
 # +
 chain = ChainConsumer ()
@@ -1947,8 +1990,3 @@ for i in range(len(labels)):
 ax.legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(1.03,0.4))
 
 #plt.savefig('../graph/contours_MCMC_SWYFT.pdf')
-# -
-
-
-
-
