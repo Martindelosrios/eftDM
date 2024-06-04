@@ -501,7 +501,8 @@ def plot1d_emcee(ax, predictions, pars_true, par = 1,
     return ax
 
 
-def plot2d_emcee(ax, predictions, pars_true, fill = True, line = False, color = 'black', probs = [0.9, 0.95], zorder = 0, linestyles = ['solid', '--']):    
+def plot2d_emcee(ax, predictions, pars_true, fill = True, line = False, color = 'black', probs = [0.9, 0.95], zorder = 0, linestyles = ['solid', '--'],
+                nvals = 20, smooth = None):    
     
     results_pars = np.asarray(predictions[0][1].params)
     results = np.zeros_like(predictions[0][1].logratios)
@@ -517,7 +518,7 @@ def plot2d_emcee(ax, predictions, pars_true, fill = True, line = False, color = 
         return interp(m_norm, sigma_norm)
         
     # Let's estimate the value of the posterior in a grid
-    nvals = 20
+    
     m_values = np.logspace(0.8, 2.99, nvals)
     s_values = np.logspace(-49., -43.1, nvals)
     m_grid, s_grid = np.meshgrid(m_values, s_values)
@@ -544,6 +545,7 @@ def plot2d_emcee(ax, predictions, pars_true, fill = True, line = False, color = 
     
     cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
     cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
+    if smooth is not None: res = gaussian_filter(res, smooth)
     for iprob, prob in enumerate(probs):
         cut_p = cuts[np.argmin( np.abs(integrals - prob))]
         
@@ -564,7 +566,8 @@ def plot2d_emcee(ax, predictions, pars_true, fill = True, line = False, color = 
 
 # -
 
-def plot2d_emcee_m_theta(ax, predictions, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black', probs = [0.9, 0.95], zorder = 0, linestyles = ['solid', '--']):    
+def plot2d_emcee_m_theta(ax, predictions, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black', probs = [0.9, 0.95], zorder = 0, linestyles = ['solid', '--'],
+                        nvals = 20, smooth = None):    
     
     results_pars = np.asarray(predictions[0][1].params)
     results = np.zeros_like(predictions[0][1].logratios)
@@ -580,7 +583,6 @@ def plot2d_emcee_m_theta(ax, predictions, pars_true, fill = True, line = False, 
         return interp(m_norm, t_norm)
         
     # Let's estimate the value of the posterior in a grid
-    nvals = 20
     m_values = np.logspace(0.8, 2.99, nvals)
     t_values = np.linspace(-1.6, 1.6, nvals)
     m_grid, t_grid = np.meshgrid(m_values, t_values)
@@ -607,6 +609,7 @@ def plot2d_emcee_m_theta(ax, predictions, pars_true, fill = True, line = False, 
     
     cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
     cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
+    if smooth is not None: res = gaussian_filter(res, smooth)
     for iprob, prob in enumerate(probs):
         cut_p = cuts[np.argmin( np.abs(integrals - prob))]
         
@@ -625,7 +628,8 @@ def plot2d_emcee_m_theta(ax, predictions, pars_true, fill = True, line = False, 
     return ax
 
 
-def plot2d_emcee_sigma_theta(ax, predictions, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black', probs = [0.9, 0.95], zorder = 0, linestyles = ['solid', '--']):    
+def plot2d_emcee_sigma_theta(ax, predictions, pars_true, fill = True, line = False, linestyle = 'solid', color = 'black', probs = [0.9, 0.95], zorder = 0, linestyles = ['solid', '--'],
+                            nvals = 20, smooth = None):    
     
     results_pars = np.asarray(predictions[0][1].params)
     results = np.zeros_like(predictions[0][1].logratios)
@@ -641,7 +645,6 @@ def plot2d_emcee_sigma_theta(ax, predictions, pars_true, fill = True, line = Fal
         return interp(s_norm, t_norm)
         
     # Let's estimate the value of the posterior in a grid
-    nvals = 20
     s_values = np.logspace(-49., -43.1, nvals)
     t_values = np.linspace(-1.6, 1.6, nvals)
     s_grid, t_grid = np.meshgrid(s_values, t_values)
@@ -668,6 +671,7 @@ def plot2d_emcee_sigma_theta(ax, predictions, pars_true, fill = True, line = Fal
     
     cut90 = cuts[np.argmin( np.abs(integrals - 0.9))]
     cut95 = cuts[np.argmin( np.abs(integrals - 0.95))]
+    if smooth is not None: res = gaussian_filter(res, smooth)                                
     for iprob, prob in enumerate(probs):
         cut_p = cuts[np.argmin( np.abs(integrals - prob))]
         
@@ -1113,9 +1117,11 @@ ax.set_xscale('log')
 
 # !ls ../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-multinest/drate/pm_PyMultiNest-drate-21047
 
-# !ls ../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-rate-21047-OBSsaved0/
+# !ls ../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-21047-OBSsaved0/
 
-bilby_rate = bilby.result.read_in_result(filename='../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-rate-21047-OBSsaved0/rate-21047_result.json')
+bilby_rate = bilby.result.read_in_result(filename='../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-21047-OBSsaved0/rate-21047_result.json')
+bilby_drate = bilby.result.read_in_result(filename='../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-21047-OBSsaved0/drate-21047_result.json')
+bilby_s1s2 = bilby.result.read_in_result(filename='../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-21047-OBSsaved0/s1s2bin-OP2-21047_result.json')
 
 
 bilby_rate = bilby.result.read_in_result(filename='../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-multinest/rate/PyMultiNest-rate-21047_result.json')
@@ -1833,104 +1839,153 @@ ax[0,1].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox
 #ax[0,1].
 #ax[1,0].grid(which = 'both')
 #plt.savefig('../graph/2d_custom_posteriors_emcee' + str(i) + '.pdf')
+# -
 
+
+rate_samples.shape
+
+# +
+rate_samples = bilby_rate.samples
+drate_samples = bilby_drate.samples
+s1s2_samples = bilby_s1s2.samples
+
+fig = corner.corner(rate_samples, smooth = 2.5, levels=[0.9], bins = 30, plot_density=False, color = color_rate, fill_contours=False)
+
+axes = fig.get_axes()
+
+axes[0].hist(s1s2_samples[:,0], color = 'black', bins = 30)
+corner.corner(drate_samples, smooth = 2, levels=[0.9], bins = 30, plot_density=False, color = color_drate, fill_contours=False, fig = fig)
+
+corner.corner(s1s2_samples, smooth = 2, levels=[0.9], bins = 30, plot_density=False, color = color_s1s2, fill_contours=False, fig = fig)
+
+plt.show()
 
 # +
 rate  = True
-drate = False
+drate = True
 s1s2  = True
-# #%fig = bilby_drate.plot_corner(outdir='.', color = 'grey', levels=(0.9,0.68), smooth = 2)
-fig = bilby_rate.plot_corner(outdir='.', color = 'grey', levels=(0.9,0.68), smooth = 2)
+fig = bilby_s1s2.plot_corner(outdir='.', color = 'grey', levels=[0.9], smooth = 2, bins = 30, alpha = 0.6)
+#fig = bilby_drate.plot_corner(outdir='.', color = 'grey', levels=(0.9,0.68), smooth = 2)
+#fig = bilby_rate.plot_corner(outdir='.', color = 'grey', levels=(0.9,0.68), smooth = 2)
 
-prob = [0.68, 0.9]
+#fig = corner.corner(rate_samples, smooth = 2.5, levels = [0.9], bins = 30, plot_density = False, color = 'black', fill_contours = False, linestyles = ['--'])
+#corner.corner(drate_samples, smooth = 2, levels = [0.9], bins = 30, plot_density = False, color = 'magenta', fill_contours = False, 
+#              fig = fig, contour_kwargs = {'linestyles':'--'}, contourf_kwargs = {'alpha':0})
+#corner.corner(s1s2_samples, smooth = 2, levels = [0.9], bins = 30, plot_density = False, color = color_s1s2, fill_contours = False, fig = fig, ls = '--')
+
+prob = [0.9]
 axes = fig.get_axes()
 
 
 ax = axes[0]
+ax.cla()
+ax.hist(s1s2_samples[:,0], color = 'grey', bins = 30, zorder = 0, histtype = 'step')
+
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 0, 
-                 fill = True, linestyles = ['solid',':'], color = color_rate, fac = 0.45, probs = prob)
+                 fill = False, linestyles = ['solid',':'], color = color_rate, fac = 130, probs = prob)
 if drate: 
     plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 0, 
-             fill = True, linestyles = ['solid',':'], color = color_drate, fac = 0.45, probs = prob)
+             fill = False, linestyles = ['solid',':'], color = color_drate, fac = 130, probs = prob)
 if s1s2:
     plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 0, 
-                 fill = True, linestyles = ['solid',':'], color = color_s1s2, fac = 0.45, probs = prob)
+                 fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 130, probs = prob)
 ax.set_xlabel('')
 ax.set_ylabel('')
+ax.set_xticks([])
+ax.set_yticks([])
+ax.set_title('')
+ax.set_xlim([1, 3])
 
 ax = axes[3]
 if rate:
     plot2d_emcee(ax, [predictions_rate], pars_true, fill = False, line = True, linestyles = ['solid','--'], 
-                 color = color_rate, probs = prob, zorder = 2)
+                 color = color_rate, probs = prob, zorder = 2, nvals = 20, smooth = 2)
 if drate:
     plot2d_emcee(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid','--'], 
-                 color = color_drate, probs = prob, zorder = 3)
+                 color = color_drate, probs = prob, zorder = 3, nvals = 20, smooth = 2)
 if s1s2:
     plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                 color = color_s1s2, probs = prob, zorder = 4)
-ax.set_ylabel('$Log_{10}(\\sigma \ [cm^{2}])$')
+                 color = color_s1s2, probs = prob, zorder = 4, nvals = 40)
+ax.set_ylabel('$Log_{10}(\\sigma \ [cm^{2}])$', fontsize = 12)
+ax.set_xlim([1, 3])
+ax.set_ylim([-48.5, -44])
 
 ax = axes[4]
+ax.cla()
+ax.hist(s1s2_samples[:,1], color = 'grey', bins = 30, zorder = 0, histtype = 'step')
+
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 1, 
-                 flip = False, fill = True, linestyles = ['solid', ':'], color = color_rate, fac = 0.02, probs = prob)
+                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_rate, fac = 150, probs = prob)
 if drate:
     plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 1, 
-                 flip = False, fill = True, linestyles = ['solid', ':'], color = color_drate, fac = 0.02, probs = prob)
+                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_drate, fac = 150, probs = prob)
 if s1s2:
     plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 1, 
-                 flip = False, fill = True, linestyles = ['solid', ':'], color = color_s1s2, fac = 0.02, probs = prob)
+                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_s1s2, fac = 50, probs = prob)
 ax.set_ylabel('')
 ax.set_xlabel('')
+ax.set_title('')
+ax.set_xlim([-48.5, -44])
+ax.set_xticks([])
+ax.set_yticks([])
 
 ax = axes[6]
 
 if rate:
     plot2d_emcee_m_theta(ax, [predictions_rate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                color = color_rate, probs = prob, zorder = 2)
+                color = color_rate, probs = prob, zorder = 2, smooth = 2)
 if drate:
     plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                color = color_drate, probs = prob, zorder = 2)
+                color = color_drate, probs = prob, zorder = 2, smooth = 2)
 if s1s2:
     plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                color = color_s1s2, probs = prob, zorder = 2)
+                color = color_s1s2, probs = prob, zorder = 2, smooth = 2)
 ax.set_ylabel('$\\theta$')
-ax.set_xlabel('$Log_{10}(M_{DM} \ [GeV])$')
+ax.set_xlabel('$Log_{10}(M_{DM} \ [GeV])$', fontsize = 12)
+ax.set_xlim([1, 3])
+ax.set_ylim([-1.6, 1.6])
 
 ax = axes[7]
 
 if rate:
     plot2d_emcee_sigma_theta(ax, [predictions_rate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                color = color_rate, probs = prob, zorder = 2)
+                color = color_rate, probs = prob, zorder = 2, smooth = 2)
 if drate:
     plot2d_emcee_sigma_theta(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                color = color_drate, probs = prob, zorder = 2)
+                color = color_drate, probs = prob, zorder = 2, smooth = 2)
 if s1s2:
     plot2d_emcee_sigma_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_s1s2, probs = prob, zorder = 2)
-ax.set_xlabel('$Log_{10}(\\sigma \ [cm^{2}])$')
+ax.set_xlabel('$Log_{10}(\\sigma \ [cm^{2}])$', fontsize = 12)
 ax.set_ylabel('')
+ax.set_xlim([-48.5, -44])
+ax.set_ylim([-1.6, 1.6])
 
 ax = axes[8]
+ax.cla()
+ax.hist(s1s2_samples[:,2], color = 'grey', bins = 30, zorder = 0, histtype = 'step')
+
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 2, 
-                 flip = False, fill = True, linestyles = ['solid',':'], color = color_rate, fac = 0.30, probs = prob)
+                 flip = False, fill = False, linestyles = ['solid',':'], color = color_rate, fac = 150, probs = prob)
 if drate:
     plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 2, 
-                 flip = False, fill = True, linestyles = ['solid',':'], color = color_drate, fac = 0.30, probs = prob)
+                 flip = False, fill = False, linestyles = ['solid',':'], color = color_drate, fac = 150, probs = prob)
 if s1s2:
     plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 2, 
-                 flip = False, fill = True, linestyles = ['solid',':'], color = color_s1s2, fac = 0.30, probs = prob)
+                 flip = False, fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 150, probs = prob)
 ax.set_ylabel('')
-ax.set_xlabel('$\\theta$')
+ax.set_title('')
+ax.set_xlim([-1.6, 1.6])
+ax.set_xticks([])
+ax.set_yticks([])
+ax.set_xlabel('$\\theta$', fontsize = 12)
 
+#fig.savefig('../graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
 fig
 # -
-
-
-
-
 
 
 
