@@ -1057,62 +1057,6 @@ values = a.get_equal_weighted_posterior()
 
 plt.hist(values[:,2])
 
-mask = weights > 1e-10
-p = corner.corner(data[mask,:],# weights=weights[mask],
-                  truths=[m_dm, sigma, theta],
-                  labels=parameters, show_titles=True)
-
-plt.hist(np.log10(weights))
-
-sum(np.where(mask == True)[0])
-
-data[:,0] = 10**(data[:,0])
-data[:,1] = 10**(data[:,1])
-
-np.max(_2loglik)
-
-# +
-q = _2loglik - np.min(_2loglik)
-plt.scatter(data[:,0], data[:,1], c = q, cmap = 'Greens')
-
-ind = np.where(q < 6.18)[0]
-plt.scatter(data[ind,0], data[ind,1], c = q[ind], cmap = 'Reds')
-plt.yscale('log')
-plt.xscale('log')
-plt.colorbar()
-
-plt.axhline(y = 10**sigma)
-plt.axvline(x = 10**m_dm)
-# -
-
-plt.scatter(data[:,0], data[:,1], c = np.log10(weights))
-plt.yscale('log')
-plt.xscale('log')
-plt.colorbar()
-
-# +
-p = corner.corner(data[mask,:], weights=weights[mask],
-                  truths=[10**m_dm, 10**sigma, theta],
-                  range = [(5, 1e3),(1e-49, 1e-45),(-1.6, 1.6)],
-                  labels=parameters, show_titles=True)
-
-ax = p.get_axes()[0]
-ax.set_xscale('log')
-
-ax = p.get_axes()[3]
-ax.set_xscale('log')
-ax.set_yscale('log')
-
-ax = p.get_axes()[4]
-ax.set_xscale('log')
-
-ax = p.get_axes()[6]
-ax.set_xscale('log')
-
-ax = p.get_axes()[7]
-ax.set_xscale('log')
-# -
-
 # ## Bilby
 
 # !ls ../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-multinest/drate/pm_PyMultiNest-drate-21047
@@ -1839,10 +1783,7 @@ ax[0,1].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox
 #ax[0,1].
 #ax[1,0].grid(which = 'both')
 #plt.savefig('../graph/2d_custom_posteriors_emcee' + str(i) + '.pdf')
-# -
 
-
-rate_samples.shape
 
 # +
 rate_samples = bilby_rate.samples
@@ -1864,7 +1805,7 @@ plt.show()
 rate  = True
 drate = True
 s1s2  = True
-fig = bilby_s1s2.plot_corner(outdir='.', color = 'grey', levels=[0.9], smooth = 2, bins = 30, alpha = 0.6)
+fig = bilby_s1s2.plot_corner(outdir='../graph/', color = 'grey', levels=[0.9], smooth = 2, bins = 30, alpha = 0.6)
 #fig = bilby_drate.plot_corner(outdir='.', color = 'grey', levels=(0.9,0.68), smooth = 2)
 #fig = bilby_rate.plot_corner(outdir='.', color = 'grey', levels=(0.9,0.68), smooth = 2)
 
@@ -1909,7 +1850,7 @@ if s1s2:
                  color = color_s1s2, probs = prob, zorder = 4, nvals = 40)
 ax.set_ylabel('$Log_{10}(\\sigma \ [cm^{2}])$', fontsize = 12)
 ax.set_xlim([1, 3])
-ax.set_ylim([-48.5, -44])
+ax.set_ylim([-49.5, -43])
 
 ax = axes[4]
 ax.cla()
@@ -1927,7 +1868,7 @@ if s1s2:
 ax.set_ylabel('')
 ax.set_xlabel('')
 ax.set_title('')
-ax.set_xlim([-48.5, -44])
+ax.set_xlim([-49.5, -43])
 ax.set_xticks([])
 ax.set_yticks([])
 
@@ -1942,7 +1883,7 @@ if drate:
 if s1s2:
     plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_s1s2, probs = prob, zorder = 2, smooth = 2)
-ax.set_ylabel('$\\theta$')
+ax.set_ylabel('$\\theta$', fontsize = 12)
 ax.set_xlabel('$Log_{10}(M_{DM} \ [GeV])$', fontsize = 12)
 ax.set_xlim([1, 3])
 ax.set_ylim([-1.6, 1.6])
@@ -1960,12 +1901,12 @@ if s1s2:
                 color = color_s1s2, probs = prob, zorder = 2)
 ax.set_xlabel('$Log_{10}(\\sigma \ [cm^{2}])$', fontsize = 12)
 ax.set_ylabel('')
-ax.set_xlim([-48.5, -44])
+ax.set_xlim([-49.5, -43])
 ax.set_ylim([-1.6, 1.6])
 
 ax = axes[8]
-ax.cla()
-ax.hist(s1s2_samples[:,2], color = 'grey', bins = 30, zorder = 0, histtype = 'step')
+ax.clear()
+ax.hist(s1s2_samples[:,2], color = 'grey', bins = 30, zorder = 0, histtype = 'step', range = (-1.6,1.6))
 
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 2, 
@@ -1979,12 +1920,14 @@ if s1s2:
 ax.set_ylabel('')
 ax.set_title('')
 ax.set_xlim([-1.6, 1.6])
-ax.set_xticks([])
+ax.set_xticks([-1.5,0,1.5])
+ax.set_xticklabels(['-1.5','0.0', '1.5'], rotation = 45)
 ax.set_yticks([])
-ax.set_xlabel('$\\theta$', fontsize = 12)
+ax.text(-0.06,-95, '$\\theta$', fontsize = 12)
+#ax.set_xlabel('$\\theta$', fontsize = 12)
 
-#fig.savefig('../graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
-fig
+fig.savefig('../graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
+#fig
 # -
 
 
