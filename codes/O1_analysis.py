@@ -5381,8 +5381,8 @@ m_min_th = 1 # Min Mass for 1d analysis
 m_max_th = 2.6 # Max Mass for 1d analysis
 
 rate  = True # Flag to use the information of the rate analysis
-drate = False # Flag to use the information of the drate analysis
-s1s2  = False # Flag to use the information of the s1s2 analysis
+drate = True # Flag to use the information of the drate analysis
+s1s2  = True # Flag to use the information of the s1s2 analysis
 
 if rate: 
     flag = 'rate_T'
@@ -5601,18 +5601,18 @@ ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
 
 # +
-CR_int_prob_sup_rate = []
-M_int_prob_sup_rate = []
-M_prob_sup_rate = []
-M_prob_inf_rate = []
+CR_int_prob_sup_comb = []
+M_int_prob_sup_comb = []
+M_prob_sup_comb = []
+M_prob_inf_comb = []
 
 sigma = 1.1
 for i in range(len(thetas)):
-    CR_int_prob_sup_rate.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
-    M_int_prob_sup_rate.append( gaussian_filter(masses_int_prob_sup_aux[i], 1.5) )
-    M_prob_sup_rate.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
-    M_prob_inf_rate.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
-    
+    CR_int_prob_sup_comb.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
+    M_int_prob_sup_comb.append( gaussian_filter(masses_int_prob_sup_aux[i], 1.5) )
+    M_prob_sup_comb.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
+    M_prob_inf_comb.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
+
 
 # +
 from matplotlib.legend_handler import HandlerBase
@@ -5736,7 +5736,95 @@ leg1 = ax[2].legend([('--', ':')], ['$\\mathcal{P}_{M_{DM}}$'],
            handler_map={tuple: AnyObjectHandler2()}, loc = 'lower right', fontsize = 12)
 ax[2].add_artist(leg1)
 
-plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB.pdf', bbox_inches='tight')
+#plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB.pdf', bbox_inches='tight')
+
+# +
+levels = [0.67, 0.76, 0.84, 0.9, 1]
+
+color_rate  = "#d55e00"
+color_drate = "#0072b2"
+color_s1s2  = "#009e73"
+color_comb = "#009e73"
+
+fig, ax = plt.subplots(1,1, sharex = True, sharey = True, figsize = (7,5))
+fig.subplots_adjust(hspace = 0, wspace = 0)
+
+ax.contour(m_vals, cross_vals, CR_int_prob_sup_comb[3].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_comb)
+ax.contour(m_vals, cross_vals, M_int_prob_sup_comb[3].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = ':', colors = color_comb)
+ax.contour(m_vals, cross_vals, M_prob_sup_comb[3].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_comb)
+
+ax.contour(m_vals, cross_vals, CR_int_prob_sup_rate[3].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_rate)
+
+ax.contour(m_vals, cross_vals, CR_int_prob_sup_drate[3].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_drate)
+
+ax.fill_between(neutrino_mDM, neutrino_floor_pluspidiv2, -50, color = "none", edgecolor='black', label = '$1$-$\\nu$ floor', alpha = 0.8, hatch = '///')
+ax.plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = ':', label = 'Bin. Lik. [90%]')
+ax.fill_between(masses, s1s2_current_pi2[2,:], 1e-43, color = 'black', alpha = 0.2, label = 'Excluded', zorder = 1)
+
+ax.set_yscale('log')
+ax.set_xscale('log')
+ax.text(3e2, 2e-44, '$\\theta = \pi/2$')
+leg0 = ax.legend(loc = 'lower left')
+ax.add_artist(leg0)
+
+ax.set_ylabel('$\sigma \ [cm^{2}]$')
+ax.set_xlabel('m [GeV]')
+
+ax.set_ylim(1e-49, 5e-44)
+ax.set_xlim(6, 9.8e2)
+
+custom_lines = []
+labels = ['Rate', 'Rate + Dif. Rate', 'Rate + Dif. Rate + S1S2']
+markers = ['solid','solid', 'solid']
+colors = [color_rate, color_drate, color_comb]
+for i in range(len(labels)):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+            label = labels[i]) )
+    
+leg1 = ax.legend(handles = custom_lines, loc = 'lower right', bbox_to_anchor=(0.972,0.1))
+
+#leg1 = ax.legend([(color_comb, color_drate, color_rate)], ['$\\mathcal{P}_{\\sigma}$'],
+#           handler_map={tuple: AnyObjectHandler()}, loc = 'lower right', fontsize = 12, bbox_to_anchor=(0.972,0.1))
+ax.add_artist(leg1)
+
+custom_lines = []
+labels = ['$\\mathcal{P}^{sup}_{M_{DM}}$', '$\\mathcal{P}^{tot}_{M_{DM}}$']
+markers = ['--', ':']
+
+leg2 = ax.legend([('--', ':')], ['$\\mathcal{P}_{M_{DM}}$'],
+           handler_map={tuple: AnyObjectHandler2()}, loc = 'lower right', fontsize = 12, bbox_to_anchor=(0.75,0.))
+ax.add_artist(leg2)
+
+plt.savefig('../graph/ContourPlot_O1_pi2_6.pdf')
+
+# +
+fig.subplots_adjust(right=0.8)
+
+custom_lines = []
+labels = ['Rate', 'Rate + Dif. Rate', 'Rate + Dif. Rate + S1S2']
+markers = ['solid','solid', 'solid']
+colors = [color_rate, color_drate, color_comb]
+for i in range(3):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+            label = labels[i]) )
+    
+ax[1].legend(handles = custom_lines, loc = 'lower left')
+
+
+leg0 = ax[2].legend([(color_comb, color_drate, color_rate)], ['$\\mathcal{P}_{\\sigma}$'],
+           handler_map={tuple: AnyObjectHandler()}, loc = 'lower left', fontsize = 12)
+ax[2].add_artist(leg0)
+
+custom_lines = []
+#labels = ['$\\sigma$', '$M_{DM}$']
+labels = ['$\\mathcal{P}^{sup}_{M_{DM}}$', '$\\mathcal{P}^{tot}_{M_{DM}}$']
+markers = ['--', ':']
+
+leg1 = ax[2].legend([('--', ':')], ['$\\mathcal{P}_{M_{DM}}$'],
+           handler_map={tuple: AnyObjectHandler2()}, loc = 'lower right', fontsize = 12)
+ax[2].add_artist(leg1)
+
+#plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB.pdf', bbox_inches='tight')
 # -
 
 # # Some other plots
