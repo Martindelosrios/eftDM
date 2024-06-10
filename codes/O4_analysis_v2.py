@@ -575,6 +575,13 @@ neutrino_fog = np.loadtxt('../data/neutrino_fog.csv', skiprows = 1, delimiter = 
 
 neutrino_fog.shape
 
+neutrino_floor_minuspidiv2 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O4-nufloor/floor_rate_minuspidiv2.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_minuspidiv4 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O4-nufloor/floor_rate_minuspidiv4.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_pluspidiv2 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O4-nufloor/floor_rate_pidiv2.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_pluspidiv4 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O4-nufloor/floor_rate_pidiv4.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_zero = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O4-nufloor/floor_rate_zero.txt', skiprows = 1, delimiter = ',')
+neutrino_mDM = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O4-nufloor/mDM_range.txt', skiprows = 1, delimiter = ',')
+
 # ## Xenon data
 #
 # from https://arxiv.org/pdf/2007.08796.pdf (Figure 6)
@@ -789,7 +796,7 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=100, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_v2_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_rate = Network_rate()
 
@@ -808,15 +815,15 @@ dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1],
 trainer_rate.test(network_rate, dm_test_rate)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_rate.fit(network_rate, dm_rate)
-    checkpoint_callback.to_yaml("./logs/O4_rate_v2.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O4_rate_v2.yaml")
+    checkpoint_callback.to_yaml("./logs/O4_rate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_rate.yaml")
     email('Termino de entrenar rate O1')
     
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O4_rate_v2.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_rate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.18 at epoch ~50
@@ -2179,7 +2186,7 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=50, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_v2_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
 
@@ -2198,14 +2205,14 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_drate.fit(network_drate, dm_drate)
-    checkpoint_callback.to_yaml("./logs/O4_v2_drate.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O4_v2_drate.yaml")
-    email('Termino el entramiento del drate para O4_v2')
+    checkpoint_callback.to_yaml("./logs/O4_drate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_drate.yaml")
+    #email('Termino el entramiento del drate para O4')
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O4_v2_drate.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_drate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.8 @ epoch 20
@@ -3107,7 +3114,7 @@ cb = MetricTracker()
 torch.manual_seed(28890)
 cb = MetricTracker()
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=20, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_v2_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2500, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_s1s2 = Network()
 
@@ -3126,13 +3133,13 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
-    checkpoint_callback.to_yaml("./logs/O4_v2_s1s2.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O4_v2_s1s2.yaml")
+    checkpoint_callback.to_yaml("./logs/O4_s1s2.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_s1s2.yaml")
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O4_v2_s1s2.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_s1s2.yaml")
 
 # ---------------------------------------
 # Min val loss value at 48 epochs. -3.31
@@ -5182,8 +5189,8 @@ m_min_th = 1 # Min Mass for 1d analysis
 m_max_th = 2.6 # Max Mass for 1d analysis
 
 rate  = True # Flag to use the information of the rate analysis
-drate = True # Flag to use the information of the drate analysis
-s1s2  = True # Flag to use the information of the s1s2 analysis
+drate = False # Flag to use the information of the drate analysis
+s1s2  = False # Flag to use the information of the s1s2 analysis
 
 if rate: 
     flag = 'rate_T'
@@ -5200,8 +5207,8 @@ if s1s2:
 else:
     flag = flag + '_s1s2_F'
 
-flag = flag + '_v2'
-force = True # Flag to force to compute everything again although it was pre-computed
+#flag = flag + '_v2'
+force = False # Flag to force to compute everything again although it was pre-computed
 
 thetas = ['0', 'minuspidiv2', 'minuspidiv4', 'pluspidiv2', 'pluspidiv4']
 cross_sec_int_prob_sup_aux    = []
@@ -5403,18 +5410,18 @@ ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
 
 # +
-CR_int_prob_sup_comb = []
-M_int_prob_sup_comb = []
-M_prob_sup_comb = []
-M_prob_inf_comb = []
+CR_int_prob_sup_rate = []
+M_int_prob_sup_rate = []
+M_prob_sup_rate = []
+M_prob_inf_rate = []
 
 sigma = 1.1
 for i in range(len(thetas)):
-    CR_int_prob_sup_comb.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
-    M_int_prob_sup_comb.append( gaussian_filter(masses_int_prob_sup_aux[i], 1.5) )
-    M_prob_sup_comb.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
-    M_prob_inf_comb.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
-    
+    CR_int_prob_sup_rate.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
+    M_int_prob_sup_rate.append( gaussian_filter(masses_int_prob_sup_aux[i], 1.5) )
+    M_prob_sup_rate.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
+    M_prob_inf_rate.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
+
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]
@@ -5424,7 +5431,7 @@ color_drate = "#0072b2"
 color_s1s2  = "#009e73"
 color_comb = "#009e73"
 
-fig, ax = plt.subplots(1,3, sharex = True, sharey = True, figsize = (12,5))
+fig, ax = plt.subplots(1,3, sharex = True, sharey = True, figsize = (13,5))
 fig.subplots_adjust(hspace = 0, wspace = 0)
 
 for i, theta in enumerate([3,4,0]):
@@ -5448,35 +5455,39 @@ for i, theta in enumerate([3,4,0]):
     #ax[0].contour(m_vals, cross_vals, CR_int_prob_sup_pi_2_drate.reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_drate)
 
 # #%ax[0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]', linestyle = ':')
-ax[0].fill_between(neutrino_fog[:,0], neutrino_fog[:,1], -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
+#ax[0].fill_between(neutrino_fog[:,0], neutrino_fog[:,1], -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
+#ax[0].fill_between(neutrino_mDM, neutrino_floor_pluspidiv2, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
 ax[0].plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = ':', label = 'Bin. Lik. [90%]')
 ax[0].fill_between(masses, s1s2_current_pi2[2,:], 1e-35, color = 'black', alpha = 0.2, label = 'Excluded', zorder = 1)
 
 ax[0].set_yscale('log')
 ax[0].set_xscale('log')
 #ax[0].grid(which='both')
-ax[0].text(3e2, 2e-44, '$\\theta = \pi/2$')
+ax[0].text(3e2, 1e-36, '$\\theta = \pi/2$')
 ax[0].legend(loc = 'lower left')
 
 ax[1].plot(masses, s1s2_90_CL_pi4[2,:], color = 'black', linestyle = ':')
 ax[1].fill_between(masses, s1s2_current_pi4[2,:], 1e-35, color = 'black', alpha = 0.2)
+#ax[1].fill_between(neutrino_mDM, neutrino_floor_pluspidiv4, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
 
 #ax[1].grid(which='both')
-ax[1].text(3e2, 2e-44, '$\\theta = \pi/4$')
+ax[1].text(3e2, 1e-36, '$\\theta = \pi/4$')
 
 ax[2].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = ':')
 ax[2].fill_between(masses, s1s2_current_0[2,:], 1e-35, color = 'black', alpha = 0.2, label = 'Excluded')
+#ax[2].fill_between(neutrino_mDM, neutrino_floor_zero, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
+
 ax[2].legend(loc = 'lower right')
 
 #ax[2].grid(which='both')
-ax[2].text(3e2, 2e-44, '$\\theta = 0$')
+ax[2].text(3e2, 1e-36, '$\\theta = 0$')
 
 ax[0].set_ylabel('$\sigma \ [cm^{2}]$')
 ax[0].set_xlabel('m [GeV]')
 ax[1].set_xlabel('m [GeV]')
 ax[2].set_xlabel('m [GeV]')
 
-ax[0].set_ylim(1e-42, 2e-36)
+ax[0].set_ylim(3e-42, 2e-36)
 ax[0].set_xlim(6, 9.8e2)
 
 fig.subplots_adjust(right=0.8)
@@ -5501,8 +5512,12 @@ for i in range(2):
     
 ax[2].legend(handles = custom_lines, loc = 'lower left')
 
-plt.savefig('../graph/O4_graph/O4_contours_all_int_prob_sup_COMB_v2.pdf')
+plt.savefig('../graph/O4_graph/O4_contours_all_int_prob_sup_COMB.pdf')
 # -
+
+plt.plot(neutrino_mDM, neutrino_floor_zero)
+plt.yscale('log')
+plt.xscale('log')
 
 m_vals
 
