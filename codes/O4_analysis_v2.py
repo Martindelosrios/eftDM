@@ -413,12 +413,12 @@ def plot2d_comb(ax, predictions, pars_true, fill = True, line = False, linestyle
 
 # # Let's load the data
 
-# !ls ../data/andresData/O4-fulldata/O4/O4-run01
+# !ls ../data/andresData/O4-fulldata/O4/
 
 # +
 # where are your files?
-datFolder = ['../data/andresData/O4-fulldata/O4/O4-run01/',
-             '../data/andresData/O4-fulldata/O4/O4-run02/']
+datFolder = ['../data/andresData/O4-fulldata/O4/O4-run03/',
+             '../data/andresData/O4-fulldata/O4/O4-run04/']
 nobs = 0
 for i, folder in enumerate(datFolder):
     print(i)
@@ -476,6 +476,10 @@ pars[:,1] = np.log10(pars[:,1])
 
 #diff_rate = np.round(diff_rate * 362440)
 # -
+
+pars[16461,:]
+
+np.max(s1s2)
 
 # This should be always zero
 i = np.random.randint(nobs)
@@ -709,7 +713,7 @@ ax[1].set_ylabel('s2')
 
 # # Let's play with SWYFT
 
-# ## Using only the total rate with background 
+# ## Using only the total
 
 # ### Training
 
@@ -796,7 +800,7 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=100, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_newTrain_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_rate = Network_rate()
 
@@ -815,15 +819,15 @@ dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1],
 trainer_rate.test(network_rate, dm_test_rate)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_rate.fit(network_rate, dm_rate)
-    checkpoint_callback.to_yaml("./logs/O4_rate.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O4_rate.yaml")
+    checkpoint_callback.to_yaml("./logs/O4_newTrain_rate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_newTrain_rate.yaml")
     email('Termino de entrenar rate O1')
     
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O4_rate.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_newTrain_rate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.18 at epoch ~50
@@ -859,7 +863,7 @@ if fit:
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
-    plt.savefig('../graph/O4_v2_loss_rate.pdf')
+    plt.savefig('../graph/O4_newTrain_loss_rate.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -871,7 +875,7 @@ if fit:
     for i in range(3):
         swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
     plt.tight_layout()
-    plt.savefig('../graph/O4_v2_Coverage_rate.pdf')
+    plt.savefig('../graph/O4_newTrain_Coverage_rate.pdf')
 
 # ### Let's make some inference
 
@@ -2069,7 +2073,7 @@ plt.ylabel('$\sigma_{Pred}$')
 
 # ### Training
 
-x_drate = diff_rate_trainset # Observable. Input data. 
+x_drate = np.log10(diff_rate_trainset) # Observable. Input data. 
 
 # +
 # Let's normalize everything between 0 and 1
@@ -2083,6 +2087,9 @@ x_min_drate = np.min(x_drate, axis = 0)
 x_max_drate = np.max(x_drate, axis = 0)
 
 x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+# -
+
+np.max(x_rate, axis = 0)
 
 # +
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
@@ -2186,13 +2193,13 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=50, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_newTrain_log_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
 
 
 # +
-x_test_drate = diff_rate_testset
+x_test_drate = np.log10(diff_rate_testset)
 x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -2205,21 +2212,21 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_drate.fit(network_drate, dm_drate)
-    checkpoint_callback.to_yaml("./logs/O4_drate.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O4_drate.yaml")
+    checkpoint_callback.to_yaml("./logs/O4_newTrain_log_drate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_newTrain_log_drate.yaml")
     #email('Termino el entramiento del drate para O4')
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O4_drate.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_newTrain_log_drate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.8 @ epoch 20
 # ---------------------------------------------- 
 
 # +
-x_test_drate = diff_rate_testset
+x_test_drate = np.log10(diff_rate_testset)
 x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -2248,7 +2255,7 @@ if fit:
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
-    plt.savefig('../graph/O4_v2_loss_drate.pdf')
+    plt.savefig('../graph/O4_newTrain_log_loss_drate.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -2260,7 +2267,7 @@ if fit:
     for i in range(3):
         swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
     plt.tight_layout()
-    plt.savefig('../graph/O4_v2_Coverage_drate.pdf')
+    plt.savefig('../graph/O4_newTrain_log_Coverage_drate.pdf')
 
 # ### Let's make some inference
 
@@ -3113,8 +3120,8 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 cb = MetricTracker()
-early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=20, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=100, verbose=False, mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_newTrain_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2500, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_s1s2 = Network()
 
@@ -3133,13 +3140,13 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
-    checkpoint_callback.to_yaml("./logs/O4_s1s2.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O4_s1s2.yaml")
+    checkpoint_callback.to_yaml("./logs/O4_newTrain_s1s2.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_newTrain_s1s2.yaml")
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O4_s1s2.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_newTrain_s1s2.yaml")
 
 # ---------------------------------------
 # Min val loss value at 48 epochs. -3.31
@@ -3181,7 +3188,7 @@ if fit:
     plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.savefig('../graph/O4_v2_loss_s1s2_temp.pdf')
+    plt.savefig('../graph/O4_newTrain_loss_s1s2_temp.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -3193,7 +3200,7 @@ if fit:
     for i in range(3):
         swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
     plt.tight_layout()
-    plt.savefig('../graph/O4_v2_Coverage_s1s2.pdf')
+    plt.savefig('../graph/O4_newTrain_Coverage_s1s2.pdf')
 
 # ### Let's make some inference
 
@@ -5172,7 +5179,7 @@ for condition in conditions:
 
 # ### Let's make the contour plot
 
-# !ls ../data/andresData/O4-fulldata/O4/theta-0
+# !ls ../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-0-v5
 
 pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice(['../data/andresData/O4-fulldata/O4/theta-0/O4-slices01-0/'])
 
@@ -5207,8 +5214,8 @@ if s1s2:
 else:
     flag = flag + '_s1s2_F'
 
-#flag = flag + '_v2'
-force = False # Flag to force to compute everything again although it was pre-computed
+flag = flag + '_newTrain'
+force = True # Flag to force to compute everything again although it was pre-computed
 
 thetas = ['0', 'minuspidiv2', 'minuspidiv4', 'pluspidiv2', 'pluspidiv4']
 cross_sec_int_prob_sup_aux    = []
@@ -5257,7 +5264,7 @@ for theta in thetas:
             
             x_norm_s1s2 = x_s1s2 = s1s2_slices[:,:-1,:-1]
                
-            x_drate = diff_rate_slices
+            x_drate = np.log10(diff_rate_slices)
             x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
                
             x_rate = np.log10(rate_slices)
@@ -5405,7 +5412,7 @@ ax[1,0].set_xlabel('$\int_{m_{min}}^{\inf} P(m_{DM}|x)$')
 ax[1,1].legend()
 ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
-#plt.savefig('../graph/O4_int_prob_distribution_s1s2.pdf')
+plt.savefig('../graph/O4_newTrain_int_prob_distribution_rate.pdf')
 
 
 
@@ -5456,7 +5463,7 @@ for i, theta in enumerate([3,4,0]):
 
 # #%ax[0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]', linestyle = ':')
 #ax[0].fill_between(neutrino_fog[:,0], neutrino_fog[:,1], -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
-#ax[0].fill_between(neutrino_mDM, neutrino_floor_pluspidiv2, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
+ax[0].fill_between(neutrino_mDM, neutrino_floor_pluspidiv2, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
 ax[0].plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = ':', label = 'Bin. Lik. [90%]')
 ax[0].fill_between(masses, s1s2_current_pi2[2,:], 1e-35, color = 'black', alpha = 0.2, label = 'Excluded', zorder = 1)
 
@@ -5468,14 +5475,14 @@ ax[0].legend(loc = 'lower left')
 
 ax[1].plot(masses, s1s2_90_CL_pi4[2,:], color = 'black', linestyle = ':')
 ax[1].fill_between(masses, s1s2_current_pi4[2,:], 1e-35, color = 'black', alpha = 0.2)
-#ax[1].fill_between(neutrino_mDM, neutrino_floor_pluspidiv4, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
+ax[1].fill_between(neutrino_mDM, neutrino_floor_pluspidiv4, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
 
 #ax[1].grid(which='both')
 ax[1].text(3e2, 1e-36, '$\\theta = \pi/4$')
 
 ax[2].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = ':')
 ax[2].fill_between(masses, s1s2_current_0[2,:], 1e-35, color = 'black', alpha = 0.2, label = 'Excluded')
-#ax[2].fill_between(neutrino_mDM, neutrino_floor_zero, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
+ax[2].fill_between(neutrino_mDM, neutrino_floor_zero, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
 
 ax[2].legend(loc = 'lower right')
 
@@ -5512,7 +5519,7 @@ for i in range(2):
     
 ax[2].legend(handles = custom_lines, loc = 'lower left')
 
-plt.savefig('../graph/O4_graph/O4_contours_all_int_prob_sup_COMB.pdf')
+plt.savefig('../graph/O4_graph/O4_newTrain_contours_all_int_prob_sup_COMB.pdf', bbox_inches='tight')
 # -
 
 plt.plot(neutrino_mDM, neutrino_floor_zero)
