@@ -713,7 +713,7 @@ ax[1].set_ylabel('s2')
 
 # # Let's play with SWYFT
 
-# ## Using only the total
+# ## Using only the total rate
 
 # ### Training
 
@@ -819,7 +819,7 @@ dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1],
 trainer_rate.test(network_rate, dm_test_rate)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_rate.fit(network_rate, dm_rate)
     checkpoint_callback.to_yaml("./logs/O4_newTrain_rate.yaml") 
@@ -2212,7 +2212,7 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_drate.fit(network_drate, dm_drate)
     checkpoint_callback.to_yaml("./logs/O4_newTrain_log_drate.yaml") 
@@ -3031,7 +3031,7 @@ x_max_s1s2 = np.max(x_s1s2)
 x_norm_s1s2 = x_s1s2
 #ind_nonzero = np.where(x_max_s1s2 > 0)
 #x_norm_s1s2[:,ind_nonzero[0], ind_nonzero[1]] = (x_s1s2[:,ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]]) / (x_max_s1s2[ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]])
-#x_norm_s1s2 = x_s1s2 / x_max_s1s2
+x_norm_s1s2 = x_s1s2 #/ x_max_s1s2
 
 
 # +
@@ -3127,7 +3127,7 @@ network_s1s2 = Network()
 
 # +
 x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
-# #%x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
+#x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
 x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -3140,7 +3140,7 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
     checkpoint_callback.to_yaml("./logs/O4_newTrain_s1s2.yaml") 
@@ -3158,7 +3158,7 @@ trainer_s1s2.test(network_s1s2, dm_test_s1s2, ckpt_path = ckpt_path)
 
 # +
 x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
-# #%x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
+#x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
 x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -3188,7 +3188,7 @@ if fit:
     plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.savefig('../graph/O4_newTrain_loss_s1s2_temp.pdf')
+    plt.savefig('../graph/O4_newTrain_norm_loss_s1s2_temp.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -3200,7 +3200,7 @@ if fit:
     for i in range(3):
         swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
     plt.tight_layout()
-    plt.savefig('../graph/O4_newTrain_Coverage_s1s2.pdf')
+    plt.savefig('../graph/O4_newTrain_norm_Coverage_s1s2.pdf')
 
 # ### Let's make some inference
 
@@ -5196,8 +5196,8 @@ m_min_th = 1 # Min Mass for 1d analysis
 m_max_th = 2.6 # Max Mass for 1d analysis
 
 rate  = True # Flag to use the information of the rate analysis
-drate = False # Flag to use the information of the drate analysis
-s1s2  = False # Flag to use the information of the s1s2 analysis
+drate = True # Flag to use the information of the drate analysis
+s1s2  = True # Flag to use the information of the s1s2 analysis
 
 if rate: 
     flag = 'rate_T'
@@ -5262,7 +5262,7 @@ for theta in thetas:
             
             pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
             
-            x_norm_s1s2 = x_s1s2 = s1s2_slices[:,:-1,:-1]
+            x_norm_s1s2 = x_s1s2 = s1s2_slices[:,:-1,:-1] #/ x_max_s1s2
                
             x_drate = np.log10(diff_rate_slices)
             x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
@@ -5412,22 +5412,22 @@ ax[1,0].set_xlabel('$\int_{m_{min}}^{\inf} P(m_{DM}|x)$')
 ax[1,1].legend()
 ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
-plt.savefig('../graph/O4_newTrain_int_prob_distribution_rate.pdf')
+plt.savefig('../graph/O4_newTrain_int_prob_distribution_comb.pdf')
 
 
 
 # +
-CR_int_prob_sup_rate = []
-M_int_prob_sup_rate = []
-M_prob_sup_rate = []
-M_prob_inf_rate = []
+CR_int_prob_sup_comb = []
+M_int_prob_sup_comb = []
+M_prob_sup_comb = []
+M_prob_inf_comb = []
 
 sigma = 1.1
 for i in range(len(thetas)):
-    CR_int_prob_sup_rate.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
-    M_int_prob_sup_rate.append( gaussian_filter(masses_int_prob_sup_aux[i], 1.5) )
-    M_prob_sup_rate.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
-    M_prob_inf_rate.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
+    CR_int_prob_sup_comb.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
+    M_int_prob_sup_comb.append( gaussian_filter(masses_int_prob_sup_aux[i], 1.5) )
+    M_prob_sup_comb.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
+    M_prob_inf_comb.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
 
 
 # +
@@ -5519,7 +5519,7 @@ for i in range(2):
     
 ax[2].legend(handles = custom_lines, loc = 'lower left')
 
-plt.savefig('../graph/O4_graph/O4_newTrain_contours_all_int_prob_sup_COMB.pdf', bbox_inches='tight')
+#plt.savefig('../graph/O4_graph/O4_norm2_newTrain_contours_all_int_prob_sup_COMB.pdf', bbox_inches='tight')
 # -
 
 plt.plot(neutrino_mDM, neutrino_floor_zero)
