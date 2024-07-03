@@ -588,12 +588,14 @@ neutrino_fog = np.loadtxt('../data/neutrino_fog.csv', skiprows = 1, delimiter = 
 
 neutrino_fog.shape
 
-neutrino_floor_minuspidiv2 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/floor_rate_minuspidiv2.txt', skiprows = 1, delimiter = ',')
-neutrino_floor_minuspidiv4 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/floor_rate_minuspidiv4.txt', skiprows = 1, delimiter = ',')
-neutrino_floor_pluspidiv2 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/floor_rate_pidiv2.txt', skiprows = 1, delimiter = ',')
-neutrino_floor_pluspidiv4 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/floor_rate_pidiv4.txt', skiprows = 1, delimiter = ',')
-neutrino_floor_zero = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/floor_rate_zero.txt', skiprows = 1, delimiter = ',')
-neutrino_mDM = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O1-nufloor/mDM_range.txt', skiprows = 1, delimiter = ',')
+# !ls ../data/andresData/28-05-24-files/O1-O4-neutrino-floors-B/O1-neutrinofloors-B
+
+neutrino_floor_minuspidiv2 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-neutrino-floors-B/O1-neutrinofloors-B/floor_rate_minuspidiv2.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_minuspidiv4 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-neutrino-floors-B/O1-neutrinofloors-B/floor_rate_minuspidiv4.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_pluspidiv2 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-neutrino-floors-B/O1-neutrinofloors-B/floor_rate_pidiv2.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_pluspidiv4 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-neutrino-floors-B/O1-neutrinofloors-B/floor_rate_pidiv4.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_zero = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-neutrino-floors-B/O1-neutrinofloors-B/floor_rate_zero.txt', skiprows = 1, delimiter = ',')
+neutrino_mDM = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-neutrino-floors-B/O1-neutrinofloors-B/mDM_range.txt', skiprows = 1, delimiter = ',')
 
 
 # ## Xenon data
@@ -5383,8 +5385,8 @@ m_min_th = 1 # Min Mass for 1d analysis
 m_max_th = 2.6 # Max Mass for 1d analysis
 
 rate  = True # Flag to use the information of the rate analysis
-drate = False # Flag to use the information of the drate analysis
-s1s2  = False # Flag to use the information of the s1s2 analysis
+drate = True # Flag to use the information of the drate analysis
+s1s2  = True # Flag to use the information of the s1s2 analysis
 
 if rate: 
     flag = 'rate_T'
@@ -5604,17 +5606,17 @@ plt.savefig('../graph/O1_norm2_int_prob_distribution_comb.pdf')
 
 
 # +
-CR_int_prob_sup_rate = []
-M_int_prob_sup_rate = []
-M_prob_sup_rate = []
-M_prob_inf_rate = []
+CR_int_prob_sup_comb = []
+M_int_prob_sup_comb = []
+M_prob_sup_comb = []
+M_prob_inf_comb = []
 
 sigma = 1.1
 for i in range(len(thetas)):
-    CR_int_prob_sup_rate.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
-    M_int_prob_sup_rate.append( gaussian_filter(masses_int_prob_sup_aux[i], 1.5) )
-    M_prob_sup_rate.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
-    M_prob_inf_rate.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
+    CR_int_prob_sup_comb.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
+    M_int_prob_sup_comb.append( gaussian_filter(masses_int_prob_sup_aux[i], sigma) )
+    M_prob_sup_comb.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
+    M_prob_inf_comb.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
 
 
 # +
@@ -5648,10 +5650,10 @@ fig, ax = plt.subplots(1,3, sharex = True, sharey = True, figsize = (13,5))
 fig.subplots_adjust(hspace = 0, wspace = 0)
 
 for i, theta in enumerate([3,4,0]):
-    pars_slices, rate_slices, diff_rate_slices, s1s2_slices, rate_raw_slices  = read_slice(['../data/andresData/O1-slices-5vecescadatheta/theta-' + thetas[theta] + '/SI-slices01-' + thetas[theta] + '/'])
+    #pars_slices, rate_slices, diff_rate_slices, s1s2_slices, rate_raw_slices  = read_slice(['../data/andresData/O1-slices-5vecescadatheta/theta-' + thetas[theta] + '/SI-slices01-' + thetas[theta] + '/'])
     #cs = ax[i].contour(m_vals, cross_vals, np.sum(diff_rate_WIMP, axis = 1).reshape(30,30).T, levels = [10,100,1000], colors = ['black'], linestyles = ['solid'])
     #ax[i].clabel(cs, cs.levels, fmt = '%1.0e', inline=True, fontsize=10)
-    ax[i].contour(m_vals, cross_vals, rate_raw_slices[:,1].reshape(30,30).T, levels = [10,100,1000,10000], colors = ['purple','purple','purple'], alpha = 0.4, linestyles = ['solid','--',':','-.'])
+    #ax[i].contour(m_vals, cross_vals, rate_raw_slices[:,1].reshape(30,30).T, levels = [10,100,1000,10000], colors = ['purple','purple','purple'], alpha = 0.4, linestyles = ['solid','--',':','-.'])
     
     
     ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_comb)
@@ -5674,9 +5676,9 @@ for i, theta in enumerate([3,4,0]):
 
 # #%ax[0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]', linestyle = ':')
 # #%ax[0].plot(neutrino_fog[:,0], neutrino_fog[:,1], color = "green")
+ax[0].fill_between(masses, s1s2_current_pi2[2,:], 1e-43, color = 'black', alpha = 0.2, label = 'Exclusion (1 tonne-year)', zorder = 1)
+ax[0].plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = ':', label = 'Exclusion (20 tonne-year)')
 ax[0].fill_between(neutrino_mDM, neutrino_floor_pluspidiv2, -50, color = "none", edgecolor='black', label = '$1$-$\\nu$ floor', alpha = 0.8, hatch = '///')
-ax[0].plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = ':', label = 'Bin. Lik. [90%]')
-ax[0].fill_between(masses, s1s2_current_pi2[2,:], 1e-43, color = 'black', alpha = 0.2, label = 'Excluded', zorder = 1)
 
 ax[0].set_yscale('log')
 ax[0].set_xscale('log')
@@ -5692,7 +5694,7 @@ ax[1].fill_between(neutrino_mDM, neutrino_floor_pluspidiv4, -50, color = "none",
 ax[1].text(3e2, 2e-44, '$\\theta = \pi/4$')
 
 ax[2].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = ':')
-ax[2].fill_between(masses, s1s2_current_0[2,:], 1e-43, color = 'black', alpha = 0.2, label = 'Excluded')
+ax[2].fill_between(masses, s1s2_current_0[2,:], 1e-43, color = 'black', alpha = 0.2, label = 'Exc. 1T year')
 ax[2].fill_between(neutrino_mDM, neutrino_floor_zero, -50, color = "none", edgecolor='black', label = '$1$-$\\nu$ floor', alpha = 0.8, hatch = '///')
 ax[2].legend(loc = 'lower right')
 
@@ -5700,9 +5702,9 @@ ax[2].legend(loc = 'lower right')
 ax[2].text(3e2, 2e-44, '$\\theta = 0$')
 
 ax[0].set_ylabel('$\sigma \ [cm^{2}]$')
-ax[0].set_xlabel('m [GeV]')
-ax[1].set_xlabel('m [GeV]')
-ax[2].set_xlabel('m [GeV]')
+ax[0].set_xlabel('$m_{dm}$ [GeV]')
+ax[1].set_xlabel('$m_{dm}$ [GeV]')
+ax[2].set_xlabel('$m_{dm}$ [GeV]')
 
 ax[0].set_ylim(1e-49, 5e-44)
 ax[0].set_xlim(6, 9.8e2)
@@ -5710,7 +5712,7 @@ ax[0].set_xlim(6, 9.8e2)
 fig.subplots_adjust(right=0.8)
 
 custom_lines = []
-labels = ['Rate', 'Rate + Dif. Rate', 'Rate + Dif. Rate + S1S2']
+labels = ['Rate', 'Rate + Dif. Rate', 'Rate + Dif. Rate + cS1-cS2']
 markers = ['solid','solid', 'solid']
 colors = [color_rate, color_drate, color_comb]
 for i in range(3):
@@ -5720,13 +5722,13 @@ for i in range(3):
 ax[1].legend(handles = custom_lines, loc = 'lower left')
 
 
-leg0 = ax[2].legend([(color_comb, color_drate, color_rate)], ['$\\mathcal{P}_{\\sigma}$'],
+leg0 = ax[2].legend([(color_rate, color_drate, color_comb)], ['$\\mathcal{P}_{\\sigma}$'],
            handler_map={tuple: AnyObjectHandler()}, loc = 'lower left', fontsize = 12)
 ax[2].add_artist(leg0)
 
 custom_lines = []
 #labels = ['$\\sigma$', '$M_{DM}$']
-labels = ['$\\mathcal{P}^{sup}_{M_{DM}}$', '$\\mathcal{P}^{tot}_{M_{DM}}$']
+labels = ['$\\mathcal{P}^{sup}_{m_{dm}}$', '$\\mathcal{P}^{tot}_{m_{dm}}$']
 markers = ['--', ':']
 #for i in range(len(labels)):
 #    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = color_comb, 
@@ -5735,11 +5737,11 @@ markers = ['--', ':']
 #leg1 = ax[2].legend(handles = custom_lines, loc = 'lower right', fontsize = 12)
 #ax[2].add_artist(leg1)
 
-leg1 = ax[2].legend([('--', ':')], ['$\\mathcal{P}_{M_{DM}}$'],
+leg1 = ax[2].legend([('--', ':')], ['$\\mathcal{P}_{m_{dm}}$'],
            handler_map={tuple: AnyObjectHandler2()}, loc = 'lower right', fontsize = 12)
 ax[2].add_artist(leg1)
 
-plt.savefig('../graph/O1_new_norm2_contours_all_int_prob_sup_COMB.pdf', bbox_inches='tight')
+plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB.pdf', bbox_inches='tight')
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]
@@ -6254,11 +6256,11 @@ linestyle = ['solid','--',':','-.']
 # !ls ../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2
 
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0-v5/'
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv4/SI-slices01-pluspidiv4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv4/SI-slices01-pluspidiv4-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv4/SI-slices01-pluspidiv4-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv4/SI-slices01-pluspidiv4-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv4/SI-slices01-pluspidiv4-v5/'
          ]
 
 sigmas_full       = []
@@ -6286,7 +6288,7 @@ m_true = []
 sigma_true = []
 
 for ifold, folder in enumerate(folders):
-    pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
+    pars_slices, rate_slices, diff_rate_slices, s1s2_slices, rate_raw_slices = read_slice([folder])
     pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
     for i, itest in enumerate(bps):
         ratios_s1s2_aux     = []
@@ -6297,7 +6299,7 @@ for ifold, folder in enumerate(folders):
             
         x_norm_s1s2 = x_s1s2 = s1s2_slices[:,:-1,:-1]   
         
-        x_obs = x_norm_s1s2[itest, :,:]
+        x_obs = x_norm_s1s2[itest, :,:] / x_max_s1s2
         
         # We have to put this "observation" into a swyft.Sample object
         obs = swyft.Sample(x = x_obs.reshape(1,96,96))
@@ -6341,7 +6343,7 @@ for ifold, folder in enumerate(folders):
         #  ------------------------------  drate -----------------------------------------------
         # Let's normalize testset between 0 and 1  
         
-        x_drate = diff_rate_slices
+        x_drate = np.log10(diff_rate_slices)
         x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate) 
         
         x_obs = x_norm_drate[itest, :]
@@ -6426,44 +6428,43 @@ for ifold, folder in enumerate(folders):
         cross_sec = cross_sec[ind_sort]
 
 
-ratios_s1s2_0     = np.mean(ratios_s1s2, axis = 1)    
-low_1sigma_s1s2_0 = np.mean(low_1sigma_s1s2, axis = 1)    
-up_1sigma_s1s2_0  = np.mean(up_1sigma_s1s2, axis = 1)    
+ratios_s1s2_pi4     = np.mean(ratios_s1s2, axis = 1)    
+low_1sigma_s1s2_pi4 = np.mean(low_1sigma_s1s2, axis = 1)    
+up_1sigma_s1s2_pi4  = np.mean(up_1sigma_s1s2, axis = 1)    
 
-ratios_drate_0     = np.mean(ratios_drate, axis = 1)    
-low_1sigma_drate_0 = np.mean(low_1sigma_drate, axis = 1)    
-up_1sigma_drate_0  = np.mean(up_1sigma_drate, axis = 1)  
+ratios_drate_pi4     = np.mean(ratios_drate, axis = 1)    
+low_1sigma_drate_pi4 = np.mean(low_1sigma_drate, axis = 1)    
+up_1sigma_drate_pi4  = np.mean(up_1sigma_drate, axis = 1)  
 
-ratios_rate_0     = np.mean(ratios_rate, axis = 1)    
-low_1sigma_rate_0 = np.mean(low_1sigma_rate, axis = 1)    
-up_1sigma_rate_0  = np.mean(up_1sigma_rate, axis = 1)  
+ratios_rate_pi4     = np.mean(ratios_rate, axis = 1)    
+low_1sigma_rate_pi4 = np.mean(low_1sigma_rate, axis = 1)    
+up_1sigma_rate_pi4  = np.mean(up_1sigma_rate, axis = 1)  
 
 # +
 fig, ax = plt.subplots(2,2, sharex = True, sharey=False)
 fig.subplots_adjust(hspace = 0, wspace = 0)
 
-ax[0,0].plot(cross_sec, ratios_s1s2_mpi2[0,:] * ratios_drate_mpi2[0,:] * ratios_rate_mpi2[0,:], linestyle = linestyle[0], color = color_s1s2, label = 'Rate + Dif.Rate + s1s2')
-ax[0,1].plot(cross_sec, ratios_s1s2_mpi2[1,:] * ratios_drate_mpi2[1,:] * ratios_rate_mpi2[1,:], linestyle = linestyle[0], color = color_s1s2)
-ax[1,0].plot(cross_sec, ratios_s1s2_mpi2[2,:] * ratios_drate_mpi2[2,:] * ratios_rate_mpi2[2,:], linestyle = linestyle[0], color = color_s1s2)
-ax[1,1].plot(cross_sec, ratios_s1s2_mpi2[3,:] * ratios_drate_mpi2[3,:] * ratios_rate_mpi2[3,:], linestyle = linestyle[0], color = color_s1s2)
+ax[0,0].plot(cross_sec, ratios_s1s2_pi2[0,:] * ratios_drate_pi2[0,:] * ratios_rate_pi2[0,:], linestyle = linestyle[0], color = color_s1s2, label = 'Rate + Dif.Rate + cS1-cS2')
+ax[0,1].plot(cross_sec, ratios_s1s2_pi2[1,:] * ratios_drate_pi2[1,:] * ratios_rate_pi2[1,:], linestyle = linestyle[0], color = color_s1s2)
+ax[1,0].plot(cross_sec, ratios_s1s2_pi2[2,:] * ratios_drate_pi2[2,:] * ratios_rate_pi2[2,:], linestyle = linestyle[0], color = color_s1s2)
+ax[1,1].plot(cross_sec, ratios_s1s2_pi2[3,:] * ratios_drate_pi2[3,:] * ratios_rate_pi2[3,:], linestyle = linestyle[0], color = color_s1s2)
 
-ax[0,0].plot(cross_sec, ratios_drate_mpi2[0,:] * ratios_rate_mpi2[0,:], linestyle = linestyle[1], color = color_drate, label = 'Rate + Dif. Rate')
-ax[0,1].plot(cross_sec, ratios_drate_mpi2[1,:] * ratios_rate_mpi2[1,:], linestyle = linestyle[1], color = color_drate)
-ax[1,0].plot(cross_sec, ratios_drate_mpi2[2,:] * ratios_rate_mpi2[2,:], linestyle = linestyle[1], color = color_drate)
-ax[1,1].plot(cross_sec, ratios_drate_mpi2[3,:] * ratios_rate_mpi2[3,:], linestyle = linestyle[1], color = color_drate)
+ax[0,0].plot(cross_sec, ratios_drate_pi2[0,:] * ratios_rate_pi2[0,:], linestyle = linestyle[1], color = color_drate, label = 'Rate + Dif. Rate')
+ax[0,1].plot(cross_sec, ratios_drate_pi2[1,:] * ratios_rate_pi2[1,:], linestyle = linestyle[1], color = color_drate)
+ax[1,0].plot(cross_sec, ratios_drate_pi2[2,:] * ratios_rate_pi2[2,:], linestyle = linestyle[1], color = color_drate)
+ax[1,1].plot(cross_sec, ratios_drate_pi2[3,:] * ratios_rate_pi2[3,:], linestyle = linestyle[1], color = color_drate)
 
-ax[0,0].plot(cross_sec, ratios_rate_mpi2[0,:], linestyle = linestyle[2], color = color_rate, label = 'Rate')
-ax[0,1].plot(cross_sec, ratios_rate_mpi2[1,:], linestyle = linestyle[2], color = color_rate)
-ax[1,0].plot(cross_sec, ratios_rate_mpi2[2,:], linestyle = linestyle[2], color = color_rate)
-ax[1,1].plot(cross_sec, ratios_rate_mpi2[3,:], linestyle = linestyle[2], color = color_rate)
+ax[0,0].plot(cross_sec, ratios_rate_pi2[0,:], linestyle = linestyle[2], color = color_rate, label = 'Rate')
+ax[0,1].plot(cross_sec, ratios_rate_pi2[1,:], linestyle = linestyle[2], color = color_rate)
+ax[1,0].plot(cross_sec, ratios_rate_pi2[2,:], linestyle = linestyle[2], color = color_rate)
+ax[1,1].plot(cross_sec, ratios_rate_pi2[3,:], linestyle = linestyle[2], color = color_rate)
 
-#ax[0,0].text(-50,0.5, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[0]))
-#ax[0,1].text(-50,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[1]))
-#ax[1,0].text(-50,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[2]))
-#ax[1,1].text(-50,7, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[3]))
+ax[0,0].text(-46.3,4.35, '$\sigma = $' + '{:.1e}'.format(10**sigma_true[0]) + ' cm$^{2}$')
+ax[0,1].text(-50.2,9.1, '$\sigma = $' + '{:.1e}'.format(10**sigma_true[1]) + ' cm$^{2}$')
+ax[1,0].text(-50,80, '$\sigma = $' + '{:.1e}'.format(10**sigma_true[2]) + ' cm$^{2}$')
+ax[1,1].text(-50,265, '$\sigma = $' + '{:.1e}'.format(10**sigma_true[3]) + ' cm$^{2}$')
 
-ax[0,0].legend(loc = 'upper right', bbox_to_anchor=(1.95, 1.22), ncol = 3, frameon = False)
-
+ax[0,0].legend(loc = 'upper right', bbox_to_anchor=(2.1, 1.22), ncol = 3, frameon = False)
 
 ax[0,0].axvline(x = sigma_true[0], color = 'black', alpha = 0.7)
 ax[0,1].axvline(x = sigma_true[1], color = 'black', alpha = 0.7)
@@ -6480,8 +6481,8 @@ ax[1,1].yaxis.tick_right()
 plt.savefig('../graph/PosteriorsExamples_fixSigma.pdf')
 
 # +
-plt.plot(cross_sec, ratios_rate_mpi2[1,:] * ratios_drate_mpi2[1,:] * ratios_s1s2_mpi2[1,:], linestyle = linestyle[0], color = color_s1s2, label = 'S1-S2')
-plt.plot(cross_sec, ratios_rate_mpi4[1,:] * ratios_drate_mpi4[1,:] * ratios_s1s2_mpi4[1,:], linestyle = linestyle[1], color = color_s1s2)
+plt.plot(cross_sec, ratios_rate_pi2[1,:] * ratios_drate_pi2[1,:] * ratios_s1s2_pi2[1,:], linestyle = linestyle[0], color = color_s1s2, label = 'cS1-cS2')
+plt.plot(cross_sec, ratios_rate_pi4[1,:] * ratios_drate_pi4[1,:] * ratios_s1s2_pi4[1,:], linestyle = linestyle[1], color = color_s1s2)
 plt.plot(cross_sec, ratios_rate_0[1,:] * ratios_drate_0[1,:] * ratios_s1s2_0[1,:], linestyle = linestyle[2], color = color_s1s2)
 
 #plt.plot(cross_sec, ratios_drate_mpi2[1,:], linestyle = linestyle[0], color = color_drate, label = 'Dif. Rate')
@@ -6492,12 +6493,12 @@ plt.plot(cross_sec, ratios_rate_0[1,:] * ratios_drate_0[1,:] * ratios_s1s2_0[1,:
 #plt.plot(cross_sec, ratios_rate_mpi4[1,:], linestyle = linestyle[1], color = color_rate)
 #plt.plot(cross_sec, ratios_rate_0[1,:], linestyle = linestyle[2], color = color_rate)
 
-plt.text(-49.5,9.3, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[1]))
+plt.text(-49.5,9.3, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[1]) + ' cm$^{2}$')
 
 legend0 = plt.legend(loc = 'upper left')
 
 custom_lines = []
-labels = ['$\\theta = -\pi/2$', '$\\theta = -\pi/4$', '$\\theta = 0$']
+labels = ['$\\theta = \pi/2$', '$\\theta = \pi/4$', '$\\theta = 0$']
 markers = ['solid','--', ':']
 for i in range(3):
     custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = 'black', 

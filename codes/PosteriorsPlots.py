@@ -825,11 +825,11 @@ s1s2_testset  = s1s2[test_ind,:,:]
 
 # ## Data to match emcee
 
-# !ls ../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma5e-47-thetapidiv2
+# !ls ../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma2e-47-thetapidiv2
 
 # +
 # where are your files?
-datFolder = ['../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma5e-47-thetapidiv2/']
+datFolder = ['../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma2e-47-thetapidiv2/']
 emcee_nobs = 0
 for i, folder in enumerate(datFolder):
     print(i)
@@ -1804,6 +1804,9 @@ corner.corner(drate_samples, smooth = 2, levels=[0.9], bins = 30, plot_density=F
 corner.corner(s1s2_samples, smooth = 2, levels=[0.9], bins = 30, plot_density=False, color = color_s1s2, fill_contours=False, fig = fig)
 
 plt.show()
+# -
+
+from matplotlib.patches import Patch
 
 # +
 rate  = True
@@ -1888,7 +1891,7 @@ if s1s2:
     plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_s1s2, probs = prob, zorder = 2, smooth = 2)
 ax.set_ylabel('$\\theta$', fontsize = 12)
-ax.set_xlabel('$Log_{10}(M_{DM} \ [GeV])$', fontsize = 12)
+ax.set_xlabel('$Log_{10}(m_{dm} \ [GeV])$', fontsize = 12)
 ax.set_xlim([1, 3])
 ax.set_ylim([-1.6, 1.6])
 
@@ -1927,8 +1930,20 @@ ax.set_xlim([-1.6, 1.6])
 ax.set_xticks([-1.5,0,1.5])
 ax.set_xticklabels(['-1.5','0.0', '1.5'], rotation = 45)
 ax.set_yticks([])
-ax.text(-0.06,-95, '$\\theta$', fontsize = 12)
+ax.text(-0.06,-70, '$\\theta$', fontsize = 12)
 #ax.set_xlabel('$\\theta$', fontsize = 12)
+
+custom_lines = []
+labels = ['Rate', 'Rate + Dif. Rate', 'Rate + Dif. Rate + cS1-cS2']
+markers = ['solid','solid', 'solid']
+colors = [color_rate, color_drate, color_s1s2]
+for i in range(3):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+            label = labels[i], lw = 2) )
+
+custom_lines.append( Patch(facecolor='gray', edgecolor='gray',
+                         label='Multinest') )
+axes[0].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(1.2,0.45), fontsize = 12)
 
 fig.savefig('../graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
 #fig

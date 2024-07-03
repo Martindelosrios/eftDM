@@ -579,12 +579,14 @@ neutrino_fog = np.loadtxt('../data/neutrino_fog.csv', skiprows = 1, delimiter = 
 
 neutrino_fog.shape
 
-neutrino_floor_minuspidiv2 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O4-nufloor/floor_rate_minuspidiv2.txt', skiprows = 1, delimiter = ',')
-neutrino_floor_minuspidiv4 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O4-nufloor/floor_rate_minuspidiv4.txt', skiprows = 1, delimiter = ',')
-neutrino_floor_pluspidiv2 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O4-nufloor/floor_rate_pidiv2.txt', skiprows = 1, delimiter = ',')
-neutrino_floor_pluspidiv4 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O4-nufloor/floor_rate_pidiv4.txt', skiprows = 1, delimiter = ',')
-neutrino_floor_zero = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O4-nufloor/floor_rate_zero.txt', skiprows = 1, delimiter = ',')
-neutrino_mDM = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-nufloor/O4-nufloor/mDM_range.txt', skiprows = 1, delimiter = ',')
+# !ls ../data/andresData/28-05-24-files/O1-O4-neutrino-floors-B/O4-neutrinofloors-B
+
+neutrino_floor_minuspidiv2 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-neutrino-floors-B/O4-neutrinofloors-B/floor_rate_minuspidiv2.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_minuspidiv4 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-neutrino-floors-B/O4-neutrinofloors-B/floor_rate_minuspidiv4.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_pluspidiv2 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-neutrino-floors-B/O4-neutrinofloors-B/floor_rate_pidiv2.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_pluspidiv4 = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-neutrino-floors-B/O4-neutrinofloors-B/floor_rate_pidiv4.txt', skiprows = 1, delimiter = ',')
+neutrino_floor_zero = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-neutrino-floors-B/O4-neutrinofloors-B/floor_rate_zero.txt', skiprows = 1, delimiter = ',')
+neutrino_mDM = np.loadtxt('../data/andresData/28-05-24-files/O1-O4-neutrino-floors-B/O4-neutrinofloors-B/mDM_range.txt', skiprows = 1, delimiter = ',')
 
 # ## Xenon data
 #
@@ -5215,7 +5217,7 @@ else:
     flag = flag + '_s1s2_F'
 
 flag = flag + '_newTrain'
-force = True # Flag to force to compute everything again although it was pre-computed
+force = False # Flag to force to compute everything again although it was pre-computed
 
 thetas = ['0', 'minuspidiv2', 'minuspidiv4', 'pluspidiv2', 'pluspidiv4']
 cross_sec_int_prob_sup_aux    = []
@@ -5240,7 +5242,12 @@ for theta in thetas:
                '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v2/',
                '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v3/',
                '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v4/',
-               '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v5/'
+               '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v5/',
+               '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v6/',
+               '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v7/',
+               '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v8/',
+               '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v9/',
+               '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v10/'
              ]
     
     cross_sec_int_prob_sup_full = []
@@ -5412,7 +5419,7 @@ ax[1,0].set_xlabel('$\int_{m_{min}}^{\inf} P(m_{DM}|x)$')
 ax[1,1].legend()
 ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
-plt.savefig('../graph/O4_newTrain_int_prob_distribution_comb.pdf')
+plt.savefig('../graph/O4_newTrain_int_prob_distribution_rate.pdf')
 
 
 
@@ -5422,12 +5429,31 @@ M_int_prob_sup_comb = []
 M_prob_sup_comb = []
 M_prob_inf_comb = []
 
-sigma = 1.1
+sigma = 0.1
 for i in range(len(thetas)):
     CR_int_prob_sup_comb.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
-    M_int_prob_sup_comb.append( gaussian_filter(masses_int_prob_sup_aux[i], 1.5) )
+    M_int_prob_sup_comb.append( gaussian_filter(masses_int_prob_sup_aux[i], sigma) )
     M_prob_sup_comb.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
     M_prob_inf_comb.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
+
+
+# +
+from matplotlib.legend_handler import HandlerBase
+
+class AnyObjectHandler(HandlerBase):
+    def create_artists(self, legend, orig_handle,
+                       x0, y0, width, height, fontsize, trans):
+        l1 = plt.Line2D([x0,y0+width], [0.9*height,0.9*height], color=orig_handle[0], lw = 2)
+        l2 = plt.Line2D([x0,y0+width], [0.45*height,0.45*height], color=orig_handle[1], lw = 2)
+        l3 = plt.Line2D([x0,y0+width], [0.*height,0.*height], color=orig_handle[2], lw = 2)
+        return [l1, l2, l3]
+
+class AnyObjectHandler2(HandlerBase):
+    def create_artists(self, legend, orig_handle,
+                       x0, y0, width, height, fontsize, trans):
+        l1 = plt.Line2D([x0,y0+width], [0.9*height,0.9*height], color=color_comb, linestyle = orig_handle[0], lw = 2)
+        l2 = plt.Line2D([x0,y0+width], [0.1*height,0.1*height], color=color_comb, linestyle = orig_handle[1], lw = 2)
+        return [l1, l2]
 
 
 # +
@@ -5463,9 +5489,9 @@ for i, theta in enumerate([3,4,0]):
 
 # #%ax[0].plot(xenon_nt_90cl[:,0], xenon_nt_90cl[:,1], color = 'blue', label = 'XENON nT [90%]', linestyle = ':')
 #ax[0].fill_between(neutrino_fog[:,0], neutrino_fog[:,1], -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
-ax[0].fill_between(neutrino_mDM, neutrino_floor_pluspidiv2, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
-ax[0].plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = ':', label = 'Bin. Lik. [90%]')
-ax[0].fill_between(masses, s1s2_current_pi2[2,:], 1e-35, color = 'black', alpha = 0.2, label = 'Excluded', zorder = 1)
+ax[0].fill_between(masses, s1s2_current_pi2[2,:], 1e-35, color = 'black', alpha = 0.2, label = 'Exclusion (1 tonne-year)', zorder = 1)
+ax[0].plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = ':', label = 'Exclusion (20 tonne-year)')
+ax[0].fill_between(neutrino_mDM, neutrino_floor_pluspidiv2, -50, color = "none", edgecolor='black', label = '1-$\\nu$ floor', alpha = 0.8, hatch = '///')
 
 ax[0].set_yscale('log')
 ax[0].set_xscale('log')
@@ -5490,9 +5516,9 @@ ax[2].legend(loc = 'lower right')
 ax[2].text(3e2, 1e-36, '$\\theta = 0$')
 
 ax[0].set_ylabel('$\sigma \ [cm^{2}]$')
-ax[0].set_xlabel('m [GeV]')
-ax[1].set_xlabel('m [GeV]')
-ax[2].set_xlabel('m [GeV]')
+ax[0].set_xlabel('$m_{dm}$ [GeV]')
+ax[1].set_xlabel('$m_{dm}$ [GeV]')
+ax[2].set_xlabel('$m_{dm}$ [GeV]')
 
 ax[0].set_ylim(3e-42, 2e-36)
 ax[0].set_xlim(6, 9.8e2)
@@ -5500,7 +5526,7 @@ ax[0].set_xlim(6, 9.8e2)
 fig.subplots_adjust(right=0.8)
 
 custom_lines = []
-labels = ['Rate', 'Rate + Dif. Rate', 'Rate + Dif. Rate + S1S2']
+labels = ['Rate', 'Rate + Dif. Rate', 'Rate + Dif. Rate + cS1-cS2']
 markers = ['solid','solid', 'solid']
 colors = [color_rate, color_drate, color_comb]
 for i in range(3):
@@ -5509,17 +5535,22 @@ for i in range(3):
     
 ax[1].legend(handles = custom_lines, loc = 'lower left')
 
-custom_lines = []
-#labels = ['$\\sigma$', '$M_{DM}$']
-labels = ['$\\mathcal{P}_{\\sigma}$', '$\\mathcal{P}_{M_{DM}}$']
-markers = ['solid','--']
-for i in range(2):
-    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = 'black', 
-            label = labels[i]) )
-    
-ax[2].legend(handles = custom_lines, loc = 'lower left')
 
-#plt.savefig('../graph/O4_graph/O4_norm2_newTrain_contours_all_int_prob_sup_COMB.pdf', bbox_inches='tight')
+leg0 = ax[2].legend([(color_rate, color_drate, color_comb)], ['$\\mathcal{P}_{\\sigma}$'],
+           handler_map={tuple: AnyObjectHandler()}, loc = 'lower left', fontsize = 12)
+ax[2].add_artist(leg0)
+
+custom_lines = []
+labels = ['$\\mathcal{P}^{sup}_{m_{dm}}$', '$\\mathcal{P}^{tot}_{m_{dm}}$']
+markers = ['--', ':']
+
+
+leg1 = ax[2].legend([('--', ':')], ['$\\mathcal{P}_{m_{dm}}$'],
+           handler_map={tuple: AnyObjectHandler2()}, loc = 'lower right', fontsize = 12)
+ax[2].add_artist(leg1)
+
+
+plt.savefig('../graph/O4_graph/O4_contours_all_int_prob_sup_COMB.pdf', bbox_inches='tight')
 # -
 
 plt.plot(neutrino_mDM, neutrino_floor_zero)

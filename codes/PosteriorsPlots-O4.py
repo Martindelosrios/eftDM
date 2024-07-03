@@ -936,41 +936,13 @@ s1s2_current_mpi4 = np.loadtxt('../data/andresData/BL-constraints-PARAO4/BL-cons
 
 # !ls ../data/andresData/28-05-24-files/multinest-21046-and-51047/s1s2bin
 
-# +
-folder = '../data/andresData/28-05-24-files/multinest-21046-and-51047/'
-parameters = [r'$m_{DM}$', r'$\sigma$', r'$\theta$']
-n_params = len(parameters)
-
-a = pymultinest.Analyzer(outputfiles_basename= folder + '/rate/mDM50_sigma2e-46_thetapidiv2_', n_params = n_params)
-
-multinest_data_rate     = a.get_data()[:,2:]
-multinest_2loglik_rate = a.get_data()[:,1] # -2LogLik = -2*log_prob(data)
-multinest_weights_rate  = a.get_data()[:,0]
-
-a = pymultinest.Analyzer(outputfiles_basename= folder + '/drate/mDM50_sigma2e-46_thetapidiv2_', n_params = n_params)
-
-multinest_data_drate     = a.get_data()[:,2:]
-multinest_2loglik_drate = a.get_data()[:,1] # -2LogLik = -2*log_prob(data)
-multinest_weights_drate  = a.get_data()[:,0]
-
-a = pymultinest.Analyzer(outputfiles_basename= folder + '/s1s2bin/mDM50_sigma2e-46_thetapidiv2_', n_params = n_params)
-
-multinest_data_s1s2     = a.get_data()[:,2:]
-multinest_2loglik_s1s2 = a.get_data()[:,1] # -2LogLik = -2*log_prob(data)
-multinest_weights_s1s2  = a.get_data()[:,0]
-# -
-
-values = a.get_equal_weighted_posterior()
-
-plt.hist(values[:,2])
-
 # ## Bilby
 
 # !ls ../data/andresData/O4-fulldata/O4/O4-bilby-rate-drate-231040-OBSsaved0
 
 bilby_rate  = bilby.result.read_in_result(filename='../data/andresData/O4-fulldata/O4/O4-bilby-rate-drate-231040-OBSsaved0/rate-231040_result.json')
 bilby_drate = bilby.result.read_in_result(filename='../data/andresData/O4-fulldata/O4/O4-bilby-rate-drate-231040-OBSsaved0/drate-231040_result.json')
-#bilby_s1s2  = bilby.result.read_in_result(filename='../data/andresData/O4-fulldata/O4/O4-bilby-rate-drate-231040-OBSsaved0/s1s2bin-OP2-21047_result.js31040
+bilby_s1s2  = bilby.result.read_in_result(filename='../data/andresData/O4-fulldata/O4/O4-bilby-rate-drate-231040-OBSsaved0/s1s2bin-OP2-231040_result.json')
 
 
 # # Let's play with SWYFT
@@ -1679,18 +1651,21 @@ ax[0,1].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox
 # +
 rate_samples = bilby_rate.samples
 drate_samples = bilby_drate.samples
-#s1s2_samples = bilby_s1s2.samples
+s1s2_samples = bilby_s1s2.samples
 
 fig = corner.corner(rate_samples, smooth = 2.5, levels=[0.9], bins = 30, plot_density=False, color = color_rate, fill_contours=False)
 
 axes = fig.get_axes()
 
-#axes[0].hist(s1s2_samples[:,0], color = 'black', bins = 30)
+axes[0].hist(s1s2_samples[:,0], color = 'black', bins = 30)
 corner.corner(drate_samples, smooth = 2, levels=[0.9], bins = 30, plot_density=False, color = color_drate, fill_contours=False, fig = fig)
 
-#corner.corner(s1s2_samples, smooth = 2, levels=[0.9], bins = 30, plot_density=False, color = color_s1s2, fill_contours=False, fig = fig)
+corner.corner(s1s2_samples, smooth = 2, levels=[0.9], bins = 30, plot_density=False, color = color_s1s2, fill_contours=False, fig = fig)
 
 plt.show()
+# -
+
+from matplotlib.patches import Patch
 
 # +
 rate  = True
@@ -1699,8 +1674,8 @@ s1s2  = True
 
 prob = [0.9]
 
-#fig = bilby_s1s2.plot_corner(outdir='../O4_graph/', color = 'grey', levels=prob, smooth = 2, bins = 30, alpha = 0.6)
-fig = bilby_drate.plot_corner(outdir='../O4_graph/', color = 'grey', levels=prob, smooth = 2, bins = 30, alpha = 0.6)
+fig = bilby_s1s2.plot_corner(outdir='../O4_graph/', color = 'grey', levels=prob, smooth = 2, bins = 30, alpha = 0.6)
+#fig = bilby_drate.plot_corner(outdir='../O4_graph/', color = 'grey', levels=prob, smooth = 2, bins = 30, alpha = 0.6)
 #fig = bilby_rate.plot_corner(outdir='../O4_graph/', color = 'grey', levels=prob, smooth = 2, bins = 30, alpha = 0.6)
 
 #fig = corner.corner(rate_samples, smooth = 2.5, levels = [0.9], bins = 30, plot_density = False, color = 'black', fill_contours = False, linestyles = ['--'])
@@ -1713,7 +1688,7 @@ axes = fig.get_axes()
 
 ax = axes[0]
 ax.cla()
-ax.hist(drate_samples[:,0], color = 'grey', bins = 30, zorder = 0, histtype = 'step')
+ax.hist(s1s2_samples[:,0], color = 'grey', bins = 30, zorder = 0, histtype = 'step')
 
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 0, 
@@ -1740,14 +1715,14 @@ if drate:
                  color = color_drate, probs = prob, zorder = 3, nvals = 20, smooth = 2)
 if s1s2:
     plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                 color = color_s1s2, probs = prob, zorder = 4, nvals = 40)
+                 color = color_s1s2, probs = prob, zorder = 4, nvals = 40, smooth = 3)
 ax.set_ylabel('$Log_{10}(\\sigma \ [cm^{2}])$', fontsize = 12)
 ax.set_xlim([1, 3])
 ax.set_ylim([-41, -36])
 
 ax = axes[4]
 ax.cla()
-ax.hist(drate_samples[:,1], color = 'grey', bins = 30, zorder = 0, histtype = 'step')
+ax.hist(s1s2_samples[:,1], color = 'grey', bins = 30, zorder = 0, histtype = 'step')
 
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 1, 
@@ -1777,7 +1752,7 @@ if s1s2:
     plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_s1s2, probs = prob, zorder = 2, smooth = 2)
 ax.set_ylabel('$\\theta$', fontsize = 12)
-ax.set_xlabel('$Log_{10}(M_{DM} \ [GeV])$', fontsize = 12)
+ax.set_xlabel('$Log_{10}(m_{dm} \ [GeV])$', fontsize = 12)
 ax.set_xlim([1, 3])
 ax.set_ylim([-1.6, 1.6])
 
@@ -1799,7 +1774,7 @@ ax.set_ylim([-1.6, 1.6])
 
 ax = axes[8]
 ax.clear()
-ax.hist(drate_samples[:,2], color = 'grey', bins = 30, zorder = 0, histtype = 'step', range = (-1.6,1.6))
+ax.hist(s1s2_samples[:,2], color = 'grey', bins = 30, zorder = 0, histtype = 'step', range = (-1.6,1.6))
 
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 2, 
@@ -1818,6 +1793,18 @@ ax.set_xticklabels(['-1.5','0.0', '1.5'], rotation = 45)
 ax.set_yticks([])
 ax.text(-0.06,-42, '$\\theta$', fontsize = 12)
 #ax.set_xlabel('$\\theta$', fontsize = 12)
+
+custom_lines = []
+labels = ['Rate', 'Rate + Dif. Rate', 'Rate + Dif. Rate + cS1-cS2']
+markers = ['solid','solid', 'solid']
+colors = [color_rate, color_drate, color_s1s2]
+for i in range(3):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+            label = labels[i], lw = 2) )
+
+custom_lines.append( Patch(facecolor='gray', edgecolor='gray',
+                         label='Multinest') )
+axes[0].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(1.2,0.45), fontsize = 12)
 
 fig.savefig('../graph/O4_graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
 #fig
@@ -1903,7 +1890,8 @@ ax.set_title('')
 ax.set_xticks([])
 ax.set_yticks([])
 
-plt.savefig('../graph/SWYFT_BILBY_s1s2_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
+
+#plt.savefig('../graph/SWYFT_BILBY_s1s2_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
 # -
 
 
