@@ -6251,23 +6251,25 @@ for itest in bps_ind:
 
 # ## Figure 3&4
 
-linestyle = ['solid','--',':','-.']
+linestyle = ['solid','--',':','-.',(0, (3, 5, 1, 5))]
 
 # !ls ../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2
 
+10**pars_slices[16*30 + 9,1]
+
 # +
-folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv4/SI-slices01-pluspidiv4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv4/SI-slices01-pluspidiv4-v2/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv4/SI-slices01-pluspidiv4-v3/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv4/SI-slices01-pluspidiv4-v4/',
-           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv4/SI-slices01-pluspidiv4-v5/'
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0-v5/'
          ]
 
 sigmas_full       = []
 int_prob_full     = []
 int_prob_sup_full = []
 
-bps = [16*30 + 10, 16*30 + 14, 16*30 + 18, 16*30 + 22]
+bps = [16*30 + 9, 16*30 + 14, 16*30 + 18, 16*30 + 22]
 
 pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
 prior_samples = swyft.Samples(z = pars_prior)
@@ -6428,41 +6430,53 @@ for ifold, folder in enumerate(folders):
         cross_sec = cross_sec[ind_sort]
 
 
-ratios_s1s2_pi4     = np.mean(ratios_s1s2, axis = 1)    
-low_1sigma_s1s2_pi4 = np.mean(low_1sigma_s1s2, axis = 1)    
-up_1sigma_s1s2_pi4  = np.mean(up_1sigma_s1s2, axis = 1)    
+ratios_s1s2_0     = np.mean(ratios_s1s2, axis = 1)    
+low_1sigma_s1s2_0 = np.mean(low_1sigma_s1s2, axis = 1)    
+up_1sigma_s1s2_0  = np.mean(up_1sigma_s1s2, axis = 1)    
 
-ratios_drate_pi4     = np.mean(ratios_drate, axis = 1)    
-low_1sigma_drate_pi4 = np.mean(low_1sigma_drate, axis = 1)    
-up_1sigma_drate_pi4  = np.mean(up_1sigma_drate, axis = 1)  
+ratios_drate_0     = np.mean(ratios_drate, axis = 1)    
+low_1sigma_drate_0 = np.mean(low_1sigma_drate, axis = 1)    
+up_1sigma_drate_0  = np.mean(up_1sigma_drate, axis = 1)  
 
-ratios_rate_pi4     = np.mean(ratios_rate, axis = 1)    
-low_1sigma_rate_pi4 = np.mean(low_1sigma_rate, axis = 1)    
-up_1sigma_rate_pi4  = np.mean(up_1sigma_rate, axis = 1)  
+ratios_rate_0     = np.mean(ratios_rate, axis = 1)    
+low_1sigma_rate_0 = np.mean(low_1sigma_rate, axis = 1)    
+up_1sigma_rate_0  = np.mean(up_1sigma_rate, axis = 1)  
 
 # +
 fig, ax = plt.subplots(2,2, sharex = True, sharey=False)
 fig.subplots_adjust(hspace = 0, wspace = 0)
 
-ax[0,0].plot(cross_sec, ratios_s1s2_pi2[0,:] * ratios_drate_pi2[0,:] * ratios_rate_pi2[0,:], linestyle = linestyle[0], color = color_s1s2, label = 'Rate + Dif.Rate + cS1-cS2')
-ax[0,1].plot(cross_sec, ratios_s1s2_pi2[1,:] * ratios_drate_pi2[1,:] * ratios_rate_pi2[1,:], linestyle = linestyle[0], color = color_s1s2)
-ax[1,0].plot(cross_sec, ratios_s1s2_pi2[2,:] * ratios_drate_pi2[2,:] * ratios_rate_pi2[2,:], linestyle = linestyle[0], color = color_s1s2)
-ax[1,1].plot(cross_sec, ratios_s1s2_pi2[3,:] * ratios_drate_pi2[3,:] * ratios_rate_pi2[3,:], linestyle = linestyle[0], color = color_s1s2)
+norm_factor = trapezoid(ratios_rate_pi2[0,:], cross_sec)
+ax[0,0].plot(cross_sec, ratios_rate_pi2[0,:] / norm_factor, linestyle = linestyle[0], color = color_rate, label = 'Rate')
+norm_factor = trapezoid(ratios_rate_pi2[1,:], cross_sec)
+ax[0,1].plot(cross_sec, ratios_rate_pi2[1,:] / norm_factor, linestyle = linestyle[0], color = color_rate)
+norm_factor = trapezoid(ratios_rate_pi2[2,:], cross_sec)
+ax[1,0].plot(cross_sec, ratios_rate_pi2[2,:] / norm_factor, linestyle = linestyle[0], color = color_rate)
+norm_factor = trapezoid(ratios_rate_pi2[3,:], cross_sec)
+ax[1,1].plot(cross_sec, ratios_rate_pi2[3,:] / norm_factor, linestyle = linestyle[0], color = color_rate)
 
-ax[0,0].plot(cross_sec, ratios_drate_pi2[0,:] * ratios_rate_pi2[0,:], linestyle = linestyle[1], color = color_drate, label = 'Rate + Dif. Rate')
-ax[0,1].plot(cross_sec, ratios_drate_pi2[1,:] * ratios_rate_pi2[1,:], linestyle = linestyle[1], color = color_drate)
-ax[1,0].plot(cross_sec, ratios_drate_pi2[2,:] * ratios_rate_pi2[2,:], linestyle = linestyle[1], color = color_drate)
-ax[1,1].plot(cross_sec, ratios_drate_pi2[3,:] * ratios_rate_pi2[3,:], linestyle = linestyle[1], color = color_drate)
+norm_factor = trapezoid(ratios_drate_pi2[0,:] * ratios_rate_pi2[0,:], cross_sec)
+ax[0,0].plot(cross_sec, ratios_drate_pi2[0,:] * ratios_rate_pi2[0,:] / norm_factor, linestyle = linestyle[0], color = color_drate, label = 'Rate + Dif. Rate')
+norm_factor = trapezoid(ratios_drate_pi2[1,:] * ratios_rate_pi2[1,:], cross_sec)
+ax[0,1].plot(cross_sec, ratios_drate_pi2[1,:] * ratios_rate_pi2[1,:] / norm_factor, linestyle = linestyle[0], color = color_drate)
+norm_factor = trapezoid(ratios_drate_pi2[2,:] * ratios_rate_pi2[2,:], cross_sec)
+ax[1,0].plot(cross_sec, ratios_drate_pi2[2,:] * ratios_rate_pi2[2,:] / norm_factor, linestyle = linestyle[0], color = color_drate)
+norm_factor = trapezoid(ratios_drate_pi2[3,:] * ratios_rate_pi2[3,:], cross_sec)
+ax[1,1].plot(cross_sec, ratios_drate_pi2[3,:] * ratios_rate_pi2[3,:] / norm_factor, linestyle = linestyle[0], color = color_drate)
 
-ax[0,0].plot(cross_sec, ratios_rate_pi2[0,:], linestyle = linestyle[2], color = color_rate, label = 'Rate')
-ax[0,1].plot(cross_sec, ratios_rate_pi2[1,:], linestyle = linestyle[2], color = color_rate)
-ax[1,0].plot(cross_sec, ratios_rate_pi2[2,:], linestyle = linestyle[2], color = color_rate)
-ax[1,1].plot(cross_sec, ratios_rate_pi2[3,:], linestyle = linestyle[2], color = color_rate)
+norm_factor = trapezoid(ratios_s1s2_pi2[0,:] * ratios_drate_pi2[0,:] * ratios_rate_pi2[0,:], cross_sec)
+ax[0,0].plot(cross_sec, ratios_s1s2_pi2[0,:] * ratios_drate_pi2[0,:] * ratios_rate_pi2[0,:] / norm_factor, linestyle = linestyle[0], color = color_s1s2, label = 'Rate + Dif.Rate + cS1-cS2')
+norm_factor = trapezoid(ratios_s1s2_pi2[1,:] * ratios_drate_pi2[1,:] * ratios_rate_pi2[1,:], cross_sec)
+ax[0,1].plot(cross_sec, ratios_s1s2_pi2[1,:] * ratios_drate_pi2[1,:] * ratios_rate_pi2[1,:] / norm_factor, linestyle = linestyle[0], color = color_s1s2)
+norm_factor = trapezoid(ratios_s1s2_pi2[2,:] * ratios_drate_pi2[2,:] * ratios_rate_pi2[2,:], cross_sec)
+ax[1,0].plot(cross_sec, ratios_s1s2_pi2[2,:] * ratios_drate_pi2[2,:] * ratios_rate_pi2[2,:] / norm_factor, linestyle = linestyle[0], color = color_s1s2)
+norm_factor = trapezoid(ratios_s1s2_pi2[3,:] * ratios_drate_pi2[3,:] * ratios_rate_pi2[3,:], cross_sec)
+ax[1,1].plot(cross_sec, ratios_s1s2_pi2[3,:] * ratios_drate_pi2[3,:] * ratios_rate_pi2[3,:] / norm_factor, linestyle = linestyle[0], color = color_s1s2)
 
-ax[0,0].text(-46.3,4.35, '$\sigma = $' + '{:.1e}'.format(10**sigma_true[0]) + ' cm$^{2}$')
-ax[0,1].text(-50.2,9.1, '$\sigma = $' + '{:.1e}'.format(10**sigma_true[1]) + ' cm$^{2}$')
-ax[1,0].text(-50,80, '$\sigma = $' + '{:.1e}'.format(10**sigma_true[2]) + ' cm$^{2}$')
-ax[1,1].text(-50,265, '$\sigma = $' + '{:.1e}'.format(10**sigma_true[3]) + ' cm$^{2}$')
+ax[0,0].text(0.5, 0.9, '$\sigma = $' + '{:.1e}'.format(10**sigma_true[0]) + ' cm$^{2}$', transform = ax[0,0].transAxes)
+ax[0,1].text(0.54, 0.9, '$\sigma = $' + '{:.1e}'.format(10**sigma_true[1]) + ' cm$^{2}$', transform = ax[0,1].transAxes)
+ax[1,0].text(0.1, 0.9, '$\sigma = $' + '{:.1e}'.format(10**sigma_true[2]) + ' cm$^{2}$', transform = ax[1,0].transAxes)
+ax[1,1].text(0.1, 0.9, '$\sigma = $' + '{:.1e}'.format(10**sigma_true[3]) + ' cm$^{2}$', transform = ax[1,1].transAxes)
 
 ax[0,0].legend(loc = 'upper right', bbox_to_anchor=(2.1, 1.22), ncol = 3, frameon = False)
 
@@ -6478,12 +6492,21 @@ ax[1,1].set_xlabel('$\log_{10}(\sigma [cm^{2}])$')
 
 ax[0,1].yaxis.tick_right()
 ax[1,1].yaxis.tick_right()
+
 plt.savefig('../graph/PosteriorsExamples_fixSigma.pdf')
 
 # +
-plt.plot(cross_sec, ratios_rate_pi2[1,:] * ratios_drate_pi2[1,:] * ratios_s1s2_pi2[1,:], linestyle = linestyle[0], color = color_s1s2, label = 'cS1-cS2')
-plt.plot(cross_sec, ratios_rate_pi4[1,:] * ratios_drate_pi4[1,:] * ratios_s1s2_pi4[1,:], linestyle = linestyle[1], color = color_s1s2)
-plt.plot(cross_sec, ratios_rate_0[1,:] * ratios_drate_0[1,:] * ratios_s1s2_0[1,:], linestyle = linestyle[2], color = color_s1s2)
+i = 2
+norm_factor = trapezoid(ratios_s1s2_pi2[i,:] * ratios_drate_pi2[i,:] * ratios_rate_pi2[i,:], cross_sec)
+plt.plot(cross_sec, ratios_rate_pi2[i,:] * ratios_drate_pi2[i,:] * ratios_s1s2_pi2[i,:] / norm_factor, linestyle = linestyle[0], color = color_s1s2, label = 'cS1-cS2')
+norm_factor = trapezoid(ratios_s1s2_pi4[i,:] * ratios_drate_pi4[i,:] * ratios_rate_pi4[i,:], cross_sec)
+plt.plot(cross_sec, ratios_rate_pi4[i,:] * ratios_drate_pi4[i,:] * ratios_s1s2_pi4[i,:] / norm_factor, linestyle = linestyle[1], color = color_s1s2)
+norm_factor = trapezoid(ratios_s1s2_0[i,:] * ratios_drate_0[i,:] * ratios_rate_0[i,:], cross_sec)
+plt.plot(cross_sec, ratios_rate_0[i,:] * ratios_drate_0[i,:] * ratios_s1s2_0[i,:] / norm_factor, linestyle = linestyle[2], color = color_s1s2)
+#norm_factor = trapezoid(ratios_s1s2_mpi2[i,:] * ratios_drate_mpi2[i,:] * ratios_rate_mpi2[i,:], cross_sec)
+#plt.plot(cross_sec, ratios_rate_mpi2[i,:] * ratios_drate_mpi2[i,:] * ratios_s1s2_mpi2[i,:] / norm_factor, linestyle = linestyle[3], color = color_s1s2)
+#norm_factor = trapezoid(ratios_s1s2_mpi4[i,:] * ratios_drate_mpi4[i,:] * ratios_rate_mpi4[i,:], cross_sec)
+#plt.plot(cross_sec, ratios_rate_mpi4[i,:] * ratios_drate_mpi4[i,:] * ratios_s1s2_mpi4[i,:] / norm_factor, linestyle = (0, (3, 5, 1, 5)), color = color_s1s2)
 
 #plt.plot(cross_sec, ratios_drate_mpi2[1,:], linestyle = linestyle[0], color = color_drate, label = 'Dif. Rate')
 #plt.plot(cross_sec, ratios_drate_mpi4[1,:], linestyle = linestyle[1], color = color_drate)
@@ -6493,16 +6516,16 @@ plt.plot(cross_sec, ratios_rate_0[1,:] * ratios_drate_0[1,:] * ratios_s1s2_0[1,:
 #plt.plot(cross_sec, ratios_rate_mpi4[1,:], linestyle = linestyle[1], color = color_rate)
 #plt.plot(cross_sec, ratios_rate_0[1,:], linestyle = linestyle[2], color = color_rate)
 
-plt.text(-49.5,9.3, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[1]) + ' cm$^{2}$')
+plt.text(0.1,0.9, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[1]) + ' cm$^{2}$', transform = plt.gca().transAxes)
 
 legend0 = plt.legend(loc = 'upper left')
 
 custom_lines = []
-labels = ['$\\theta = \pi/2$', '$\\theta = \pi/4$', '$\\theta = 0$']
-markers = ['solid','--', ':']
-for i in range(3):
-    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = 'black', 
-            label = labels[i]) )
+labels = ['$\\theta = \pi/2$', '$\\theta = \pi/4$', '$\\theta = 0$']#, '$\\theta = -\pi/2$', '$\\theta = -\pi/4$']
+markers = linestyle
+for ii in range(len(labels)):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[ii], color = 'black', 
+            label = labels[ii]) )
     
 #legend1 = plt.legend(plot_lines[0], ["algo1", "algo2", "algo3"], loc=1)
 #pyplot.legend([l[0] for l in plot_lines], parameters, loc=4)
@@ -6511,7 +6534,7 @@ legend1 = plt.legend(handles = custom_lines, loc = 'upper right')
 plt.gca().add_artist(legend1)
 #plt.gca().add_artist(legend0)
 
-plt.axvline(x = sigma_true[1], color = 'black')
+plt.axvline(x = sigma_true[i], color = 'black')
 
 plt.ylabel('$P(\sigma|x)$')
 plt.xlabel('$\log_{10}(\sigma \ [cm^{2}])$')

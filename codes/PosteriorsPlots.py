@@ -1831,10 +1831,10 @@ ax.hist(s1s2_samples[:,0], color = 'grey', bins = 30, zorder = 0, histtype = 'st
 
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 0, 
-                 fill = False, linestyles = ['solid',':'], color = color_rate, fac = 130, probs = prob)
+                 fill = False, linestyles = ['solid',':'], color = color_rate, fac = 150, probs = prob)
 if drate: 
     plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 0, 
-             fill = False, linestyles = ['solid',':'], color = color_drate, fac = 130, probs = prob)
+             fill = False, linestyles = ['solid',':'], color = color_drate, fac = 150, probs = prob)
 if s1s2:
     plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 0, 
                  fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 130, probs = prob)
@@ -1865,13 +1865,13 @@ ax.hist(s1s2_samples[:,1], color = 'grey', bins = 30, zorder = 0, histtype = 'st
 
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 1, 
-                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_rate, fac = 50, probs = prob)
+                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_rate, fac = 220, probs = prob)
 if drate:
     plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 1, 
-                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_drate, fac = 30, probs = prob)
+                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_drate, fac = 180, probs = prob)
 if s1s2:
     plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 1, 
-                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_s1s2, fac = 10, probs = prob)
+                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_s1s2, fac = 50, probs = prob)
 ax.set_ylabel('')
 ax.set_xlabel('')
 ax.set_title('')
@@ -1917,13 +1917,13 @@ ax.hist(s1s2_samples[:,2], color = 'grey', bins = 30, zorder = 0, histtype = 'st
 
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 2, 
-                 flip = False, fill = False, linestyles = ['solid',':'], color = color_rate, fac = 50, probs = prob)
+                 flip = False, fill = False, linestyles = ['solid',':'], color = color_rate, fac = 100, probs = prob)
 if drate:
     plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 2, 
-                 flip = False, fill = False, linestyles = ['solid',':'], color = color_drate, fac = 50, probs = prob)
+                 flip = False, fill = False, linestyles = ['solid',':'], color = color_drate, fac = 100, probs = prob)
 if s1s2:
     plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 2, 
-                 flip = False, fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 50, probs = prob)
+                 flip = False, fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 100, probs = prob)
 ax.set_ylabel('')
 ax.set_title('')
 ax.set_xlim([-1.6, 1.6])
