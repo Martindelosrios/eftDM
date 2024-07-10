@@ -6251,11 +6251,9 @@ for itest in bps_ind:
 
 # ## Figure 3&4
 
-linestyle = ['solid','--',':','-.',(0, (3, 5, 1, 5))]
+linestyle = ['solid','--',':','--','solid']
 
 # !ls ../data/andresData/O1-slices-5vecescadatheta/theta-minuspidiv2
-
-10**pars_slices[16*30 + 9,1]
 
 # +
 folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0/',
@@ -6493,7 +6491,7 @@ ax[1,1].set_xlabel('$\log_{10}(\sigma [cm^{2}])$')
 ax[0,1].yaxis.tick_right()
 ax[1,1].yaxis.tick_right()
 
-plt.savefig('../graph/PosteriorsExamples_fixSigma.pdf')
+#plt.savefig('../graph/PosteriorsExamples_fixSigma.pdf')
 
 # +
 i = 2
@@ -6503,10 +6501,10 @@ norm_factor = trapezoid(ratios_s1s2_pi4[i,:] * ratios_drate_pi4[i,:] * ratios_ra
 plt.plot(cross_sec, ratios_rate_pi4[i,:] * ratios_drate_pi4[i,:] * ratios_s1s2_pi4[i,:] / norm_factor, linestyle = linestyle[1], color = color_s1s2)
 norm_factor = trapezoid(ratios_s1s2_0[i,:] * ratios_drate_0[i,:] * ratios_rate_0[i,:], cross_sec)
 plt.plot(cross_sec, ratios_rate_0[i,:] * ratios_drate_0[i,:] * ratios_s1s2_0[i,:] / norm_factor, linestyle = linestyle[2], color = color_s1s2)
-#norm_factor = trapezoid(ratios_s1s2_mpi2[i,:] * ratios_drate_mpi2[i,:] * ratios_rate_mpi2[i,:], cross_sec)
-#plt.plot(cross_sec, ratios_rate_mpi2[i,:] * ratios_drate_mpi2[i,:] * ratios_s1s2_mpi2[i,:] / norm_factor, linestyle = linestyle[3], color = color_s1s2)
-#norm_factor = trapezoid(ratios_s1s2_mpi4[i,:] * ratios_drate_mpi4[i,:] * ratios_rate_mpi4[i,:], cross_sec)
-#plt.plot(cross_sec, ratios_rate_mpi4[i,:] * ratios_drate_mpi4[i,:] * ratios_s1s2_mpi4[i,:] / norm_factor, linestyle = (0, (3, 5, 1, 5)), color = color_s1s2)
+norm_factor = trapezoid(ratios_s1s2_mpi2[i,:] * ratios_drate_mpi2[i,:] * ratios_rate_mpi2[i,:], cross_sec)
+plt.plot(cross_sec, ratios_rate_mpi2[i,:] * ratios_drate_mpi2[i,:] * ratios_s1s2_mpi2[i,:] / norm_factor, linestyle = linestyle[0], color = 'darkblue')
+norm_factor = trapezoid(ratios_s1s2_mpi4[i,:] * ratios_drate_mpi4[i,:] * ratios_rate_mpi4[i,:], cross_sec)
+plt.plot(cross_sec, ratios_rate_mpi4[i,:] * ratios_drate_mpi4[i,:] * ratios_s1s2_mpi4[i,:] / norm_factor, linestyle =  linestyle[1], color = 'darkblue')
 
 #plt.plot(cross_sec, ratios_drate_mpi2[1,:], linestyle = linestyle[0], color = color_drate, label = 'Dif. Rate')
 #plt.plot(cross_sec, ratios_drate_mpi4[1,:], linestyle = linestyle[1], color = color_drate)
@@ -6521,10 +6519,11 @@ plt.text(0.1,0.9, '$\sigma = $' + '{:.2e}'.format(10**sigma_true[1]) + ' cm$^{2}
 legend0 = plt.legend(loc = 'upper left')
 
 custom_lines = []
-labels = ['$\\theta = \pi/2$', '$\\theta = \pi/4$', '$\\theta = 0$']#, '$\\theta = -\pi/2$', '$\\theta = -\pi/4$']
+labels = ['$\\theta = \pi/2$', '$\\theta = \pi/4$', '$\\theta = 0$', '$\\theta = -\pi/4$', '$\\theta = -\pi/2$']
+colors = [color_s1s2, color_s1s2, color_s1s2, 'darkblue', 'darkblue']
 markers = linestyle
 for ii in range(len(labels)):
-    custom_lines.append( Line2D([0],[0], linestyle = markers[ii], color = 'black', 
+    custom_lines.append( Line2D([0],[0], linestyle = markers[ii], color = colors[ii], 
             label = labels[ii]) )
     
 #legend1 = plt.legend(plot_lines[0], ["algo1", "algo2", "algo3"], loc=1)
@@ -6540,7 +6539,132 @@ plt.ylabel('$P(\sigma|x)$')
 plt.xlabel('$\log_{10}(\sigma \ [cm^{2}])$')
 
 plt.savefig('../graph/PosteriorsExamples_varSigma.pdf')
+# +
+parameter = np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+ratios = np.zeros_like(np.asarray(predictions_rate[0].logratios[:,par]))
+if rate:  ratios = ratios + np.asarray(predictions_rate[0].logratios[:,par])
+if drate: ratios = ratios + np.asarray(predictions_drate[0].logratios[:,par])
+if s1s2:  ratios = ratios + np.asarray(predictions_s1s2[0].logratios[:,par])
+    
+ratios = np.exp(ratios)
+
+ind_sort  = np.argsort(parameter)
+ratios    = ratios[ind_sort]
+parameter = parameter[ind_sort]
+
+# Let's compute the integrated probability for different threshold            
+m_min = np.argmin(np.abs(parameter - m_min_th))
+m_max = np.argmin(np.abs(parameter - m_max_th))
+
+masses_int_prob_sup[itest] = trapezoid(ratios[m_min:m_max], parameter[m_min:m_max]) / trapezoid(ratios, parameter)
+masses_prob_sup[itest] = trapezoid(ratios[m_min:], parameter[m_min:]) / trapezoid(ratios, parameter)
+masses_prob_inf[itest] = trapezoid(ratios[:m_max], parameter[:m_max]) / trapezoid(ratios, parameter)
+
+
+# +
+folders = ['../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v2/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v3/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v4/',
+           '../data/andresData/O1-slices-5vecescadatheta/theta-pluspidiv2/SI-slices01-pluspidiv2-v5/'
+         ]
+
+sigmas_full       = []
+int_prob_full     = []
+int_prob_sup_full = []
+
+bps = [16+30*4, 16+30*9, 16+30*16]
+
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+prior_samples = swyft.Samples(z = pars_prior)
+
+ratios_aux  = np.zeros((len(bps), len(folders), len(pars_prior)))
+
+m_true = []
+sigma_true = []
+
+par = 0
+rate  = True
+drate = False
+s1s2  = False
+for ifold, folder in enumerate(folders):
+    pars_slices, rate_slices, diff_rate_slices, s1s2_slices, rate_raw_slices = read_slice([folder])
+    pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
+        
+    for i, itest in enumerate(bps):
+        # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
+        pars_true = pars_slices[itest,:]
+        if ifold == 0:
+            m_true.append(pars_true[0])
+            sigma_true.append(pars_true[1])
+            
+        ratios_s1s2_aux     = []
+        low_1sigma_s1s2_aux = []
+        up_1sigma_s1s2_aux  = []
+        
+        #  ------------------------------  S1S2 -----------------------------------------------
+        x_norm_s1s2 = x_s1s2 = s1s2_slices[:,:-1,:-1]           
+        x_obs = x_norm_s1s2[itest, :,:] / x_max_s1s2
+        obs = swyft.Sample(x = x_obs.reshape(1,96,96))
+        predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
+     
+        #  ------------------------------  drate -----------------------------------------------
+        x_drate = np.log10(diff_rate_slices)
+        x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)        
+        x_obs = x_norm_drate[itest, :]
+        obs = swyft.Sample(x = x_obs)
+        predictions_drate = trainer_drate.infer(network_drate, obs, prior_samples)   
+
+        #  ------------------------------  rate -------------------------------------
+        x_rate = np.log10(rate_slices)
+        x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+        x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
+        x_obs = x_norm_rate[itest, :]
+        obs = swyft.Sample(x = x_obs)
+        predictions_rate = trainer_rate.infer(network_rate, obs, prior_samples)
+        
+        parameter = np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+        ratios = np.zeros_like(np.asarray(predictions_rate[0].logratios[:,par]))
+        if rate: ratios = ratios + np.asarray(predictions_rate[0].logratios[:,par])
+        if drate: ratios = ratios + np.asarray(predictions_drate[0].logratios[:,par])
+        if s1s2: ratios = ratios + np.asarray(predictions_s1s2[0].logratios[:,par])
+
+        ratios = np.exp(ratios)
+
+        ind_sort  = np.argsort(parameter)
+        ratios    = ratios[ind_sort]
+        parameter = parameter[ind_sort]
+
+        ratios_aux[i, ifold, :] = ratios
+ratios_rate_pi2 = np.mean(ratios_aux, axis = 1) 
+
+# +
+fig, ax = plt.subplots(1,3, figsize = (10,3), sharey = True)
+fig.subplots_adjust(hspace = 0, wspace = 0)
+
+for i in range(len(bps)):
+    norm_factor = trapezoid(ratios_rate_pi2[i,:], parameter)
+    ax[i].plot(parameter, ratios_rate_pi2[i,:] / norm_factor, color = color_rate, label = 'Rate')
+    norm_factor = trapezoid(ratios_drate_pi2[i,:], parameter)
+    ax[i].plot(parameter, ratios_drate_pi2[i,:] / norm_factor, color = color_drate, label = 'Rate + Dif. Rate')
+    norm_factor = trapezoid(ratios_s1s2_pi2[i,:], parameter)
+    ax[i].plot(parameter, ratios_s1s2_pi2[i,:] / norm_factor, color = color_s1s2, label = 'Rate + Dif. Rate + cS1-cS2')
+    ax[i].axvline(x = m_true[i], color = 'black')
+
+ax[0].text(0.28, 0.8, r'$m_{dm} = $' + ' {:.2f} GeV'.format(10**m_true[0]), transform = ax[0].transAxes, fontsize = 11)
+ax[1].text(0.38, 0.8, r'$m_{dm} = $' + ' {:.2f} GeV'.format(10**m_true[1]), transform = ax[1].transAxes, fontsize = 11)
+ax[2].text(0.02, 0.8, r'$m_{dm} = $' + ' {:.2f} GeV'.format(10**m_true[2]), transform = ax[2].transAxes, fontsize = 11)
+
+ax[0].set_ylabel('$P(\sigma|x)$', fontsize = 12)
+ax[0].set_xlabel('$log_{10}(m_{dm}$ [GeV])', fontsize = 12)
+ax[1].set_xlabel('$log_{10}(m_{dm}$ [GeV])', fontsize = 12)
+ax[2].set_xlabel('$log_{10}(m_{dm}$ [GeV])', fontsize = 12)
+
+ax[0].legend(loc = 'upper right', bbox_to_anchor=(2.8, 1.14), ncol = 3, frameon = False, fontsize = 11)
+
+plt.savefig('../graph/PosteriorsExamples_varMass.pdf', bbox_inches='tight')
 # -
+
 # ## Multinest
 
 import pymultinest

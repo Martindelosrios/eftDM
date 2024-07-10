@@ -417,7 +417,9 @@ def plot2d_comb(ax, predictions, pars_true, fill = True, line = False, linestyle
 
 # +
 # where are your files?
-datFolder = ['../data/andresData/O4-fulldata/O4/O4-run03/',
+datFolder = ['../data/andresData/O4-fulldata/O4/O4-run01/',
+             '../data/andresData/O4-fulldata/O4/O4-run02/',
+             '../data/andresData/O4-fulldata/O4/O4-run03/',
              '../data/andresData/O4-fulldata/O4/O4-run04/']
 nobs = 0
 for i, folder in enumerate(datFolder):
@@ -802,7 +804,7 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=100, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_newTrain_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_full_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_rate = Network_rate()
 
@@ -824,12 +826,12 @@ trainer_rate.test(network_rate, dm_test_rate)
 fit = False
 if fit:
     trainer_rate.fit(network_rate, dm_rate)
-    checkpoint_callback.to_yaml("./logs/O4_newTrain_rate.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O4_newTrain_rate.yaml")
+    checkpoint_callback.to_yaml("./logs/O4_full_rate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_full_rate.yaml")
     email('Termino de entrenar rate O1')
     
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O4_newTrain_rate.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_full_rate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.18 at epoch ~50
@@ -865,7 +867,7 @@ if fit:
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
-    plt.savefig('../graph/O4_newTrain_loss_rate.pdf')
+    plt.savefig('../graph/O4_full_loss_rate.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -877,7 +879,7 @@ if fit:
     for i in range(3):
         swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
     plt.tight_layout()
-    plt.savefig('../graph/O4_newTrain_Coverage_rate.pdf')
+    plt.savefig('../graph/O4_full_Coverage_rate.pdf')
 
 # ### Let's make some inference
 
@@ -2195,7 +2197,7 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=50, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_newTrain_log_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_full_log_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
 
@@ -2217,11 +2219,11 @@ trainer_drate.test(network_drate, dm_test_drate)
 fit = False
 if fit:
     trainer_drate.fit(network_drate, dm_drate)
-    checkpoint_callback.to_yaml("./logs/O4_newTrain_log_drate.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O4_newTrain_log_drate.yaml")
+    checkpoint_callback.to_yaml("./logs/O4_full_log_drate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_full_log_drate.yaml")
     #email('Termino el entramiento del drate para O4')
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O4_newTrain_log_drate.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_full_log_drate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.8 @ epoch 20
@@ -2257,7 +2259,7 @@ if fit:
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
-    plt.savefig('../graph/O4_newTrain_log_loss_drate.pdf')
+    plt.savefig('../graph/O4_full_log_loss_drate.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -2269,7 +2271,7 @@ if fit:
     for i in range(3):
         swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
     plt.tight_layout()
-    plt.savefig('../graph/O4_newTrain_log_Coverage_drate.pdf')
+    plt.savefig('../graph/O4_full_log_Coverage_drate.pdf')
 
 # ### Let's make some inference
 
@@ -3122,8 +3124,8 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 cb = MetricTracker()
-early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=100, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_newTrain_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=20, verbose=False, mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_full_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2500, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_s1s2 = Network()
 
@@ -3145,10 +3147,10 @@ trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 fit = False
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
-    checkpoint_callback.to_yaml("./logs/O4_newTrain_s1s2.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O4_newTrain_s1s2.yaml")
+    checkpoint_callback.to_yaml("./logs/O4_full_s1s2.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_full_s1s2.yaml")
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O4_newTrain_s1s2.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_full_s1s2.yaml")
 
 # ---------------------------------------
 # Min val loss value at 48 epochs. -3.31
@@ -3190,7 +3192,7 @@ if fit:
     plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.savefig('../graph/O4_newTrain_norm_loss_s1s2_temp.pdf')
+    plt.savefig('../graph/O4_full_norm_loss_s1s2_temp.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -3202,7 +3204,7 @@ if fit:
     for i in range(3):
         swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
     plt.tight_layout()
-    plt.savefig('../graph/O4_newTrain_norm_Coverage_s1s2.pdf')
+    plt.savefig('../graph/O4_full_norm_Coverage_s1s2.pdf')
 
 # ### Let's make some inference
 
@@ -5193,13 +5195,14 @@ plotMass = False
 plotCross = False
 iplot = [342,343,344]
 
-cross_section_th = -42 # Cross-section threshold for 1d analysis 
+cross_section_th = -42 # Cross-section threshold for 1d analysis
+cross_section_max = np.log10(1.5e-36) # Cross-section threshold for 1d analysis
 m_min_th = 1 # Min Mass for 1d analysis
 m_max_th = 2.6 # Max Mass for 1d analysis
 
 rate  = True # Flag to use the information of the rate analysis
-drate = True # Flag to use the information of the drate analysis
-s1s2  = True # Flag to use the information of the s1s2 analysis
+drate = False # Flag to use the information of the drate analysis
+s1s2  = False # Flag to use the information of the s1s2 analysis
 
 if rate: 
     flag = 'rate_T'
@@ -5216,12 +5219,17 @@ if s1s2:
 else:
     flag = flag + '_s1s2_F'
 
-flag = flag + '_newTrain'
-force = False # Flag to force to compute everything again although it was pre-computed
+flag = flag + '_full'
+force = True # Flag to force to compute everything again although it was pre-computed
 
 thetas = ['0', 'minuspidiv2', 'minuspidiv4', 'pluspidiv2', 'pluspidiv4']
+#thetas = ['0', 'pluspidiv2']
 cross_sec_int_prob_sup_aux    = []
 cross_sec_int_prob_sup_aux_sd = []
+cross_sec_int_prob_tot_aux    = []
+cross_sec_int_prob_tot_aux_sd = []
+cross_sec_int_prob_inf_aux    = []
+cross_sec_int_prob_inf_aux_sd = []
 masses_int_prob_sup_aux       = []
 masses_int_prob_sup_aux_sd    = []
 masses_prob_sup_aux           = []
@@ -5251,6 +5259,8 @@ for theta in thetas:
              ]
     
     cross_sec_int_prob_sup_full = []
+    cross_sec_int_prob_tot_full = []
+    cross_sec_int_prob_inf_full = []
     
     masses_int_prob_sup_full = []
     masses_prob_sup_full     = []
@@ -5279,22 +5289,27 @@ for theta in thetas:
             x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
         
             cross_sec_int_prob_sup = np.ones(len(pars_norm)) * -99
+            cross_sec_int_prob_tot = np.ones(len(pars_norm)) * -99
+            cross_sec_int_prob_inf = np.ones(len(pars_norm)) * -99
             masses_int_prob_sup = np.ones(len(pars_norm)) * -99
             masses_prob_sup     = np.ones(len(pars_norm)) * -99
             masses_prob_inf     = np.ones(len(pars_norm)) * -99
                
             for itest in tqdm(range(len(pars_norm))):
-                x_obs_s1s2 = x_norm_s1s2[itest, :,:]
-                obs_s1s2 = swyft.Sample(x = x_obs_s1s2.reshape(1,96,96))
-                predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs_s1s2, prior_samples)
-                
-                x_obs_drate = x_norm_drate[itest, :]
-                obs_drate = swyft.Sample(x = x_obs_drate)
-                predictions_drate = trainer_drate.infer(network_drate, obs_drate, prior_samples)
-    
-                x_obs_rate = x_norm_rate[itest, :]
-                obs_rate = swyft.Sample(x = x_obs_rate)
-                predictions_rate = trainer_rate.infer(network_rate, obs_rate, prior_samples)
+                if s1s2:
+                    x_obs_s1s2 = x_norm_s1s2[itest, :,:]
+                    obs_s1s2 = swyft.Sample(x = x_obs_s1s2.reshape(1,96,96))
+                    predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs_s1s2, prior_samples)
+                    
+                if drate:
+                    x_obs_drate = x_norm_drate[itest, :]
+                    obs_drate = swyft.Sample(x = x_obs_drate)
+                    predictions_drate = trainer_drate.infer(network_drate, obs_drate, prior_samples)
+
+                if rate:
+                    x_obs_rate = x_norm_rate[itest, :]
+                    obs_rate = swyft.Sample(x = x_obs_rate)
+                    predictions_rate = trainer_rate.infer(network_rate, obs_rate, prior_samples)
     
                 # Cross-section
                 par = 1 # 0 = mass, 1 = cross-section, 2 = theta
@@ -5312,7 +5327,11 @@ for theta in thetas:
                 
                 # Let's compute the integrated probability for different threshold
                 cr_th = np.argmin(np.abs(parameter - cross_section_th))
-                cross_sec_int_prob_sup[itest] = trapezoid(ratios[cr_th:], parameter[cr_th:]) / trapezoid(ratios, parameter)
+                cr_max = np.argmin(np.abs(parameter - cross_section_max))
+                
+                cross_sec_int_prob_sup[itest] = trapezoid(ratios[cr_th:], parameter[cr_th:]) / trapezoid(ratios, parameter)   
+                cross_sec_int_prob_tot[itest] = trapezoid(ratios[cr_th:cr_max], parameter[cr_th:cr_max]) / trapezoid(ratios, parameter)
+                cross_sec_int_prob_inf[itest] = trapezoid(ratios[:cr_max], parameter[:cr_max]) / trapezoid(ratios, parameter)
 
                 
                 if plotCross & (itest in iplot):
@@ -5367,29 +5386,42 @@ for theta in thetas:
                 #-----------------------------------------------------------------------------------------------------------
                 
             cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
+            cross_sec_int_prob_tot_full.append(cross_sec_int_prob_tot)
+            cross_sec_int_prob_inf_full.append(cross_sec_int_prob_inf)
             masses_int_prob_sup_full.append(masses_int_prob_sup)
             masses_prob_sup_full.append(masses_prob_sup)
             masses_prob_inf_full.append(masses_prob_inf)
                 
             np.savetxt(folder + 'cross_sec_int_prob_sup_' + flag + '.txt', cross_sec_int_prob_sup)
+            np.savetxt(folder + 'cross_sec_int_prob_tot_' + flag + '.txt', cross_sec_int_prob_tot)
+            np.savetxt(folder + 'cross_sec_int_prob_inf_' + flag + '.txt', cross_sec_int_prob_inf)
             np.savetxt(folder + 'masses_int_prob_sup_' + flag + '.txt', masses_int_prob_sup)
             np.savetxt(folder + 'masses_prob_sup_' + flag + '.txt', masses_prob_sup)
             np.savetxt(folder + 'masses_prob_inf_' + flag + '.txt', masses_prob_inf)
         else:
             print('pre-computed')
             cross_sec_int_prob_sup = np.loadtxt(folder + 'cross_sec_int_prob_sup_' + flag + '.txt')
+            cross_sec_int_prob_tot = np.loadtxt(folder + 'cross_sec_int_prob_tot_' + flag + '.txt')
+            cross_sec_int_prob_inf = np.loadtxt(folder + 'cross_sec_int_prob_inf_' + flag + '.txt')
             masses_int_prob_sup    = np.loadtxt(folder + 'masses_int_prob_sup_' + flag + '.txt')
             masses_prob_sup        = np.loadtxt(folder + 'masses_prob_sup_' + flag + '.txt')
             masses_prob_inf        = np.loadtxt(folder + 'masses_prob_inf_' + flag + '.txt')
     
             cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
+            cross_sec_int_prob_tot_full.append(cross_sec_int_prob_tot)
+            cross_sec_int_prob_inf_full.append(cross_sec_int_prob_inf)
             masses_int_prob_sup_full.append(masses_int_prob_sup)
             masses_prob_sup_full.append(masses_prob_sup)
             masses_prob_inf_full.append(masses_prob_inf)
     
     
     cross_sec_int_prob_sup_aux.append( np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0) )
+    cross_sec_int_prob_tot_aux.append( np.mean(np.asarray(cross_sec_int_prob_tot_full), axis = 0) )
+    cross_sec_int_prob_inf_aux.append( np.mean(np.asarray(cross_sec_int_prob_inf_full), axis = 0) )
     cross_sec_int_prob_sup_aux_sd.append( np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0) )
+    cross_sec_int_prob_tot_aux_sd.append( np.std(np.asarray(cross_sec_int_prob_tot_full), axis = 0) )
+    cross_sec_int_prob_inf_aux_sd.append( np.std(np.asarray(cross_sec_int_prob_inf_full), axis = 0) )
+    
     masses_int_prob_sup_aux.append( np.mean(np.asarray(masses_int_prob_sup_full), axis = 0) )
     masses_int_prob_sup_aux_sd.append( np.std(np.asarray(masses_int_prob_sup_full), axis = 0) )
     masses_prob_sup_aux.append( np.mean(np.asarray(masses_prob_sup_full), axis = 0) )
@@ -5398,13 +5430,15 @@ for theta in thetas:
     masses_prob_inf_aux_sd.append( np.std(np.asarray(masses_prob_inf_full), axis = 0) )
 
 # +
-fig, ax = plt.subplots(2,2)
+fig, ax = plt.subplots(2,3, figsize = (10,5))
 
 for i in range(len(thetas)):
-    sbn.kdeplot(cross_sec_int_prob_sup_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[0,0])    
-    sbn.kdeplot(masses_int_prob_sup_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[0,1])
-    sbn.kdeplot(masses_prob_sup_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[1,0])
-    sbn.kdeplot(masses_prob_inf_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[1,1])
+    sbn.kdeplot(cross_sec_int_prob_tot_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[0,0])
+    sbn.kdeplot(cross_sec_int_prob_sup_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[0,1])
+    sbn.kdeplot(cross_sec_int_prob_inf_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[0,2])
+    sbn.kdeplot(masses_int_prob_sup_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[1,0])
+    sbn.kdeplot(masses_prob_sup_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[1,1])
+    sbn.kdeplot(masses_prob_inf_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[1,2])
 ax[0,0].legend()
 ax[0,0].set_xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
 ax[0,0].set_title('s1s2')
@@ -5419,22 +5453,26 @@ ax[1,0].set_xlabel('$\int_{m_{min}}^{\inf} P(m_{DM}|x)$')
 ax[1,1].legend()
 ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
-plt.savefig('../graph/O4_newTrain_int_prob_distribution_rate.pdf')
+plt.savefig('../graph/O4_graph/O4_full_int_prob_distribution_rate.pdf')
 
 
 
 # +
-CR_int_prob_sup_comb = []
-M_int_prob_sup_comb = []
-M_prob_sup_comb = []
-M_prob_inf_comb = []
+CR_int_prob_sup_rate = []
+CR_int_prob_tot_rate = []
+CR_int_prob_inf_rate = []
+M_int_prob_sup_rate = []
+M_prob_sup_rate = []
+M_prob_inf_rate = []
 
 sigma = 0.1
 for i in range(len(thetas)):
-    CR_int_prob_sup_comb.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
-    M_int_prob_sup_comb.append( gaussian_filter(masses_int_prob_sup_aux[i], sigma) )
-    M_prob_sup_comb.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
-    M_prob_inf_comb.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
+    CR_int_prob_sup_rate.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
+    CR_int_prob_tot_rate.append( gaussian_filter(cross_sec_int_prob_tot_aux[i], sigma) )
+    CR_int_prob_inf_rate.append( gaussian_filter(cross_sec_int_prob_inf_aux[i], sigma) )
+    M_int_prob_sup_rate.append( gaussian_filter(masses_int_prob_sup_aux[i], sigma) )
+    M_prob_sup_rate.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
+    M_prob_inf_rate.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
 
 
 # +
@@ -5478,6 +5516,7 @@ for i, theta in enumerate([3,4,0]):
     #ax[i].contour(m_vals, cross_vals, M_prob_sup_rate[theta].reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 
     ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_drate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_drate)
+    #ax[i].contour(m_vals, cross_vals, CR_int_prob_tot_drate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = 'magenta', linestyles = ':')
     #ax[i].contour(m_vals, cross_vals, M_int_prob_sup_drate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_drate)
     #ax[i].contour(m_vals, cross_vals, M_prob_sup_drate[theta].reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_drate)
     

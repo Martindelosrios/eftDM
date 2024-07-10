@@ -827,6 +827,8 @@ s1s2_testset  = s1s2[test_ind,:,:]
 
 # !ls ../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma2e-47-thetapidiv2
 
+# !ls ../data/andresData/new-bilby-O1-O4-saved0/new-bilby/O1/examples-to-match-emcee/mDM50GeV-sigma5e-47-thetapidiv4
+
 # +
 # where are your files?
 datFolder = ['../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma2e-47-thetapidiv2/']
@@ -1074,6 +1076,12 @@ bilby_s1s2 = bilby.result.read_in_result(filename='../data/andresData/28-05-24-f
 
 bilby_rate = bilby.result.read_in_result(filename='../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-multinest/rate/PyMultiNest-rate-21047_result.json')
 bilby_drate = bilby.result.read_in_result(filename='../data/andresData/28-05-24-files/bilby-multinest-21047/bilby-multinest/drate/PyMultiNest-drate-21047_result.json')
+
+# !ls ../data/andresData/new-bilby-O1-O4-saved0/new-bilby/O1/examples-to-match-emcee/bilby-results
+
+bilby_rate = bilby.result.read_in_result(filename='../data/andresData/new-bilby-O1-O4-saved0/new-bilby/O1/examples-to-match-emcee/bilby-results/rate-51047-thetapidiv4_result.json')
+bilby_drate = bilby.result.read_in_result(filename='../data/andresData/new-bilby-O1-O4-saved0/new-bilby/O1/examples-to-match-emcee/bilby-results/drate-51047-thetapidiv4_result.json')
+bilby_s1s2 = bilby.result.read_in_result(filename='../data/andresData/new-bilby-O1-O4-saved0/new-bilby/O1/examples-to-match-emcee/bilby-results/s1s2bin-OP2-51047-thetapidiv4_result.json')
 
 # # Let's play with SWYFT
 
@@ -1812,16 +1820,16 @@ from matplotlib.patches import Patch
 rate  = True
 drate = True
 s1s2  = True
-fig = bilby_s1s2.plot_corner(outdir='../graph/', color = 'grey', levels=[0.9], smooth = 2, bins = 30, alpha = 0.6)
-#fig = bilby_drate.plot_corner(outdir='.', color = 'grey', levels=(0.9,0.68), smooth = 2)
-#fig = bilby_rate.plot_corner(outdir='.', color = 'grey', levels=(0.9,0.68), smooth = 2)
+prob = [0.9]
+fig = bilby_s1s2.plot_corner(outdir='../graph/', color = 'grey', levels=[0.9], smooth = 1, bins = 15, alpha = 0.6)
+#fig = bilby_drate.plot_corner(outdir='.', color = 'grey', levels=prob, smooth = 2)
+#fig = bilby_rate.plot_corner(outdir='.', color = 'grey', levels=prob, smooth = 2)
 
 #fig = corner.corner(rate_samples, smooth = 2.5, levels = [0.9], bins = 30, plot_density = False, color = 'black', fill_contours = False, linestyles = ['--'])
 #corner.corner(drate_samples, smooth = 2, levels = [0.9], bins = 30, plot_density = False, color = 'magenta', fill_contours = False, 
 #              fig = fig, contour_kwargs = {'linestyles':'--'}, contourf_kwargs = {'alpha':0})
 #corner.corner(s1s2_samples, smooth = 2, levels = [0.9], bins = 30, plot_density = False, color = color_s1s2, fill_contours = False, fig = fig, ls = '--')
 
-prob = [0.9]
 axes = fig.get_axes()
 
 
@@ -1831,13 +1839,13 @@ ax.hist(s1s2_samples[:,0], color = 'grey', bins = 30, zorder = 0, histtype = 'st
 
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 0, 
-                 fill = False, linestyles = ['solid',':'], color = color_rate, fac = 150, probs = prob)
+                 fill = False, linestyles = ['solid',':'], color = color_rate, fac = 180, probs = prob)
 if drate: 
-    plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 0, 
-             fill = False, linestyles = ['solid',':'], color = color_drate, fac = 150, probs = prob)
+    plot1d_emcee(ax, [predictions_drate], pars_true, par = 0, 
+             fill = False, linestyles = ['solid',':'], color = color_drate, fac = 180, probs = prob)
 if s1s2:
-    plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 0, 
-                 fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 130, probs = prob)
+    plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 0, 
+                 fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 100, probs = prob)
 ax.set_xlabel('')
 ax.set_ylabel('')
 ax.set_xticks([])
@@ -1850,10 +1858,10 @@ if rate:
     plot2d_emcee(ax, [predictions_rate], pars_true, fill = False, line = True, linestyles = ['solid','--'], 
                  color = color_rate, probs = prob, zorder = 2, nvals = 20, smooth = 2)
 if drate:
-    plot2d_emcee(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid','--'], 
+    plot2d_emcee(ax, [predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid','--'], 
                  color = color_drate, probs = prob, zorder = 3, nvals = 20, smooth = 2)
 if s1s2:
-    plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+    plot2d_emcee(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                  color = color_s1s2, probs = prob, zorder = 4, nvals = 40)
 ax.set_ylabel('$Log_{10}(\\sigma \ [cm^{2}])$', fontsize = 12)
 ax.set_xlim([1, 3])
@@ -1867,11 +1875,11 @@ if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 1, 
                  flip = False, fill = False, linestyles = ['solid', ':'], color = color_rate, fac = 220, probs = prob)
 if drate:
-    plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 1, 
-                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_drate, fac = 180, probs = prob)
+    plot1d_emcee(ax, [predictions_drate], pars_true, par = 1, 
+                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_drate, fac = 190, probs = prob)
 if s1s2:
-    plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 1, 
-                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_s1s2, fac = 50, probs = prob)
+    plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 1, 
+                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_s1s2, fac = 70, probs = prob)
 ax.set_ylabel('')
 ax.set_xlabel('')
 ax.set_title('')
@@ -1885,10 +1893,10 @@ if rate:
     plot2d_emcee_m_theta(ax, [predictions_rate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_rate, probs = prob, zorder = 2, smooth = 2)
 if drate:
-    plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+    plot2d_emcee_m_theta(ax, [predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_drate, probs = prob, zorder = 2, smooth = 2)
 if s1s2:
-    plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+    plot2d_emcee_m_theta(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_s1s2, probs = prob, zorder = 2, smooth = 2)
 ax.set_ylabel('$\\theta$', fontsize = 12)
 ax.set_xlabel('$Log_{10}(m_{dm} \ [GeV])$', fontsize = 12)
@@ -1901,11 +1909,11 @@ if rate:
     plot2d_emcee_sigma_theta(ax, [predictions_rate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_rate, probs = prob, zorder = 2, smooth = 2)
 if drate:
-    plot2d_emcee_sigma_theta(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+    plot2d_emcee_sigma_theta(ax, [predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_drate, probs = prob, zorder = 2, smooth = 2)
 if s1s2:
-    plot2d_emcee_sigma_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                color = color_s1s2, probs = prob, zorder = 2)
+    plot2d_emcee_sigma_theta(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                color = color_s1s2, probs = prob, zorder = 2, smooth = None)
 ax.set_xlabel('$Log_{10}(\\sigma \ [cm^{2}])$', fontsize = 12)
 ax.set_ylabel('')
 ax.set_xlim([-49.5, -43])
@@ -1913,16 +1921,16 @@ ax.set_ylim([-1.6, 1.6])
 
 ax = axes[8]
 ax.clear()
-ax.hist(s1s2_samples[:,2], color = 'grey', bins = 30, zorder = 0, histtype = 'step', range = (-1.6,1.6))
+ax.hist(s1s2_samples[:,2], color = 'grey', bins = 50, zorder = 0, histtype = 'step', range = (-1.6,1.6))
 
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 2, 
                  flip = False, fill = False, linestyles = ['solid',':'], color = color_rate, fac = 100, probs = prob)
 if drate:
-    plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 2, 
+    plot1d_emcee(ax, [predictions_drate], pars_true, par = 2, 
                  flip = False, fill = False, linestyles = ['solid',':'], color = color_drate, fac = 100, probs = prob)
 if s1s2:
-    plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 2, 
+    plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 2, 
                  flip = False, fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 100, probs = prob)
 ax.set_ylabel('')
 ax.set_title('')
@@ -1930,11 +1938,12 @@ ax.set_xlim([-1.6, 1.6])
 ax.set_xticks([-1.5,0,1.5])
 ax.set_xticklabels(['-1.5','0.0', '1.5'], rotation = 45)
 ax.set_yticks([])
-ax.text(-0.06,-70, '$\\theta$', fontsize = 12)
+ax.text(-0.06,-55, '$\\theta$', fontsize = 12)
 #ax.set_xlabel('$\\theta$', fontsize = 12)
 
 custom_lines = []
-labels = ['Rate', 'Rate + Dif. Rate', 'Rate + Dif. Rate + cS1-cS2']
+#labels = ['Rate', 'Rate + Dif. Rate', 'Rate + Dif. Rate + cS1-cS2']
+labels = ['Rate', 'Dif. Rate', 'cS1-cS2']
 markers = ['solid','solid', 'solid']
 colors = [color_rate, color_drate, color_s1s2]
 for i in range(3):
@@ -1945,8 +1954,8 @@ custom_lines.append( Patch(facecolor='gray', edgecolor='gray',
                          label='Multinest') )
 axes[0].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(1.2,0.45), fontsize = 12)
 
-fig.savefig('../graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
-#fig
+fig.savefig('../graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}_noComb.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
+fig
 # +
 rate_samples = bilby_rate.samples[:,:2]
 drate_samples = bilby_drate.samples[:,:2]
@@ -2029,9 +2038,94 @@ ax.set_title('')
 ax.set_xticks([])
 ax.set_yticks([])
 
-plt.savefig('../graph/SWYFT_BILBY_s1s2_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
+#plt.savefig('../graph/SWYFT_BILBY_s1s2_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
+# +
+rate_samples = bilby_rate.samples[:,:2]
+drate_samples = bilby_drate.samples[:,:2]
+s1s2_samples = bilby_s1s2.samples[:,:2]
+
+rate  = False
+drate = False
+s1s2  = True
+
+prob = [0.9]
+
+fig,axes = plt.subplots(2,2, width_ratios = [1,0.4], height_ratios = [0.4,1])
+
+if rate:
+    corner.corner(rate_samples, fig = fig, smooth = 2.5, levels=prob, bins = 30, plot_density=False, color = 'gray', fill_contours=True)
+if drate:
+    corner.corner(drate_samples, fig = fig, smooth = 2.5, levels=prob, bins = 30, plot_density=False, color = 'gray', fill_contours=True)
+if s1s2:
+    corner.corner(s1s2_samples, fig = fig, smooth = 1, levels=prob, bins = 15, plot_density=False, color = 'gray', fill_contours=True)
+
+#axes = fig.get_axes()
+
+ax = axes[0,0]
+ax.cla()
+
+if rate:
+    ax.hist(rate_samples[:,0], color = 'grey', bins = 30, zorder = 0, histtype = 'step')
+    plot1d_emcee(ax, [predictions_rate], pars_true, par = 0, 
+                 fill = False, linestyles = ['solid',':'], color = color_rate, fac = 130, probs = prob)
+if drate: 
+    ax.hist(drate_samples[:,0], color = 'grey', bins = 30, zorder = 0, histtype = 'step')
+    plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 0, 
+             fill = False, linestyles = ['solid',':'], color = color_drate, fac = 130, probs = prob)
+if s1s2:
+    ax.hist(s1s2_samples[:,0], color = 'grey', bins = 30, zorder = 0, histtype = 'step')
+    plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 0, 
+                 fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 130, probs = prob)
+ax.set_xlabel('')
+ax.set_ylabel('')
+ax.set_xticks([])
+ax.set_yticks([])
+ax.set_title('')
+ax.set_xlim([1, 3])
+
+ax = axes[1,0]
+if rate:
+    plot2d_emcee(ax, [predictions_rate], pars_true, fill = False, line = True, linestyles = ['solid','--'], 
+                 color = color_rate, probs = prob, zorder = 2, nvals = 20, smooth = 2)
+if drate:
+    plot2d_emcee(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid','--'], 
+                 color = color_drate, probs = prob, zorder = 3, nvals = 20, smooth = 2)
+if s1s2:
+    plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                 color = color_s1s2, probs = prob, zorder = 4, nvals = 40)
+ax.set_ylabel('$log_{10}(\\sigma \ [cm^{2}])$', fontsize = 12)
+ax.set_xlabel('$log_{10}(m_{dm} [GeV])$', fontsize = 12)
+ax.set_xlim([1, 3])
+ax.set_ylim([-49.5, -43])
+
+ax = axes[1,1]
+ax.cla()
+
+if rate:
+    ax.hist(rate_samples[:,1], color = 'grey', bins = 30, zorder = 0, histtype = 'step', orientation="horizontal")
+    plot1d_emcee(ax, [predictions_rate], pars_true, par = 1, 
+                 flip = True, fill = False, linestyles = ['solid', ':'], color = color_rate, fac = 70, probs = prob)
+if drate:
+    ax.hist(drate_samples[:,1], color = 'grey', bins = 30, zorder = 0, histtype = 'step', orientation="horizontal")
+    plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 1, 
+                 flip = True, fill = False, linestyles = ['solid', ':'], color = color_drate, fac = 80, probs = prob)
+if s1s2:
+    plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 1, 
+                 flip = True, fill = False, linestyles = ['solid', ':'], color = color_s1s2, fac = 60, probs = prob)
+    ax.hist(s1s2_samples[:,1], color = 'grey', bins = 30, zorder = 0, histtype = 'step', orientation="horizontal")
+    #hist = np.histogram(s1s2_samples[:,1], bins = 30)
+    #ax.barplot(hist[0], hist[1][:-1], color = 'grey', zorder = 0)
+ax.set_ylabel('')
+ax.set_xlabel('')
+ax.set_title('')
+#ax.set_xlim([-49.5, -43])
+ax.set_xticks([])
+ax.set_yticks([])
+
+plt.savefig('../graph/SWYFT_BILBY_s1s2_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}_s1s2.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
 # -
 
+swyft.corner(predictions_drate, ['pars_norm[0]','pars_norm[1]','pars_norm[2]'])
 
 
 # +
@@ -2089,3 +2183,17 @@ plt.savefig('../graph/SWYFT_BILBY_s1s2_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}.
 #ax.legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(1.03,0.4))
 
 #plt.savefig('../graph/contours_MCMC_SWYFT.pdf')
+# -
+
+# # Other
+
+res, xedges, yedges, _ = stats.binned_statistic_2d(pars[:,1], pars[:,2], rate_raw[:,1], 'mean', bins=50)
+
+rate_raw[:,1]
+
+X, Y = np.meshgrid(xedges[:-1], yedges[:-1])
+plt.contourf(X + (xedges[1] - xedges[0]) / 2, Y + (yedges[1] - yedges[0]) / 2, res.T, levels = [0,1,10,100,1000,1000000], colors = ['black','green','red','blue','magenta'])
+#plt.xscale('log')
+plt.colorbar()
+
+
