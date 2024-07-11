@@ -1816,9 +1816,11 @@ plt.show()
 
 from matplotlib.patches import Patch
 
+color_s1s2_2 = 'darkblue'
+
 # +
-rate  = True
-drate = True
+rate  = False
+drate = False
 s1s2  = True
 prob = [0.9]
 fig = bilby_s1s2.plot_corner(outdir='../graph/', color = 'grey', levels=[0.9], smooth = 1, bins = 15, alpha = 0.6)
@@ -1845,6 +1847,8 @@ if drate:
              fill = False, linestyles = ['solid',':'], color = color_drate, fac = 180, probs = prob)
 if s1s2:
     plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 0, 
+                 fill = False, linestyles = ['solid',':'], color = color_s1s2_2, fac = 100, probs = prob)
+    plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 0, 
                  fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 100, probs = prob)
 ax.set_xlabel('')
 ax.set_ylabel('')
@@ -1862,6 +1866,8 @@ if drate:
                  color = color_drate, probs = prob, zorder = 3, nvals = 20, smooth = 2)
 if s1s2:
     plot2d_emcee(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                 color = color_s1s2_2, probs = prob, zorder = 4, nvals = 40)
+    plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                  color = color_s1s2, probs = prob, zorder = 4, nvals = 40)
 ax.set_ylabel('$Log_{10}(\\sigma \ [cm^{2}])$', fontsize = 12)
 ax.set_xlim([1, 3])
@@ -1879,6 +1885,8 @@ if drate:
                  flip = False, fill = False, linestyles = ['solid', ':'], color = color_drate, fac = 190, probs = prob)
 if s1s2:
     plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 1, 
+                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_s1s2_2, fac = 70, probs = prob)
+    plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 1, 
                  flip = False, fill = False, linestyles = ['solid', ':'], color = color_s1s2, fac = 70, probs = prob)
 ax.set_ylabel('')
 ax.set_xlabel('')
@@ -1897,6 +1905,8 @@ if drate:
                 color = color_drate, probs = prob, zorder = 2, smooth = 2)
 if s1s2:
     plot2d_emcee_m_theta(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                color = color_s1s2_2, probs = prob, zorder = 2, smooth = 2)
+    plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_s1s2, probs = prob, zorder = 2, smooth = 2)
 ax.set_ylabel('$\\theta$', fontsize = 12)
 ax.set_xlabel('$Log_{10}(m_{dm} \ [GeV])$', fontsize = 12)
@@ -1913,6 +1923,8 @@ if drate:
                 color = color_drate, probs = prob, zorder = 2, smooth = 2)
 if s1s2:
     plot2d_emcee_sigma_theta(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                color = color_s1s2_2, probs = prob, zorder = 2, smooth = None)
+    plot2d_emcee_sigma_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_s1s2, probs = prob, zorder = 2, smooth = None)
 ax.set_xlabel('$Log_{10}(\\sigma \ [cm^{2}])$', fontsize = 12)
 ax.set_ylabel('')
@@ -1931,6 +1943,8 @@ if drate:
                  flip = False, fill = False, linestyles = ['solid',':'], color = color_drate, fac = 100, probs = prob)
 if s1s2:
     plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 2, 
+                 flip = False, fill = False, linestyles = ['solid',':'], color = color_s1s2_2, fac = 100, probs = prob)
+    plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 2, 
                  flip = False, fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 100, probs = prob)
 ax.set_ylabel('')
 ax.set_title('')
@@ -1943,10 +1957,12 @@ ax.text(-0.06,-55, '$\\theta$', fontsize = 12)
 
 custom_lines = []
 #labels = ['Rate', 'Rate + Dif. Rate', 'Rate + Dif. Rate + cS1-cS2']
-labels = ['Rate', 'Dif. Rate', 'cS1-cS2']
+#labels = ['Rate', 'Dif. Rate', 'cS1-cS2']
+labels = ['Rate + Dif. Rate + cS1-cS2', 'cS1-cS2']
 markers = ['solid','solid', 'solid']
-colors = [color_rate, color_drate, color_s1s2]
-for i in range(3):
+#colors = [color_rate, color_drate, color_s1s2]
+colors = [color_s1s2, color_s1s2_2]
+for i in range(len(labels)):
     custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
             label = labels[i], lw = 2) )
 
