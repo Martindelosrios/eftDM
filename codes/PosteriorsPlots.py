@@ -826,7 +826,7 @@ s1s2_testset  = s1s2[test_ind,:,:]
 
 # -
 
-save = True
+save = False
 if save:
     
     pars_min = np.min(pars_trainset, axis = 0)
@@ -839,7 +839,7 @@ if save:
     x_max_rate = np.max(x_rate, axis = 0)
     np.savetxt('O1_rate_minmax.txt', np.asarray([x_min_rate, x_max_rate]))
 
-    x_drate = diff_rate_trainset # Observable. Input data. 
+    x_drate = np.log10(diff_rate_trainset) # Observable. Input data. 
     x_min_drate = np.min(x_drate, axis = 0)
     x_max_drate = np.max(x_drate, axis = 0)
     np.savetxt('O1_drate_min.txt', x_min_drate)
@@ -859,8 +859,8 @@ else:
     x_min_drate = np.loadtxt('O1_drate_min.txt')
     x_max_drate = np.loadtxt('O1_drate_max.txt')
     x_min_s1s2 = np.loadtxt('O1_s1s2_min.txt')
-    x_max_s1s2 = np.loadtxt('O1_s1s2_max.txt')
-    
+    x_max_s1s2 = np.max(np.loadtxt('O1_s1s2_max.txt'))
+
 
 # ## Data to match emcee
 
@@ -870,7 +870,8 @@ else:
 
 # +
 # where are your files?
-datFolder = ['../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma2e-47-thetapidiv2/']
+#datFolder = ['../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma2e-47-thetapidiv2/']
+datFolder = ['../data/andresData/new-bilby-O1-O4-saved0/new-bilby/O1/examples-to-match-emcee/mDM50GeV-sigma5e-47-thetapidiv4/']
 emcee_nobs = 0
 for i, folder in enumerate(datFolder):
     print(i)
@@ -1343,7 +1344,7 @@ ax[1,1].set_xlabel('$P(\sigma|x)$')
 
 # ### Training
 
-x_drate = diff_rate_trainset # Observable. Input data. 
+x_drate = np.log10(diff_rate_trainset) # Observable. Input data. 
 
 # +
 # Let's normalize everything between 0 and 1
@@ -1460,13 +1461,13 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=50, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_norm_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
 
 
 # +
-x_test_drate = diff_rate_testset
+x_test_drate = np.log10(diff_rate_testset)
 x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -1479,21 +1480,14 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate)
 
 # +
-fit = False
-if fit:
-    trainer_drate.fit(network_drate, dm_drate)
-    checkpoint_callback.to_yaml("./logs/O1_drate.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O1_drate.yaml")
-    email('Termino el entramiento del drate para O1')
-else:
-    ckpt_path = swyft.best_from_yaml("./logs/O1_drate.yaml")
+ckpt_path = swyft.best_from_yaml("./logs/O1_norm_drate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.8 @ epoch 20
 # ---------------------------------------------- 
 
 # +
-x_test_drate = diff_rate_testset
+x_test_drate = np.log10(diff_rate_testset)
 x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -1517,7 +1511,7 @@ trainer_drate.test(network_drate, dm_test_drate, ckpt_path = ckpt_path)
 
 pars_norm = (emcee_pars - pars_min) / (pars_max - pars_min)
 
-x_drate = emcee_diff_rate
+x_drate = np.log10(emcee_diff_rate)
 x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
 
 # +
@@ -1597,7 +1591,7 @@ pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 x_norm_s1s2 = x_s1s2
 #ind_nonzero = np.where(x_max_s1s2 > 0)
 #x_norm_s1s2[:,ind_nonzero[0], ind_nonzero[1]] = (x_s1s2[:,ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]]) / (x_max_s1s2[ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]])
-#x_norm_s1s2 = x_s1s2 / x_max_s1s2
+x_norm_s1s2 = x_s1s2 / x_max_s1s2
 
 
 # +
@@ -1687,13 +1681,13 @@ cb = MetricTracker()
 torch.manual_seed(28890)
 cb = MetricTracker()
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=20, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_norm_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2500, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_s1s2 = Network()
 
 # +
 x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
-# #%x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
+x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
 x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -1706,13 +1700,7 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 
 # +
-fit = False
-if fit:
-    trainer_s1s2.fit(network_s1s2, dm_s1s2)
-    checkpoint_callback.to_yaml("./logs/O1_s1s2.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O1_s1s2.yaml")
-else:
-    ckpt_path = swyft.best_from_yaml("./logs/O1_s1s2.yaml")
+ckpt_path = swyft.best_from_yaml("./logs/O1_norm_s1s2.yaml")
 
 # ---------------------------------------
 # Min val loss value at 48 epochs. -3.31
@@ -1721,7 +1709,7 @@ else:
 
 # +
 x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
-# #%x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
+x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
 x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -1746,8 +1734,8 @@ trainer_s1s2.test(network_s1s2, dm_test_s1s2, ckpt_path = ckpt_path)
 
 pars_norm = (emcee_pars - pars_min) / (pars_max - pars_min)
 
-x_norm_s1s2 = x_s1s2 = emcee_s1s2[:,:-1,:-1]
-# #%x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1] / x_max_s1s2
+x_norm_s1s2 = x_s1s2 = emcee_s1s2[:,:-1,:-1] / x_max_s1s2
+#x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1] / x_max_s1s2
 
 # +
 # First let's create some observation from some "true" theta parameters
@@ -1862,8 +1850,8 @@ rate  = True
 drate = True
 s1s2  = True
 prob = [0.9]
-#fig = bilby_s1s2.plot_corner(outdir='../graph/', color = 'grey', levels=[0.9], smooth = 0.1, bins = 15, alpha = 0.6)
-fig = bilby_drate.plot_corner(outdir='.', color = 'grey', levels=prob, smooth = 0.1)
+fig = bilby_s1s2.plot_corner(outdir='../graph/', color = 'grey', levels=[0.9], smooth = 0.1, bins = 15, alpha = 0.6)
+#fig = bilby_drate.plot_corner(outdir='.', color = 'grey', levels=prob, smooth = 0.1)
 #fig = bilby_rate.plot_corner(outdir='.', color = 'grey', levels=prob, smooth = 0.1)
 
 #fig = corner.corner(rate_samples, smooth = 2.5, levels = [0.9], bins = 30, plot_density = False, color = 'black', fill_contours = False, linestyles = ['--'])
@@ -1876,7 +1864,7 @@ axes = fig.get_axes()
 
 ax = axes[0]
 ax.cla()
-ax.hist(drate_samples[:,0], color = 'grey', bins = 30, zorder = 0, histtype = 'step', density = True)
+ax.hist(s1s2_samples[:,0], color = 'grey', bins = 30, zorder = 0, histtype = 'step', density = True)
 
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 0, 
@@ -1904,8 +1892,8 @@ if drate:
     plot2d_emcee(ax, [predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid','--'], 
                  color = color_drate, probs = prob, zorder = 3, nvals = 20, smooth = 0.1)
 if s1s2:
-    #plot2d_emcee(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-    #             color = color_s1s2_2, probs = prob, zorder = 4, nvals = 40)
+    plot2d_emcee(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                 color = color_s1s2_2, probs = prob, zorder = 4, nvals = 40)
     plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                  color = color_s1s2, probs = prob, zorder = 4, nvals = 40, smooth = 0.1)
 ax.set_ylabel('$Log_{10}(\\sigma^{SI} \ [cm^{2}])$', fontsize = 12)
@@ -1914,7 +1902,7 @@ ax.set_ylim([-49.5, -43])
 
 ax = axes[4]
 ax.cla()
-ax.hist(drate_samples[:,1], color = 'grey', bins = 30, zorder = 0, histtype = 'step', density = True)
+ax.hist(s1s2_samples[:,1], color = 'grey', bins = 30, zorder = 0, histtype = 'step', density = True)
 
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 1, 
@@ -1923,8 +1911,8 @@ if drate:
     plot1d_emcee(ax, [predictions_drate], pars_true, par = 1, 
                  flip = False, fill = False, linestyles = ['solid', ':'], color = color_drate, fac = 190, probs = prob)
 if s1s2:
-    #plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 1, 
-    #             flip = False, fill = False, linestyles = ['solid', ':'], color = color_s1s2_2, fac = 70, probs = prob)
+    plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 1, 
+                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_s1s2_2, fac = 70, probs = prob)
     plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 1, 
                  flip = False, fill = False, linestyles = ['solid', ':'], color = color_s1s2, fac = 70, probs = prob)
 ax.set_ylabel('')
@@ -1943,8 +1931,8 @@ if drate:
     plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_drate, probs = prob, zorder = 2, smooth = 0.1)
 if s1s2:
-    #plot2d_emcee_m_theta(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-    #            color = color_s1s2_2, probs = prob, zorder = 2, smooth = 0.1)
+    plot2d_emcee_m_theta(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                color = color_s1s2_2, probs = prob, zorder = 2, smooth = 0.1)
     plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_s1s2, probs = prob, zorder = 2, smooth = 0.1)
 ax.set_ylabel('$\\theta$', fontsize = 12)
@@ -1961,8 +1949,8 @@ if drate:
     plot2d_emcee_sigma_theta(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_drate, probs = prob, zorder = 2, smooth = 0.1)
 if s1s2:
-    #plot2d_emcee_sigma_theta(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-    #            color = color_s1s2_2, probs = prob, zorder = 2, smooth = 0.1)
+    plot2d_emcee_sigma_theta(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                color = color_s1s2_2, probs = prob, zorder = 2, smooth = 0.1)
     plot2d_emcee_sigma_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_s1s2, probs = prob, zorder = 2, smooth = 0.1)
 ax.set_xlabel('$Log_{10}(\\sigma^{SI} \ [cm^{2}])$', fontsize = 12)
@@ -1972,7 +1960,7 @@ ax.set_ylim([-1.6, 1.6])
 
 ax = axes[8]
 ax.clear()
-ax.hist(drate_samples[:,2], color = 'grey', bins = 15, zorder = 0, histtype = 'step', range = (-1.6,1.6), density = True)
+ax.hist(s1s2_samples[:,2], color = 'grey', bins = 15, zorder = 0, histtype = 'step', range = (-1.6,1.6), density = True)
 
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 2, 
@@ -1981,8 +1969,8 @@ if drate:
     plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 2, 
                  flip = False, fill = False, linestyles = ['solid',':'], color = color_drate, fac = 100, probs = prob)
 if s1s2:
-    #plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 2, 
-    #             flip = False, fill = False, linestyles = ['solid',':'], color = color_s1s2_2, fac = 100, probs = prob)
+    plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 2, 
+                 flip = False, fill = False, linestyles = ['solid',':'], color = color_s1s2_2, fac = 100, probs = prob)
     plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 2, 
                  flip = False, fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 100, probs = prob)
 ax.set_ylabel('')
@@ -2006,11 +1994,11 @@ for i in range(len(labels)):
             label = labels[i], lw = 2) )
 
 custom_lines.append( Patch(facecolor='gray', edgecolor='gray',
-                         label='MCMC drate') )
+                         label='MCMC s1s2') )
 axes[0].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(1.2,0.25), fontsize = 12)
-axes[0].text(1.5,0.9, '$\\mathcal{O}_{4}$', fontsize = 14, transform = axes[0].transAxes)
+axes[0].text(1.5,0.9, '$\\mathcal{O}_{1}$', fontsize = 14, transform = axes[0].transAxes)
 
-fig.savefig('../graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}_drate.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
+fig.savefig('../graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}_s1s2.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
 fig
 # +
 rate_samples = bilby_rate.samples[:,:2]

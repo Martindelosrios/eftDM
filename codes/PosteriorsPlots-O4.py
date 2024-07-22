@@ -861,16 +861,17 @@ if save:
     np.savetxt('O4_s1s2_min.txt', x_min_s1s2)
     np.savetxt('O4_s1s2_max.txt', x_max_s1s2)
 else:
-    pars_min = np.loadtxt('O4_pars_min.txt')
-    pars_max = np.loadtxt('O4_pars_max.txt')
-    x_minmax_rate = np.loadtxt('O4_rate_minmax.txt')
+    pars_min = np.loadtxt('O4_36.5_pars_min_test.txt')
+    pars_max = np.loadtxt('O4_36.5_pars_max_test.txt')
+    x_minmax_rate = np.loadtxt('O4_36.5_rate_minmax_test.txt')
     x_min_rate = x_minmax_rate[0]
     x_max_rate = x_minmax_rate[1]
-    x_min_drate = np.loadtxt('O4_drate_min.txt')
-    x_max_drate = np.loadtxt('O4_drate_max.txt')
-    x_min_s1s2 = np.loadtxt('O4_s1s2_min.txt')
-    x_max_s1s2 = np.loadtxt('O4_s1s2_max.txt')
-    
+    x_min_drate = np.loadtxt('O4_365_drate_min_test.txt')
+    x_max_drate = np.loadtxt('O4_365_drate_max_test.txt')
+    x_min_s1s2 = np.loadtxt('O4_365_s1s2_min_test.txt')
+    x_max_s1s2 = np.loadtxt('O4_365_s1s2_max_test.txt')
+    x_max_s1s2 = np.max(x_max_s1s2)
+
 
 # ## Data to match emcee
 
@@ -881,6 +882,7 @@ else:
 # +
 # where are your files?
 datFolder = ['../data/andresData/O4-fulldata/O4/04-examples-to-match-emcee/examples-to-match-emcee/mDM50GeV-sigma23e-40-thetapidiv2/']
+#datFolder = ['../data/andresData/new-bilby-O1-O4-saved0/new-bilby/O4/examples-to-match-emcee/mDM50GeV-sigma23e-40-theta0/']
 emcee_nobs = 0
 for i, folder in enumerate(datFolder):
     print(i)
@@ -1090,7 +1092,7 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=100, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_full_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_365_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_rate = Network_rate()
 
@@ -1109,7 +1111,7 @@ dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1],
 trainer_rate.test(network_rate, dm_test_rate)
 
 # +
-ckpt_path = swyft.best_from_yaml("./logs/O4_full_rate.yaml")
+ckpt_path = swyft.best_from_yaml("./logs/O4_365_rate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.18 at epoch ~50
@@ -1330,7 +1332,7 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=50, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_full_log_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_365_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
 
@@ -1349,7 +1351,7 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate)
 
 # +
-ckpt_path = swyft.best_from_yaml("./logs/O4_full_log_drate.yaml")
+ckpt_path = swyft.best_from_yaml("./logs/O4_365_drate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.8 @ epoch 20
@@ -1458,7 +1460,7 @@ pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 x_norm_s1s2 = x_s1s2
 #ind_nonzero = np.where(x_max_s1s2 > 0)
 #x_norm_s1s2[:,ind_nonzero[0], ind_nonzero[1]] = (x_s1s2[:,ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]]) / (x_max_s1s2[ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]])
-#x_norm_s1s2 = x_s1s2 / x_max_s1s2
+x_norm_s1s2 = x_s1s2 / x_max_s1s2
 
 
 # +
@@ -1548,13 +1550,13 @@ cb = MetricTracker()
 torch.manual_seed(28890)
 cb = MetricTracker()
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=20, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_full_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_365_norm_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2500, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_s1s2 = Network()
 
 # +
 x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
-# #%x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
+x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
 x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -1567,11 +1569,11 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 # -
 
-ckpt_path = swyft.best_from_yaml("./logs/O4_full_s1s2.yaml")
+ckpt_path = swyft.best_from_yaml("./logs/O4_365_norm_s1s2.yaml")
 
 # +
 x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
-# #%x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
+x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
 x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -1596,7 +1598,7 @@ trainer_s1s2.test(network_s1s2, dm_test_s1s2, ckpt_path = ckpt_path)
 
 pars_norm = (emcee_pars - pars_min) / (pars_max - pars_min)
 
-x_norm_s1s2 = x_s1s2 = emcee_s1s2[:,:-1,:-1]
+x_norm_s1s2 = x_s1s2 = emcee_s1s2[:,:-1,:-1] / x_max_s1s2
 # #%x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1] / x_max_s1s2
 
 # +
@@ -1705,6 +1707,8 @@ plt.show()
 
 from matplotlib.patches import Patch
 
+color_s1s2_2 = 'darkblue'
+
 # +
 rate  = True
 drate = True
@@ -1735,6 +1739,8 @@ if drate:
     plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 0, 
              fill = False, linestyles = ['solid',':'], color = color_drate, fac = 70, probs = prob)
 if s1s2:
+    plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 0, 
+                 fill = False, linestyles = ['solid',':'], color = color_s1s2_2, fac = 30, probs = prob)
     plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 0, 
                  fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 30, probs = prob)
 ax.set_xlabel('')
@@ -1754,6 +1760,8 @@ if drate:
 if s1s2:
     plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                  color = color_s1s2, probs = prob, zorder = 4, nvals = 40, smooth = 0.1)
+    plot2d_emcee(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                 color = color_s1s2_2, probs = prob, zorder = 4, nvals = 40, smooth = 0.1)
 ax.set_ylabel('$Log_{10}(\\sigma^{SD} \ [cm^{2}])$', fontsize = 12)
 ax.set_xlim([1, 3])
 ax.set_ylim([-41, -36])
@@ -1769,6 +1777,8 @@ if drate:
     plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 1, 
                  flip = False, fill = False, linestyles = ['solid', ':'], color = color_drate, fac = 10, probs = prob)
 if s1s2:
+    plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 1, 
+                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_s1s2_2, fac = 5, probs = prob)
     plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 1, 
                  flip = False, fill = False, linestyles = ['solid', ':'], color = color_s1s2, fac = 5, probs = prob)
 ax.set_ylabel('')
@@ -1787,6 +1797,8 @@ if drate:
     plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_drate, probs = prob, zorder = 2, smooth = 0.1)
 if s1s2:
+    plot2d_emcee_m_theta(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                color = color_s1s2_2, probs = prob, zorder = 2, smooth = 0.1)
     plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_s1s2, probs = prob, zorder = 2, smooth = 0.1)
 ax.set_ylabel('$\\theta$', fontsize = 12)
@@ -1803,6 +1815,8 @@ if drate:
     plot2d_emcee_sigma_theta(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_drate, probs = prob, zorder = 2, smooth = 0.1)
 if s1s2:
+    plot2d_emcee_sigma_theta(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+                color = color_s1s2_2, probs = prob, zorder = 2, smooth = 0.1)
     plot2d_emcee_sigma_theta(ax, [predictions_rate, predictions_drate,  predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_s1s2, probs = prob, zorder = 2, smooth = 0.1)
 ax.set_xlabel('$Log_{10}(\\sigma^{SD} \ [cm^{2}])$', fontsize = 12)
@@ -1821,6 +1835,8 @@ if drate:
     plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 2, 
                  flip = False, fill = False, linestyles = ['solid',':'], color = color_drate, fac = 50, probs = prob)
 if s1s2:
+    plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 2, 
+                 flip = False, fill = False, linestyles = ['solid',':'], color = color_s1s2_2, fac = 50, probs = prob)
     plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 2, 
                  flip = False, fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 50, probs = prob)
 ax.set_ylabel('')
@@ -1845,7 +1861,7 @@ custom_lines.append( Patch(facecolor='gray', edgecolor='gray',
 axes[0].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(1.2,0.25), fontsize = 12)
 axes[0].text(1.5,0.9, '$\\mathcal{O}_{4}$', fontsize = 14, transform = axes[0].transAxes)
 
-fig.savefig('../graph/O4_graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}_s1s2.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
+fig.savefig('../graph/O4_graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}_365_s1s2.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
 fig
 # +
 rate  = True

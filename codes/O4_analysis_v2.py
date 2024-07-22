@@ -419,8 +419,9 @@ def plot2d_comb(ax, predictions, pars_true, fill = True, line = False, linestyle
 # where are your files?
 datFolder = ['../data/andresData/O4-fulldata/O4/O4-run01/',
              '../data/andresData/O4-fulldata/O4/O4-run02/',
-             '../data/andresData/O4-fulldata/O4/O4-run03/',
-             '../data/andresData/O4-fulldata/O4/O4-run04/']
+             #'../data/andresData/O4-fulldata/O4/O4-run03/',
+             #'../data/andresData/O4-fulldata/O4/O4-run04/'
+            ]
 nobs = 0
 for i, folder in enumerate(datFolder):
     print(i)
@@ -479,10 +480,6 @@ pars[:,1] = np.log10(pars[:,1])
 #diff_rate = np.round(diff_rate * 362440)
 # -
 
-pars[16461,:]
-
-np.max(s1s2)
-
 # This should be always zero
 i = np.random.randint(nobs)
 print(rate_raw[i,2] - rate[i])
@@ -522,6 +519,16 @@ print(diff_rate.shape)
 print(s1s2.shape)
 
 # +
+ind_new = np.where(pars[:,1] < -36.5)[0]
+
+nobs = len(ind_new)
+pars = pars[ind_new]
+
+rate = rate[ind_new]
+diff_rate = diff_rate[ind_new]
+s1s2 = s1s2[ind_new]
+
+# +
 # Let's split in training, validation and testing
 
 ntrain = int(70 * nobs / 100)
@@ -550,7 +557,6 @@ diff_rate_testset  = diff_rate[test_ind,:]
 s1s2_trainset = s1s2[train_ind,:,:]
 s1s2_valset   = s1s2[val_ind,:,:]
 s1s2_testset  = s1s2[test_ind,:,:]
-
 # -
 
 # ## Ibarra
@@ -734,6 +740,12 @@ pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 x_min_rate = np.min(x_rate, axis = 0)
 x_max_rate = np.max(x_rate, axis = 0)
 
+
+if True:
+    np.savetxt('O4_36.5_pars_min_test.txt', pars_min)
+    np.savetxt('O4_36.5_pars_max_test.txt', pars_max)
+    np.savetxt('O4_36.5_rate_minmax_test.txt', np.asarray([x_min_rate, x_max_rate]))
+
 x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
 
 # +
@@ -804,7 +816,7 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=100, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_full_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_365_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_rate = Network_rate()
 
@@ -823,15 +835,15 @@ dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1],
 trainer_rate.test(network_rate, dm_test_rate)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_rate.fit(network_rate, dm_rate)
-    checkpoint_callback.to_yaml("./logs/O4_full_rate.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O4_full_rate.yaml")
-    email('Termino de entrenar rate O1')
+    checkpoint_callback.to_yaml("./logs/O4_365_rate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_365_rate.yaml")
+    email('Termino de entrenar rate O4')
     
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O4_full_rate.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_365_rate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.18 at epoch ~50
@@ -867,7 +879,7 @@ if fit:
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
-    plt.savefig('../graph/O4_full_loss_rate.pdf')
+    plt.savefig('../graph/O4_365_loss_rate.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -879,7 +891,7 @@ if fit:
     for i in range(3):
         swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
     plt.tight_layout()
-    plt.savefig('../graph/O4_full_Coverage_rate.pdf')
+    plt.savefig('../graph/O4_365_Coverage_rate.pdf')
 
 # ### Let's make some inference
 
@@ -2082,14 +2094,18 @@ x_drate = np.log10(diff_rate_trainset) # Observable. Input data.
 # +
 # Let's normalize everything between 0 and 1
 
-pars_min = np.min(pars_trainset, axis = 0)
-pars_max = np.max(pars_trainset, axis = 0)
+#pars_min = np.min(pars_trainset, axis = 0)
+#pars_max = np.max(pars_trainset, axis = 0)
 
 pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 
 x_min_drate = np.min(x_drate, axis = 0)
 x_max_drate = np.max(x_drate, axis = 0)
 
+if True:
+    np.savetxt('O4_365_drate_min_test.txt', x_min_drate)
+    np.savetxt('O4_365_drate_max_test.txt', x_max_drate)
+    
 x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
 # -
 
@@ -2197,7 +2213,7 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=50, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_full_log_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_365_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
 
@@ -2216,14 +2232,14 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_drate.fit(network_drate, dm_drate)
-    checkpoint_callback.to_yaml("./logs/O4_full_log_drate.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O4_full_log_drate.yaml")
-    #email('Termino el entramiento del drate para O4')
+    checkpoint_callback.to_yaml("./logs/O4_365_drate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_365_drate.yaml")
+    email('Termino el entramiento del drate para O4')
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O4_full_log_drate.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_365_drate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.8 @ epoch 20
@@ -2259,7 +2275,7 @@ if fit:
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
-    plt.savefig('../graph/O4_full_log_loss_drate.pdf')
+    plt.savefig('../graph/O4_365_loss_drate.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -3030,12 +3046,16 @@ pars_max = np.max(pars_trainset, axis = 0)
 pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 
 x_min_s1s2 = np.min(x_s1s2, axis = 0)
-x_max_s1s2 = np.max(x_s1s2)
-
+x_max_s1s2 = np.max(x_s1s2, axis = 0)
+if True: 
+    np.savetxt('O4_365_s1s2_min_test.txt', x_min_s1s2)
+    np.savetxt('O4_365_s1s2_max_test.txt', x_max_s1s2)
+x_max_s1s2 = np.max(x_max_s1s2)
+    
 x_norm_s1s2 = x_s1s2
 #ind_nonzero = np.where(x_max_s1s2 > 0)
 #x_norm_s1s2[:,ind_nonzero[0], ind_nonzero[1]] = (x_s1s2[:,ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]]) / (x_max_s1s2[ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]])
-x_norm_s1s2 = x_s1s2 #/ x_max_s1s2
+x_norm_s1s2 = x_s1s2 / x_max_s1s2
 
 
 # +
@@ -3125,13 +3145,13 @@ cb = MetricTracker()
 torch.manual_seed(28890)
 cb = MetricTracker()
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=20, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_full_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_365_norm_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2500, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_s1s2 = Network()
 
 # +
 x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
-#x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
+x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
 x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -3144,13 +3164,15 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
-    checkpoint_callback.to_yaml("./logs/O4_full_s1s2.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O4_full_s1s2.yaml")
+    checkpoint_callback.to_yaml("./logs/O4_365_norm_s1s2.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_365_norm_s1s2.yaml")
+    email('Termino de entrenar s1s2 O4')
+    
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O4_full_s1s2.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_365_norm_s1s2.yaml")
 
 # ---------------------------------------
 # Min val loss value at 48 epochs. -3.31
@@ -3162,7 +3184,7 @@ trainer_s1s2.test(network_s1s2, dm_test_s1s2, ckpt_path = ckpt_path)
 
 # +
 x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
-#x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
+x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
 x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -3192,7 +3214,7 @@ if fit:
     plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.savefig('../graph/O4_full_norm_loss_s1s2_temp.pdf')
+    plt.savefig('../graph/O4_365_norm_loss_s1s2.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -3204,7 +3226,7 @@ if fit:
     for i in range(3):
         swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
     plt.tight_layout()
-    plt.savefig('../graph/O4_full_norm_Coverage_s1s2.pdf')
+    plt.savefig('../graph/O4_365_norm_Coverage_s1s2.pdf')
 
 # ### Let's make some inference
 

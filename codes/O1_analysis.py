@@ -526,6 +526,17 @@ comb = np.hstack((aux_row,s1s2[:,:-2,:-1]))
 comb.shape
 
 # +
+ind_new = np.where(pars[:,1] < -45)[0]
+
+#nobs = len(ind_new)
+#pars = pars[ind_new]
+
+#rate = rate[ind_new]
+#diff_rate = diff_rate[ind_new]
+#s1s2 = s1s2[ind_new]
+#comb = comb[ind_new]
+
+# +
 # Let's split in training, validation and testing
 
 ntrain = int(70 * nobs / 100)
@@ -559,6 +570,41 @@ comb_trainset = comb[train_ind,:,:]
 comb_valset   = comb[val_ind,:,:]
 comb_testset  = comb[test_ind,:,:]
 # -
+
+save = False
+if save:
+    
+    pars_min = np.min(pars_trainset, axis = 0)
+    pars_max = np.max(pars_trainset, axis = 0)    
+    np.savetxt('O1_pars_min_test.txt', pars_min)
+    np.savetxt('O1_pars_max_test.txt', pars_max)
+    
+    x_rate = np.log10(rate_trainset) # Observable. Input data.
+    x_min_rate = np.min(x_rate, axis = 0)
+    x_max_rate = np.max(x_rate, axis = 0)
+    np.savetxt('O1_rate_minmax_test.txt', np.asarray([x_min_rate, x_max_rate]))
+
+    x_drate = np.log10(diff_rate_trainset) # Observable. Input data. 
+    x_min_drate = np.min(x_drate, axis = 0)
+    x_max_drate = np.max(x_drate, axis = 0)
+    np.savetxt('O1_drate_min_test.txt', x_min_drate)
+    np.savetxt('O1_drate_max_test.txt', x_max_drate)
+
+    x_s1s2 = s1s2_trainset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 64x64
+    x_min_s1s2 = np.min(x_s1s2, axis = 0)
+    x_max_s1s2 = np.max(x_s1s2)
+    np.savetxt('O1_s1s2_min_test.txt', x_min_s1s2)
+    np.savetxt('O1_s1s2_max_test.txt', x_max_s1s2)
+else:
+    pars_min = np.loadtxt('O1_pars_min_test.txt')
+    pars_max = np.loadtxt('O1_pars_max_test.txt')
+    x_minmax_rate = np.loadtxt('O1_rate_minmax_test.txt')
+    x_min_rate = x_minmax_rate[0]
+    x_max_rate = x_minmax_rate[1]
+    x_min_drate = np.loadtxt('O1_drate_min_test.txt')
+    x_max_drate = np.loadtxt('O1_drate_max_test.txt')
+    x_min_s1s2 = np.loadtxt('O1_s1s2_min_test.txt')
+    x_max_s1s2 = np.loadtxt('O1_s1s2_max_test.txt')
 
 # ## Ibarra
 
@@ -2353,7 +2399,7 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_drate.fit(network_drate, dm_drate)
     checkpoint_callback.to_yaml("./logs/O1_norm_drate.yaml") 
@@ -2417,7 +2463,7 @@ if fit:
 
 pars_norm = (pars_testset - pars_min) / (pars_max - pars_min)
 
-x_drate = diff_rate_testset
+x_drate = np.log10(diff_rate_testset)
 x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
 # -
 
@@ -2481,12 +2527,12 @@ ax[1,1].set_xlabel('$P(\sigma|x)$')
 
 # +
 # Let's plot the results
-swyft.corner(predictions_drate, ('pars_norm[0]', 'pars_norm[1]', 'pars_norm[2]'), bins = 200, smooth = 3)
+swyft.corner(predictions_drate, ('pars_norm[0]', 'pars_norm[2]'), bins = 200, smooth = 3)
 
-if flag == 'exc':
-    plt.savefig('../graph/cornerplot_drate_exc.pdf')
-else:
-    plt.savefig('../graph/cornerplot_drate.pdf')
+#if flag == 'exc':
+#    plt.savefig('../graph/cornerplot_drate_exc.pdf')
+#else:
+#    plt.savefig('../graph/cornerplot_drate.pdf')
 
 # +
 bins = 50
@@ -3166,13 +3212,13 @@ pars_max = np.max(pars_trainset, axis = 0)
 
 pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 
-x_min_s1s2 = np.min(x_s1s2, axis = 0)
-x_max_s1s2 = np.max(x_s1s2)
+#x_min_s1s2 = np.min(x_s1s2, axis = 0)
+#x_max_s1s2 = np.max(x_s1s2)
 
 x_norm_s1s2 = x_s1s2
 #ind_nonzero = np.where(x_max_s1s2 > 0)
 #x_norm_s1s2[:,ind_nonzero[0], ind_nonzero[1]] = (x_s1s2[:,ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]]) / (x_max_s1s2[ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]])
-x_norm_s1s2 = x_s1s2 / x_max_s1s2
+#x_norm_s1s2 = x_s1s2 / x_max_s1s2
 
 
 # +
@@ -3309,13 +3355,13 @@ cb = MetricTracker()
 torch.manual_seed(28890)
 cb = MetricTracker()
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=20, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_norm_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_NOnorm_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2500, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_s1s2 = Network()
 
 # +
 x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
-x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
+#x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
 x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -3328,13 +3374,13 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
-    checkpoint_callback.to_yaml("./logs/O1_norm_s1s2.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O1_norm_s1s2.yaml")
+    checkpoint_callback.to_yaml("./logs/O1_NOnorm_s1s2.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O1_NOnorm_s1s2.yaml")
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O1_norm_s1s2.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O1_NOnorm_s1s2.yaml")
 
 # ---------------------------------------
 # Min val loss value at 48 epochs. -3.31
@@ -3346,7 +3392,7 @@ trainer_s1s2.test(network_s1s2, dm_test_s1s2, ckpt_path = ckpt_path)
 
 # +
 x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
-x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
+#x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
 x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -3376,7 +3422,7 @@ if fit:
     plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.savefig('../graph/O1_norm_loss_s1s2_temp.pdf')
+    plt.savefig('../graph/O1_NOnorm_loss_s1s2_temp.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -3388,7 +3434,7 @@ if fit:
     for i in range(3):
         swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
     plt.tight_layout()
-    plt.savefig('../graph/O1_Coverage_norm_s1s2.pdf')
+    plt.savefig('../graph/O1_Coverage_s1s2_NOnorm.pdf')
 
 # ### Let's make some inference
 
@@ -5451,7 +5497,7 @@ for theta in thetas:
             
             pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
             
-            x_norm_s1s2 = x_s1s2 = s1s2_slices[:,:-1,:-1] / x_max_s1s2
+            x_norm_s1s2 = x_s1s2 = s1s2_slices[:,:-1,:-1] #/ x_max_s1s2
                
             x_drate = np.log10(diff_rate_slices)
             x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
