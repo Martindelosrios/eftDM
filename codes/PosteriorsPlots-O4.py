@@ -861,13 +861,13 @@ if save:
     np.savetxt('O4_s1s2_min.txt', x_min_s1s2)
     np.savetxt('O4_s1s2_max.txt', x_max_s1s2)
 else:
-    pars_min = np.loadtxt('O4_36.5_pars_min_test.txt')
-    pars_max = np.loadtxt('O4_36.5_pars_max_test.txt')
-    x_minmax_rate = np.loadtxt('O4_36.5_rate_minmax_test.txt')
+    pars_min = np.loadtxt('O4_365_pars_min.txt')
+    pars_max = np.loadtxt('O4_365_pars_max.txt')
+    x_minmax_rate = np.loadtxt('O4_365_rate_minmax.txt')
     x_min_rate = x_minmax_rate[0]
     x_max_rate = x_minmax_rate[1]
-    x_min_drate = np.loadtxt('O4_365_drate_min_test.txt')
-    x_max_drate = np.loadtxt('O4_365_drate_max_test.txt')
+    x_min_drate = np.loadtxt('O4_365_drate_min.txt')
+    x_max_drate = np.loadtxt('O4_365_drate_max.txt')
     x_min_s1s2 = np.loadtxt('O4_365_s1s2_min_test.txt')
     x_max_s1s2 = np.loadtxt('O4_365_s1s2_max_test.txt')
     x_max_s1s2 = np.max(x_max_s1s2)
@@ -1022,7 +1022,8 @@ pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 #x_min_rate = np.min(x_rate, axis = 0)
 #x_max_rate = np.max(x_rate, axis = 0)
 
-x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+#x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+x_norm_rate = x_rate / x_max_rate
 
 # +
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
@@ -1092,13 +1093,14 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=100, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_365_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_365_norm_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_rate = Network_rate()
 
 # +
 x_test_rate = np.log10(rate_testset)
-x_norm_test_rate = (x_test_rate - x_min_rate) / (x_max_rate - x_min_rate)
+#x_norm_test_rate = (x_test_rate - x_min_rate) / (x_max_rate - x_min_rate)
+x_norm_test_rate = x_test_rate / x_max_rate
 x_norm_test_rate = x_norm_test_rate.reshape(len(x_norm_test_rate), 1)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -1111,7 +1113,7 @@ dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1],
 trainer_rate.test(network_rate, dm_test_rate)
 
 # +
-ckpt_path = swyft.best_from_yaml("./logs/O4_365_rate.yaml")
+ckpt_path = swyft.best_from_yaml("./logs/O4_365_norm_rate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.18 at epoch ~50
@@ -1119,7 +1121,8 @@ ckpt_path = swyft.best_from_yaml("./logs/O4_365_rate.yaml")
 
 # +
 x_test_rate = np.log10(rate_testset)
-x_norm_test_rate = (x_test_rate - x_min_rate) / (x_max_rate - x_min_rate)
+#x_norm_test_rate = (x_test_rate - x_min_rate) / (x_max_rate - x_min_rate)
+x_norm_test_rate = x_test_rate / x_max_rate
 x_norm_test_rate = x_norm_test_rate.reshape(len(x_norm_test_rate), 1)
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -1143,8 +1146,12 @@ trainer_rate.test(network_rate, dm_test_rate, ckpt_path = ckpt_path)
 pars_norm = (emcee_pars - pars_min) / (pars_max - pars_min)
 
 x_rate = np.log10(emcee_rate)
-x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+#x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+x_norm_rate = x_rate / x_max_rate
 x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
+# -
+
+emcee_rate
 
 # +
 # First let's create some observation from some "true" theta parameters
@@ -1210,6 +1217,17 @@ ax[1,1].set_yticks([])
 ax[1,1].set_xlabel('$P(\sigma|x)$')
 #ax[1,0].grid(which = 'both')
 #plt.savefig('../graph/O4_graph/2d_custom_posteriors_' + str(i) + '_rate.pdf')
+
+# +
+par = 2
+parameter = np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+ratios = np.exp(np.asarray(predictions_rate[0].logratios[:,par]))
+
+ind_sort  = np.argsort(parameter)
+ratios    = ratios[ind_sort]
+parameter = parameter[ind_sort]
+
+plt.plot(parameter, ratios)
 # -
 
 # ## Only using the total diff_rate
@@ -1228,7 +1246,8 @@ pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 #x_min_drate = np.min(x_drate, axis = 0)
 #x_max_drate = np.max(x_drate, axis = 0)
 
-x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+x_norm_drate = x_drate / x_max_drate
 
 # +
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
@@ -1332,14 +1351,15 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=50, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_365_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_365_norm_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
 
 
 # +
 x_test_drate = diff_rate_testset
-x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+x_norm_test_drate = x_test_drate / x_max_drate
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -1351,7 +1371,7 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate)
 
 # +
-ckpt_path = swyft.best_from_yaml("./logs/O4_365_drate.yaml")
+ckpt_path = swyft.best_from_yaml("./logs/O4_365_norm_drate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.8 @ epoch 20
@@ -1359,7 +1379,8 @@ ckpt_path = swyft.best_from_yaml("./logs/O4_365_drate.yaml")
 
 # +
 x_test_drate = np.log10(diff_rate_testset)
-x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+x_norm_test_drate = x_test_drate / x_max_drate
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -1383,7 +1404,8 @@ trainer_drate.test(network_drate, dm_test_drate, ckpt_path = ckpt_path)
 pars_norm = (emcee_pars - pars_min) / (pars_max - pars_min)
 
 x_drate = np.log10(emcee_diff_rate)
-x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+x_norm_drate = x_drate / x_max_drate
 
 # +
 # First let's create some observation from some "true" theta parameters
@@ -1440,6 +1462,17 @@ ax[1,1].set_yticks([])
 ax[1,1].set_xlabel('$P(\sigma|x)$')
 #ax[1,0].grid(which = 'both')
 #plt.savefig('../graph/2d_custom_posteriors_' + str(i) + '_drate.pdf')
+
+# +
+par = 2
+parameter = np.asarray(predictions_drate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+ratios = np.exp(np.asarray(predictions_drate[0].logratios[:,par]))
+
+ind_sort  = np.argsort(parameter)
+ratios    = ratios[ind_sort]
+parameter = parameter[ind_sort]
+
+plt.plot(parameter, ratios)
 # -
 
 # ## Using s1s2
