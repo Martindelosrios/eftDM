@@ -464,9 +464,9 @@ for i, folder in enumerate(datFolder):
 nobs = len(pars) # Total number of observations
 print('We have ' + str(nobs) + ' observations...')
 
-diff_rate = diff_rate_WIMP + diff_rate_er + diff_rate_ac + diff_rate_cevns_SM + diff_rate_radio + diff_rate_wall
+diff_rate = diff_rate_WIMP + diff_rate_ac + diff_rate_cevns_SM + diff_rate_radio + diff_rate_wall + diff_rate_er 
 
-s1s2 = s1s2_WIMP + s1s2_er + s1s2_ac + s1s2_cevns_SM + s1s2_radio + s1s2_wall
+s1s2 = s1s2_WIMP + s1s2_ac + s1s2_cevns_SM + s1s2_radio + s1s2_wall + s1s2_er
 rate = np.sum(s1s2, axis = 1) # Just to have the same as on the other notebooks. This already includes the backgrounds
 s1s2 = s1s2.reshape(nobs, 97, 97)
 
@@ -527,8 +527,12 @@ nobs = len(ind_new)
 pars = pars[ind_new]
 
 rate = rate[ind_new]
+rate_raw = rate_raw[ind_new]
 diff_rate = diff_rate[ind_new]
 s1s2 = s1s2[ind_new]
+# -
+
+plt.hist(rate[np.where(rate_raw[:,3] == 0)[0]])
 
 # +
 # Let's split in training, validation and testing
@@ -743,7 +747,7 @@ x_min_rate = np.min(x_rate, axis = 0)
 x_max_rate = np.max(x_rate, axis = 0)
 
 
-if False:
+if True:
     np.savetxt('O4_365_pars_min.txt', pars_min)
     np.savetxt('O4_365_pars_max.txt', pars_max)
     np.savetxt('O4_365_rate_minmax.txt', np.asarray([x_min_rate, x_max_rate]))
@@ -839,7 +843,7 @@ dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1],
 trainer_rate.test(network_rate, dm_test_rate)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_rate.fit(network_rate, dm_rate)
     checkpoint_callback.to_yaml("./logs/O4_365_norm_rate.yaml") 
@@ -917,6 +921,7 @@ np.argmin(x_norm_rate)
 # First let's create some observation from some "true" theta parameters
 i = np.random.randint(ntest) # 239 (disc) 455 (exc) 203 (middle)
 print(i)
+print(10**x_rate[i])
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_rate[i,:]
 
@@ -2120,12 +2125,12 @@ pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 x_min_drate = np.min(x_drate, axis = 0)
 x_max_drate = np.max(x_drate, axis = 0)
 
-if False:
+if True:
     np.savetxt('O4_365_drate_min.txt', x_min_drate)
     np.savetxt('O4_365_drate_max.txt', x_max_drate)
     
-#x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
-x_norm_drate = x_drate / np.max(x_max_drate)
+x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_drate = x_drate / np.max(x_max_drate)
 
 # +
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
@@ -2229,15 +2234,15 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=50, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_365_norm_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_365_norm2_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
 
 
 # +
 x_test_drate = np.log10(diff_rate_testset)
-#x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
-x_norm_test_drate = x_test_drate / np.max(x_max_drate)
+x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_test_drate = x_test_drate / np.max(x_max_drate)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -2252,11 +2257,11 @@ trainer_drate.test(network_drate, dm_test_drate)
 fit = True
 if fit:
     trainer_drate.fit(network_drate, dm_drate)
-    checkpoint_callback.to_yaml("./logs/O4_365_norm_drate.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O4_365_norm_drate.yaml")
+    checkpoint_callback.to_yaml("./logs/O4_365_norm2_drate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O4_365_norm2_drate.yaml")
     email('Termino el entramiento del drate para O4')
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O4_365_norm_drate.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O4_365_norm2_drate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.8 @ epoch 20
@@ -2264,8 +2269,8 @@ else:
 
 # +
 x_test_drate = np.log10(diff_rate_testset)
-#x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
-x_norm_test_drate = x_test_drate / np.max(x_max_drate)
+x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_test_drate = x_test_drate / np.max(x_max_drate)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -2293,7 +2298,7 @@ if fit:
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
-    plt.savefig('../graph/O4_365_norm_loss_drate.pdf')
+    plt.savefig('../graph/O4_365_norm2_loss_drate.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -2305,7 +2310,7 @@ if fit:
     for i in range(3):
         swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
     plt.tight_layout()
-    plt.savefig('../graph/O4_full_log_Coverage_drate.pdf')
+    plt.savefig('../graph/O4_365_norm2_Coverage_drate.pdf')
 
 # ### Let's make some inference
 
@@ -2317,17 +2322,20 @@ pars_norm = (pars_testset - pars_min) / (pars_max - pars_min)
 x_drate = np.log10(diff_rate_testset)
 #x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
 x_norm_drate = x_drate / np.max(x_max_drate)
+# -
+
+np.where((rate_testset > 600) & (rate_testset < 680))[0]
 
 # +
 # First let's create some observation from some "true" theta parameters
-i = np.random.randint(ntest)
+i = 78#np.random.randint(ntest)
 print(i)
 print(rate_testset[i])
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_drate[i,:]
 
 plt.plot(x_obs)
-plt.text(5,0.5, str(np.sum(x_drate[i,:])))
+#plt.text(5,0.5, str(np.sum(x_drate[i,:])))
 if np.sum(diff_rate_WIMP[test_ind[i],:]) < 300: 
     flag = 'exc'
 else:
@@ -3076,8 +3084,8 @@ pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 x_min_s1s2 = np.min(x_s1s2, axis = 0)
 x_max_s1s2 = np.max(x_s1s2, axis = 0)
 if True: 
-    np.savetxt('O4_365_s1s2_min_test.txt', x_min_s1s2)
-    np.savetxt('O4_365_s1s2_max_test.txt', x_max_s1s2)
+    np.savetxt('O4_365_s1s2_min.txt', x_min_s1s2)
+    np.savetxt('O4_365_s1s2_max.txt', x_max_s1s2)
 x_max_s1s2 = np.max(x_max_s1s2)
     
 x_norm_s1s2 = x_s1s2
@@ -3264,7 +3272,7 @@ if fit:
 pars_norm = (pars_testset - pars_min) / (pars_max - pars_min)
 
 x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1]
-# #%x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1] / x_max_s1s2
+x_norm_s1s2 = x_s1s2 = s1s2_testset[:,:-1,:-1] / x_max_s1s2
 # -
 
 import h5py
@@ -3276,11 +3284,15 @@ with h5py.File('testset.h5', 'w') as data:
     data.create_dataset('drate_norm', data = x_norm_drate)
     data.create_dataset('s1s2_norm', data = x_norm_s1s2.reshape(585,1,96,96))
 
+np.where((rate_testset > 500) & (rate_testset < 520))[0]
+
+rate_raw_testset[i,:]
+
 # +
 # First let's create some observation from some "true" theta parameters
-#i = 66#np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
+i = 615#np.random.randint(ntest) # 189 (disc) 455 (exc) 203 (middle)
 print(i)
-
+print(rate_testset[i])
 pars_true = pars_norm[i,:]
 x_obs     = x_norm_s1s2[i,:].reshape(1,96,96)
 
@@ -3306,6 +3318,17 @@ prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
 predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
+
+# +
+par = 2
+parameter = np.asarray(predictions_s1s2[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+ratios = np.exp(np.asarray(predictions_s1s2[0].logratios[:,par]))
+
+ind_sort  = np.argsort(parameter)
+ratios    = ratios[ind_sort]
+parameter = parameter[ind_sort]
+
+plt.plot(parameter, ratios)
 
 # +
 fig,ax = plt.subplots(2,2, figsize = (6,6), 
@@ -5249,9 +5272,11 @@ cross_section_th = -42 # Cross-section threshold for 1d analysis
 cross_section_max = np.log10(1.5e-36) # Cross-section threshold for 1d analysis
 m_min_th = 1 # Min Mass for 1d analysis
 m_max_th = 2.6 # Max Mass for 1d analysis
+t_min_th = 0.62 # Min Mass for 1d analysis
+t_max_th = 0.94 # Max Mass for 1d analysis
 
 rate  = True # Flag to use the information of the rate analysis
-drate = False # Flag to use the information of the drate analysis
+drate = True # Flag to use the information of the drate analysis
 s1s2  = False # Flag to use the information of the s1s2 analysis
 
 if rate: 
@@ -5280,12 +5305,16 @@ cross_sec_int_prob_tot_aux    = []
 cross_sec_int_prob_tot_aux_sd = []
 cross_sec_int_prob_inf_aux    = []
 cross_sec_int_prob_inf_aux_sd = []
+
 masses_int_prob_sup_aux       = []
 masses_int_prob_sup_aux_sd    = []
 masses_prob_sup_aux           = []
 masses_prob_sup_aux_sd        = []
 masses_prob_inf_aux           = []
 masses_prob_inf_aux_sd        = []
+
+theta_int_prob_aux       = []
+theta_int_prob_aux_sd    = []
 
 # we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
 pars_prior    = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
@@ -5301,11 +5330,11 @@ for theta in thetas:
                '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v3/',
                '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v4/',
                '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v5/',
-               '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v6/',
-               '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v7/',
-               '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v8/',
-               '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v9/',
-               '../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v10/'
+               #'../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v6/',
+               #'../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v7/',
+               #'../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v8/',
+               #'../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v9/',
+               #'../data/andresData/O4-fulldata/O4/theta-' + theta + '/O4-slices01-' + theta + '-v10/'
              ]
     
     cross_sec_int_prob_sup_full = []
@@ -5315,6 +5344,8 @@ for theta in thetas:
     masses_int_prob_sup_full = []
     masses_prob_sup_full     = []
     masses_prob_inf_full     = []
+    
+    theta_int_prob_full = []
 
     for folder in folders:
         pars_slices, rate_slices, diff_rate_slices, s1s2_slices = read_slice([folder])
@@ -5329,21 +5360,26 @@ for theta in thetas:
             
             pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
             
-            x_norm_s1s2 = x_s1s2 = s1s2_slices[:,:-1,:-1] #/ x_max_s1s2
+            x_norm_s1s2 = s1s2_slices[:,:-1,:-1] / x_max_s1s2
                
             x_drate = np.log10(diff_rate_slices)
             x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+            #x_norm_drate = x_drate / np.max(x_max_drate)
                
             x_rate = np.log10(rate_slices)
-            x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+            #x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+            x_norm_rate = x_rate / x_max_rate
             x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
         
             cross_sec_int_prob_sup = np.ones(len(pars_norm)) * -99
             cross_sec_int_prob_tot = np.ones(len(pars_norm)) * -99
             cross_sec_int_prob_inf = np.ones(len(pars_norm)) * -99
+               
             masses_int_prob_sup = np.ones(len(pars_norm)) * -99
             masses_prob_sup     = np.ones(len(pars_norm)) * -99
             masses_prob_inf     = np.ones(len(pars_norm)) * -99
+               
+            theta_int_prob = np.ones(len(pars_norm)) * -99
                
             for itest in tqdm(range(len(pars_norm))):
                 if s1s2:
@@ -5363,7 +5399,7 @@ for theta in thetas:
     
                 # Cross-section
                 par = 1 # 0 = mass, 1 = cross-section, 2 = theta
-                parameter = np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+                parameter = pars_prior[:,par] * (pars_max[par] - pars_min[par]) + pars_min[par]#np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
                 ratios = np.zeros_like(np.asarray(predictions_rate[0].logratios[:,par]))
                 if rate:  ratios = ratios + np.asarray(predictions_rate[0].logratios[:,par])
                 if drate: ratios = ratios + np.asarray(predictions_drate[0].logratios[:,par])
@@ -5400,7 +5436,7 @@ for theta in thetas:
                 
                 # Mass
                 par = 0 # 0 = mass, 1 = cross-section, 2 = theta
-                parameter = np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+                parameter = pars_prior[:,par] * (pars_max[par] - pars_min[par]) + pars_min[par]#np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
                 ratios = np.zeros_like(np.asarray(predictions_rate[0].logratios[:,par]))
                 if rate:  ratios = ratios + np.asarray(predictions_rate[0].logratios[:,par])
                 if drate: ratios = ratios + np.asarray(predictions_drate[0].logratios[:,par])
@@ -5434,35 +5470,69 @@ for theta in thetas:
                     plt.clf()
                     
                 #-----------------------------------------------------------------------------------------------------------
+
+                # Theta
+                par = 2 # 0 = mass, 1 = cross-section, 2 = theta
+                parameter = pars_prior[:,par] * (pars_max[par] - pars_min[par]) + pars_min[par]#np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+                ratios = np.zeros_like(np.asarray(predictions_rate[0].logratios[:,par]))
+                if rate:  ratios = ratios + np.asarray(predictions_rate[0].logratios[:,par])
+                if drate: ratios = ratios + np.asarray(predictions_drate[0].logratios[:,par])
+                if s1s2:  ratios = ratios + np.asarray(predictions_s1s2[0].logratios[:,par])
+                    
+                ratios = np.exp(ratios)
+                
+                ind_sort  = np.argsort(parameter)
+                ratios    = ratios[ind_sort]
+                parameter = parameter[ind_sort]
+                
+                # Let's compute the integrated probability for different threshold            
+                t_min = np.argmin(np.abs(parameter - t_min_th))
+                t_max = np.argmin(np.abs(parameter - t_max_th))
+                
+                theta_int_prob[itest] = trapezoid(ratios[t_min:t_max], parameter[t_min:t_max]) / trapezoid(ratios, parameter)
+                    
+                #-----------------------------------------------------------------------------------------------------------
                 
             cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
             cross_sec_int_prob_tot_full.append(cross_sec_int_prob_tot)
             cross_sec_int_prob_inf_full.append(cross_sec_int_prob_inf)
+               
             masses_int_prob_sup_full.append(masses_int_prob_sup)
             masses_prob_sup_full.append(masses_prob_sup)
             masses_prob_inf_full.append(masses_prob_inf)
+               
+            theta_int_prob_full.append(theta_int_prob)
                 
             np.savetxt(folder + 'cross_sec_int_prob_sup_' + flag + '.txt', cross_sec_int_prob_sup)
             np.savetxt(folder + 'cross_sec_int_prob_tot_' + flag + '.txt', cross_sec_int_prob_tot)
             np.savetxt(folder + 'cross_sec_int_prob_inf_' + flag + '.txt', cross_sec_int_prob_inf)
+               
             np.savetxt(folder + 'masses_int_prob_sup_' + flag + '.txt', masses_int_prob_sup)
             np.savetxt(folder + 'masses_prob_sup_' + flag + '.txt', masses_prob_sup)
             np.savetxt(folder + 'masses_prob_inf_' + flag + '.txt', masses_prob_inf)
+               
+            np.savetxt(folder + 'theta_int_prob_' + flag + '.txt', theta_int_prob)
         else:
             print('pre-computed')
             cross_sec_int_prob_sup = np.loadtxt(folder + 'cross_sec_int_prob_sup_' + flag + '.txt')
             cross_sec_int_prob_tot = np.loadtxt(folder + 'cross_sec_int_prob_tot_' + flag + '.txt')
             cross_sec_int_prob_inf = np.loadtxt(folder + 'cross_sec_int_prob_inf_' + flag + '.txt')
+            
             masses_int_prob_sup    = np.loadtxt(folder + 'masses_int_prob_sup_' + flag + '.txt')
             masses_prob_sup        = np.loadtxt(folder + 'masses_prob_sup_' + flag + '.txt')
             masses_prob_inf        = np.loadtxt(folder + 'masses_prob_inf_' + flag + '.txt')
+            
+            theta_int_prob    = np.loadtxt(folder + 'theta_int_prob_' + flag + '.txt')
     
             cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
             cross_sec_int_prob_tot_full.append(cross_sec_int_prob_tot)
             cross_sec_int_prob_inf_full.append(cross_sec_int_prob_inf)
+            
             masses_int_prob_sup_full.append(masses_int_prob_sup)
             masses_prob_sup_full.append(masses_prob_sup)
             masses_prob_inf_full.append(masses_prob_inf)
+            
+            theta_int_prob_full.append(theta_int_prob)
     
     
     cross_sec_int_prob_sup_aux.append( np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0) )
@@ -5478,17 +5548,23 @@ for theta in thetas:
     masses_prob_sup_aux_sd.append( np.std(np.asarray(masses_prob_sup_full), axis = 0) )
     masses_prob_inf_aux.append( np.mean(np.asarray(masses_prob_inf_full), axis = 0) )
     masses_prob_inf_aux_sd.append( np.std(np.asarray(masses_prob_inf_full), axis = 0) )
+    
+    theta_int_prob_aux.append( np.mean(np.asarray(theta_int_prob_full), axis = 0) )
+    theta_int_prob_aux_sd.append( np.std(np.asarray(theta_int_prob_full), axis = 0) )
 
 # +
-fig, ax = plt.subplots(2,3, figsize = (10,5))
+fig, ax = plt.subplots(3,3, figsize = (10,5))
 
 for i in range(len(thetas)):
     sbn.kdeplot(cross_sec_int_prob_tot_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[0,0])
     sbn.kdeplot(cross_sec_int_prob_sup_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[0,1])
     sbn.kdeplot(cross_sec_int_prob_inf_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[0,2])
+    
     sbn.kdeplot(masses_int_prob_sup_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[1,0])
     sbn.kdeplot(masses_prob_sup_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[1,1])
     sbn.kdeplot(masses_prob_inf_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[1,2])
+    
+    sbn.kdeplot(theta_int_prob_aux[i], label = '$\\theta = $' + thetas[i], ax = ax[2,0])
 ax[0,0].legend()
 ax[0,0].set_xlabel('$\int_{\sigma_{th}}^{\inf} P(\sigma|x)$')
 ax[0,0].set_title('s1s2')
@@ -5503,26 +5579,32 @@ ax[1,0].set_xlabel('$\int_{m_{min}}^{\inf} P(m_{DM}|x)$')
 ax[1,1].legend()
 ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
-plt.savefig('../graph/O4_graph/O4_full_int_prob_distribution_rate.pdf')
+plt.savefig('../graph/O4_graph/O4_full_int_prob_distribution_comb.pdf')
 
 
 
 # +
-CR_int_prob_sup_rate = []
-CR_int_prob_tot_rate = []
-CR_int_prob_inf_rate = []
-M_int_prob_sup_rate = []
-M_prob_sup_rate = []
-M_prob_inf_rate = []
+CR_int_prob_sup_drate = []
+CR_int_prob_tot_drate = []
+CR_int_prob_inf_drate = []
 
-sigma = 0.1
+M_int_prob_sup_drate = []
+M_prob_sup_drate = []
+M_prob_inf_drate = []
+
+T_int_prob_drate = []
+
+sigma = 1
 for i in range(len(thetas)):
-    CR_int_prob_sup_rate.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
-    CR_int_prob_tot_rate.append( gaussian_filter(cross_sec_int_prob_tot_aux[i], sigma) )
-    CR_int_prob_inf_rate.append( gaussian_filter(cross_sec_int_prob_inf_aux[i], sigma) )
-    M_int_prob_sup_rate.append( gaussian_filter(masses_int_prob_sup_aux[i], sigma) )
-    M_prob_sup_rate.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
-    M_prob_inf_rate.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
+    CR_int_prob_sup_drate.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
+    CR_int_prob_tot_drate.append( gaussian_filter(cross_sec_int_prob_tot_aux[i], sigma) )
+    CR_int_prob_inf_drate.append( gaussian_filter(cross_sec_int_prob_inf_aux[i], sigma) )
+    
+    M_int_prob_sup_drate.append( gaussian_filter(masses_int_prob_sup_aux[i], sigma) )
+    M_prob_sup_drate.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
+    M_prob_inf_drate.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
+    
+    T_int_prob_drate.append( gaussian_filter(theta_int_prob_aux[i], sigma) )
 
 
 # +
@@ -5561,7 +5643,77 @@ for i, theta in enumerate([3,4,0]):
     ax[i].contour(m_vals, cross_vals, M_int_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = ':', colors = color_comb)
     ax[i].contour(m_vals, cross_vals, M_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_comb)
 
-    ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_rate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_rate)
+ax[0].fill_between(masses, s1s2_current_pi2[2,:], 1e-35, color = 'black', alpha = 0.2, label = 'Exclusion (1 tonne-year)', zorder = 1)
+ax[0].plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = ':', label = 'Exclusion (20 tonne-year)')
+ax[0].fill_between(neutrino_mDM, neutrino_floor_pluspidiv2, -50, color = "none", edgecolor='black', label = '1-$\\nu$ floor', alpha = 0.8, hatch = '///')
+
+ax[0].set_yscale('log')
+ax[0].set_xscale('log')
+ax[0].text(0.7, 0.9, '$\\theta = \pi/2$', transform = ax[0].transAxes, fontsize =12)
+
+ax[1].plot(masses, s1s2_90_CL_pi4[2,:], color = 'black', linestyle = ':')
+ax[1].fill_between(masses, s1s2_current_pi4[2,:], 1e-35, color = 'black', alpha = 0.2)
+ax[1].fill_between(neutrino_mDM, neutrino_floor_pluspidiv4, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
+
+ax[1].text(0.7, 0.9, '$\\theta = \pi/4$', transform = ax[1].transAxes, fontsize =12)
+
+ax[2].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = ':')
+ax[2].fill_between(masses, s1s2_current_0[2,:], 1e-35, color = 'black', alpha = 0.2, label = 'Excluded')
+ax[2].fill_between(neutrino_mDM, neutrino_floor_zero, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
+
+ax[2].text(0.7, 0.9, '$\\theta = 0$', transform = ax[2].transAxes, fontsize =12)
+
+ax[0].set_ylabel('$\sigma^{SD} \ [cm^{2}]$', fontsize = 12)
+ax[0].set_xlabel('$m_{\\chi}$ [GeV]', fontsize = 12)
+ax[1].set_xlabel('$m_{\\chi}$ [GeV]', fontsize = 12)
+ax[2].set_xlabel('$m_{\\chi}$ [GeV]', fontsize = 12)
+
+ax[0].set_ylim(3e-42, 3e-36)
+ax[0].set_xlim(6, 9.8e2)
+
+fig.subplots_adjust(right=0.8)
+
+custom_lines = []
+labels = ['$\\mathcal{P}_{\\sigma} = 0.9$', '$\\mathcal{P}^{sup}_{m_{dm}} = 0.9$', '$\\mathcal{P}^{tot}_{m_{dm}} = 0.9$']
+markers = ['solid','dashed', 'dotted']
+colors = [color_comb, color_comb, color_comb]
+for i in range(3):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+            label = labels[i], lw = 2) )
+    
+ax[1].legend(handles = custom_lines, loc = 'lower left', bbox_to_anchor=(-0.18,1.), frameon = False, ncol = 3, fontsize = 12)
+
+ax[0].tick_params(axis='x', labelsize=12)
+ax[0].tick_params(axis='y', labelsize=12)
+ax[1].tick_params(axis='x', labelsize=12)
+ax[2].tick_params(axis='x', labelsize=12)
+
+#plt.savefig('../graph/O4_graph/O4_contours_all_int_prob_sup_COMB_v3.pdf', bbox_inches='tight')
+
+# +
+levels = [0.67, 0.76, 0.84, 0.9, 1]
+
+color_rate  = "#d55e00"
+color_drate = "#0072b2"
+color_s1s2  = "#009e73"
+color_comb = "#009e73"
+
+fig, ax = plt.subplots(1,3, sharex = True, sharey = True, figsize = (13,5))
+fig.subplots_adjust(hspace = 0, wspace = 0)
+
+for i, theta in enumerate([3,4,0]):
+    
+    ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_comb)
+    ax[i].contour(m_vals, cross_vals, M_int_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = ':', colors = color_comb)
+    ax[i].contour(m_vals, cross_vals, M_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_comb)
+    ax[i].contour(m_vals, cross_vals, T_int_prob_comb[theta].reshape(30,30).T, levels = [0.1], linewidths = 2, linestyles = '-.', colors = 'magenta')
+    
+    #ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_s1s2[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = 'purple')
+    #ax[i].contour(m_vals, cross_vals, M_int_prob_sup_s1s2[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = ':', colors = 'purple')
+    #ax[i].contour(m_vals, cross_vals, M_prob_sup_s1s2[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = 'purple')
+    #ax[i].contour(m_vals, cross_vals, T_int_prob_s1s2[theta].reshape(30,30).T, levels = [0.1], linewidths = 2, linestyles = '-.', colors = 'purple')
+
+    # #%ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_rate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_rate)
     #ax[i].contour(m_vals, cross_vals, M_int_prob_sup_rate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
     #ax[i].contour(m_vals, cross_vals, M_prob_sup_rate[theta].reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 
@@ -5639,7 +5791,7 @@ leg1 = ax[2].legend([('--', ':')], ['$\\mathcal{P}_{m_{dm}}$'],
 ax[2].add_artist(leg1)
 
 
-plt.savefig('../graph/O4_graph/O4_contours_all_int_prob_sup_COMB.pdf', bbox_inches='tight')
+#plt.savefig('../graph/O4_graph/O4_contours_all_int_prob_sup_COMB.pdf', bbox_inches='tight')
 # -
 
 plt.plot(neutrino_mDM, neutrino_floor_zero)

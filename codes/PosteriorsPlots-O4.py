@@ -558,8 +558,8 @@ def plot2d_emcee(ax, predictions, pars_true, fill = True, line = False, color = 
             ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0, cut_p], colors = [color], linestyles = linestyles[iprob], zorder = zorder)
             #ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut95], colors = [color], linestyles = ['--'], zorder = zorder)
     
-    ax.axvline(x = (pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'black')
-    ax.axhline(y = (pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'black')
+    #ax.axvline(x = (pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'black')
+    #ax.axhline(y = (pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'black')
     ax.set_xlabel('$M_{DM}$ [GeV]')
     ax.set_ylabel('$\sigma$ $[cm^{2}]$')
 
@@ -622,8 +622,8 @@ def plot2d_emcee_m_theta(ax, predictions, pars_true, fill = True, line = False, 
             ax.contour(np.log10(m_values), t_values, res.T, levels = [0, cut_p], colors = [color], linestyles = linestyles[iprob], zorder = zorder)
             #ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut95], colors = [color], linestyles = ['--'], zorder = zorder)
     
-    ax.axvline(x = (pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'black')
-    ax.axhline(y = (pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]), color = 'black')
+    #ax.axvline(x = (pars_true[0] * (pars_max[0] - pars_min[0]) + pars_min[0]), color = 'black')
+    #ax.axhline(y = (pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]), color = 'black')
     ax.set_xlabel('$M_{DM}$ [GeV]')
     ax.set_ylabel('$\theta$')
 
@@ -684,8 +684,8 @@ def plot2d_emcee_sigma_theta(ax, predictions, pars_true, fill = True, line = Fal
             ax.contour(np.log10(s_values), t_values, res.T, levels = [0, cut_p], colors = [color], linestyles = linestyles[iprob], zorder = zorder)
             #ax.contour(np.log10(m_values), np.log10(s_values), res.T, levels = [0,cut95], colors = [color], linestyles = ['--'], zorder = zorder)
     
-    ax.axvline(x = (pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'black')
-    ax.axhline(y = (pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]), color = 'black')
+    #ax.axvline(x = (pars_true[1] * (pars_max[1] - pars_min[1]) + pars_min[1]), color = 'black')
+    #ax.axhline(y = (pars_true[2] * (pars_max[2] - pars_min[2]) + pars_min[2]), color = 'black')
     ax.set_xlabel('$\sigma$ $[cm^{2}]$')
     ax.set_ylabel('$\theta$')
 
@@ -795,6 +795,17 @@ print(pars.shape)
 print(rate.shape)
 print(diff_rate.shape)
 print(s1s2.shape)
+
+# +
+ind_new = np.where(pars[:,1] < -36.5)[0]
+
+nobs = len(ind_new)
+pars = pars[ind_new]
+
+rate = rate[ind_new]
+rate_raw = rate_raw[ind_new]
+diff_rate = diff_rate[ind_new]
+s1s2 = s1s2[ind_new]
 
 # +
 # Let's split in training, validation and testing
@@ -1246,8 +1257,8 @@ pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 #x_min_drate = np.min(x_drate, axis = 0)
 #x_max_drate = np.max(x_drate, axis = 0)
 
-#x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
-x_norm_drate = x_drate / x_max_drate
+x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_drate = x_drate / x_max_drate
 
 # +
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
@@ -1351,15 +1362,15 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=50, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_365_norm_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O4_365_norm2_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
 
 
 # +
-x_test_drate = diff_rate_testset
-#x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
-x_norm_test_drate = x_test_drate / x_max_drate
+x_test_drate = np.log10(diff_rate_testset)
+x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_test_drate = x_test_drate / x_max_drate
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -1371,7 +1382,7 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate)
 
 # +
-ckpt_path = swyft.best_from_yaml("./logs/O4_365_norm_drate.yaml")
+ckpt_path = swyft.best_from_yaml("./logs/O4_365_norm2_drate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.8 @ epoch 20
@@ -1379,8 +1390,8 @@ ckpt_path = swyft.best_from_yaml("./logs/O4_365_norm_drate.yaml")
 
 # +
 x_test_drate = np.log10(diff_rate_testset)
-#x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
-x_norm_test_drate = x_test_drate / x_max_drate
+x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_test_drate = x_test_drate / x_max_drate
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -1404,8 +1415,8 @@ trainer_drate.test(network_drate, dm_test_drate, ckpt_path = ckpt_path)
 pars_norm = (emcee_pars - pars_min) / (pars_max - pars_min)
 
 x_drate = np.log10(emcee_diff_rate)
-#x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
-x_norm_drate = x_drate / x_max_drate
+x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_drate = x_drate / x_max_drate
 
 # +
 # First let's create some observation from some "true" theta parameters
@@ -1749,7 +1760,7 @@ s1s2  = True
 
 prob = [0.9]
 
-fig = bilby_s1s2.plot_corner(outdir='../O4_graph/', color = 'grey', levels=prob, smooth = 0.1, bins = 30, alpha = 0.6)
+fig = bilby_s1s2.plot_corner(outdir='../O4_graph/', color = 'grey', levels=prob, smooth = 1, bins = 30, alpha = 0.6, truth = None)
 #fig = bilby_drate.plot_corner(outdir='../O4_graph/', color = 'grey', levels=prob, smooth = 0.1, bins = 30, alpha = 0.6)
 #fig = bilby_rate.plot_corner(outdir='../O4_graph/', color = 'grey', levels=prob, smooth = 2, bins = 30, alpha = 0.6)
 
@@ -1772,8 +1783,8 @@ if drate:
     plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 0, 
              fill = False, linestyles = ['solid',':'], color = color_drate, fac = 70, probs = prob)
 if s1s2:
-    plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 0, 
-                 fill = False, linestyles = ['solid',':'], color = color_s1s2_2, fac = 30, probs = prob)
+    #plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 0, 
+    #             fill = False, linestyles = ['solid',':'], color = color_s1s2_2, fac = 30, probs = prob)
     plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 0, 
                  fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 30, probs = prob)
 ax.set_xlabel('')
@@ -1786,15 +1797,15 @@ ax.set_xlim([1, 3])
 ax = axes[3]
 if rate:
     plot2d_emcee(ax, [predictions_rate], pars_true, fill = False, line = True, linestyles = ['solid','--'], 
-                 color = color_rate, probs = prob, zorder = 2, nvals = 20, smooth = 0.1)
+                 color = color_rate, probs = prob, zorder = 2, nvals = 20, smooth = 1)
 if drate:
     plot2d_emcee(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid','--'], 
-                 color = color_drate, probs = prob, zorder = 3, nvals = 20, smooth = 0.1)
+                 color = color_drate, probs = prob, zorder = 3, nvals = 20, smooth = 1)
 if s1s2:
     plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                 color = color_s1s2, probs = prob, zorder = 4, nvals = 40, smooth = 0.1)
-    plot2d_emcee(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                 color = color_s1s2_2, probs = prob, zorder = 4, nvals = 40, smooth = 0.1)
+                 color = color_s1s2, probs = prob, zorder = 4, nvals = 40, smooth = 1)
+    #plot2d_emcee(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+    #             color = color_s1s2_2, probs = prob, zorder = 4, nvals = 40, smooth = 1)
 ax.set_ylabel('$Log_{10}(\\sigma^{SD} \ [cm^{2}])$', fontsize = 12)
 ax.set_xlim([1, 3])
 ax.set_ylim([-41, -36])
@@ -1810,8 +1821,8 @@ if drate:
     plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 1, 
                  flip = False, fill = False, linestyles = ['solid', ':'], color = color_drate, fac = 10, probs = prob)
 if s1s2:
-    plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 1, 
-                 flip = False, fill = False, linestyles = ['solid', ':'], color = color_s1s2_2, fac = 5, probs = prob)
+    #plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 1, 
+    #             flip = False, fill = False, linestyles = ['solid', ':'], color = color_s1s2_2, fac = 5, probs = prob)
     plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 1, 
                  flip = False, fill = False, linestyles = ['solid', ':'], color = color_s1s2, fac = 5, probs = prob)
 ax.set_ylabel('')
@@ -1825,17 +1836,17 @@ ax = axes[6]
 
 if rate:
     plot2d_emcee_m_theta(ax, [predictions_rate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                color = color_rate, probs = prob, zorder = 2, smooth = 0.1)
+                color = color_rate, probs = prob, zorder = 2, smooth = 1)
 if drate:
     plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                color = color_drate, probs = prob, zorder = 2, smooth = 0.1)
+                color = color_drate, probs = prob, zorder = 2, smooth = 1)
 if s1s2:
-    plot2d_emcee_m_theta(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                color = color_s1s2_2, probs = prob, zorder = 2, smooth = 0.1)
+    #plot2d_emcee_m_theta(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+    #            color = color_s1s2_2, probs = prob, zorder = 2, smooth = 1)
     plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                color = color_s1s2, probs = prob, zorder = 2, smooth = 0.1)
+                color = color_s1s2, probs = prob, zorder = 2, smooth = 1)
 ax.set_ylabel('$\\theta$', fontsize = 12)
-ax.set_xlabel('$Log_{10}(m_{dm} \ [GeV])$', fontsize = 12)
+ax.set_xlabel('$Log_{10}(m_{\chi} \ [GeV])$', fontsize = 12)
 ax.set_xlim([1, 3])
 ax.set_ylim([-1.6, 1.6])
 
@@ -1843,15 +1854,15 @@ ax = axes[7]
 
 if rate:
     plot2d_emcee_sigma_theta(ax, [predictions_rate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                color = color_rate, probs = prob, zorder = 2, smooth = 0.1)
+                color = color_rate, probs = prob, zorder = 2, smooth = 1)
 if drate:
     plot2d_emcee_sigma_theta(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                color = color_drate, probs = prob, zorder = 2, smooth = 0.1)
+                color = color_drate, probs = prob, zorder = 2, smooth = 1)
 if s1s2:
-    plot2d_emcee_sigma_theta(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                color = color_s1s2_2, probs = prob, zorder = 2, smooth = 0.1)
+    #plot2d_emcee_sigma_theta(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+    #            color = color_s1s2_2, probs = prob, zorder = 2, smooth = 1)
     plot2d_emcee_sigma_theta(ax, [predictions_rate, predictions_drate,  predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
-                color = color_s1s2, probs = prob, zorder = 2, smooth = 0.1)
+                color = color_s1s2, probs = prob, zorder = 2, smooth = 1)
 ax.set_xlabel('$Log_{10}(\\sigma^{SD} \ [cm^{2}])$', fontsize = 12)
 ax.set_ylabel('')
 ax.set_xlim([-41., -36])
@@ -1868,8 +1879,8 @@ if drate:
     plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 2, 
                  flip = False, fill = False, linestyles = ['solid',':'], color = color_drate, fac = 50, probs = prob)
 if s1s2:
-    plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 2, 
-                 flip = False, fill = False, linestyles = ['solid',':'], color = color_s1s2_2, fac = 50, probs = prob)
+    #plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 2, 
+    #             flip = False, fill = False, linestyles = ['solid',':'], color = color_s1s2_2, fac = 50, probs = prob)
     plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 2, 
                  flip = False, fill = False, linestyles = ['solid',':'], color = color_s1s2, fac = 50, probs = prob)
 ax.set_ylabel('')
@@ -1890,11 +1901,17 @@ for i in range(3):
             label = labels[i], lw = 2) )
 
 custom_lines.append( Patch(facecolor='gray', edgecolor='gray',
-                         label='MCMC s1s2') )
+                         label='MCMC cS1-cS2') )
 axes[0].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(1.2,0.25), fontsize = 12)
 axes[0].text(1.5,0.9, '$\\mathcal{O}_{4}$', fontsize = 14, transform = axes[0].transAxes)
 
-fig.savefig('../graph/O4_graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}_365_s1s2.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
+axes[3].scatter(emcee_pars[0,0], emcee_pars[0,1], marker = 'D', color = 'black', zorder = 4)
+axes[3].scatter(emcee_pars[0,0], emcee_pars[0,1], marker = 'D', color = 'yellow', zorder = 5, s = 10)
+axes[6].scatter(emcee_pars[0,0], emcee_pars[0,2], marker = 'D', color = 'black', zorder = 4)
+axes[6].scatter(emcee_pars[0,0], emcee_pars[0,2], marker = 'D', color = 'yellow', zorder = 5, s = 10)
+axes[7].scatter(emcee_pars[0,1], emcee_pars[0,2], marker = 'D', color = 'black', zorder = 4)
+axes[7].scatter(emcee_pars[0,1], emcee_pars[0,2], marker = 'D', color = 'yellow', zorder = 5, s = 10)
+fig.savefig('../graph/O4_graph/SWYFT_BILBY_comparison_O4_m_{:.2f}_s_{:.2f}_t_{:.2f}_365_s1s2.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
 fig
 # +
 rate  = True

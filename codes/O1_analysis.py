@@ -592,7 +592,7 @@ if save:
 
     x_s1s2 = s1s2_trainset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 64x64
     x_min_s1s2 = np.min(x_s1s2, axis = 0)
-    x_max_s1s2 = np.max(x_s1s2)
+    x_max_s1s2 = np.max(x_s1s2).reshape(1)
     np.savetxt('O1_s1s2_min_test.txt', x_min_s1s2)
     np.savetxt('O1_s1s2_max_test.txt', x_max_s1s2)
 else:
@@ -5432,7 +5432,7 @@ m_max_th = 2.6 # Max Mass for 1d analysis
 
 rate  = True # Flag to use the information of the rate analysis
 drate = True # Flag to use the information of the drate analysis
-s1s2  = False # Flag to use the information of the s1s2 analysis
+s1s2  = True # Flag to use the information of the s1s2 analysis
 
 if rate: 
     flag = 'rate_T'
@@ -5450,7 +5450,7 @@ else:
     flag = flag + '_s1s2_F'
 
 flag = flag + '_norm'
-force = True # Flag to force to compute everything again although it was pre-computed
+force = False # Flag to force to compute everything again although it was pre-computed
 
 thetas = ['0', 'minuspidiv2', 'minuspidiv4', 'pluspidiv2', 'pluspidiv4']
 cross_sec_int_prob_sup_aux    = []
@@ -5652,17 +5652,17 @@ plt.savefig('../graph/O1_norm_int_prob_distribution_drate.pdf')
 
 
 # +
-CR_int_prob_sup_drate = []
-M_int_prob_sup_drate = []
-M_prob_sup_drate = []
-M_prob_inf_drate = []
+CR_int_prob_sup_comb = []
+M_int_prob_sup_comb = []
+M_prob_sup_comb = []
+M_prob_inf_comb = []
 
 sigma = 1.1
 for i in range(len(thetas)):
-    CR_int_prob_sup_drate.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
-    M_int_prob_sup_drate.append( gaussian_filter(masses_int_prob_sup_aux[i], sigma) )
-    M_prob_sup_drate.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
-    M_prob_inf_drate.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
+    CR_int_prob_sup_comb.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
+    M_int_prob_sup_comb.append( gaussian_filter(masses_int_prob_sup_aux[i], sigma) )
+    M_prob_sup_comb.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
+    M_prob_inf_comb.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
 
 
 # +
@@ -5683,6 +5683,70 @@ class AnyObjectHandler2(HandlerBase):
         l2 = plt.Line2D([x0,y0+width], [0.1*height,0.1*height], color=color_comb, linestyle = orig_handle[1], lw = 2)
         return [l1, l2]
 
+
+# +
+levels = [0.67, 0.76, 0.84, 0.9, 1]
+
+color_rate  = "#d55e00"
+color_drate = "#0072b2"
+color_s1s2  = "#009e73"
+color_comb = "#009e73"
+
+fig, ax = plt.subplots(1,3, sharex = True, sharey = True, figsize = (13,5))
+fig.subplots_adjust(hspace = 0, wspace = 0)
+
+for i, theta in enumerate([3,4,0]):
+    
+    ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_comb)
+    ax[i].contour(m_vals, cross_vals, M_int_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = ':', colors = color_comb)
+    ax[i].contour(m_vals, cross_vals, M_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_comb)
+
+ax[0].fill_between(masses, s1s2_current_pi2[2,:], 1e-35, color = 'black', alpha = 0.2, label = 'Exclusion (1 tonne-year)', zorder = 1)
+ax[0].plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = ':', label = 'Exclusion (20 tonne-year)')
+ax[0].fill_between(neutrino_mDM, neutrino_floor_pluspidiv2, -50, color = "none", edgecolor='black', label = '1-$\\nu$ floor', alpha = 0.8, hatch = '///')
+
+ax[0].set_yscale('log')
+ax[0].set_xscale('log')
+ax[0].text(0.7, 0.9, '$\\theta = \pi/2$', transform = ax[0].transAxes, fontsize =12)
+
+ax[1].plot(masses, s1s2_90_CL_pi4[2,:], color = 'black', linestyle = ':')
+ax[1].fill_between(masses, s1s2_current_pi4[2,:], 1e-35, color = 'black', alpha = 0.2)
+ax[1].fill_between(neutrino_mDM, neutrino_floor_pluspidiv4, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
+
+ax[1].text(0.7, 0.9, '$\\theta = \pi/4$', transform = ax[1].transAxes, fontsize =12)
+
+ax[2].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = ':')
+ax[2].fill_between(masses, s1s2_current_0[2,:], 1e-35, color = 'black', alpha = 0.2, label = 'Excluded')
+ax[2].fill_between(neutrino_mDM, neutrino_floor_zero, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
+
+ax[2].text(0.7, 0.9, '$\\theta = 0$', transform = ax[2].transAxes, fontsize =12)
+
+ax[0].set_ylabel('$\sigma^{SI} \ [cm^{2}]$', fontsize = 12)
+ax[0].set_xlabel('$m_{\\chi}$ [GeV]', fontsize = 12)
+ax[1].set_xlabel('$m_{\\chi}$ [GeV]', fontsize = 12)
+ax[2].set_xlabel('$m_{\\chi}$ [GeV]', fontsize = 12)
+
+ax[0].set_ylim(1e-49, 5e-44)
+ax[0].set_xlim(6, 9.8e2)
+
+fig.subplots_adjust(right=0.8)
+
+custom_lines = []
+labels = ['$\\mathcal{P}_{\\sigma} = 0.9$', '$\\mathcal{P}^{sup}_{m_{dm}} = 0.9$', '$\\mathcal{P}^{tot}_{m_{dm}} = 0.9$']
+markers = ['solid','dashed', 'dotted']
+colors = [color_comb, color_comb, color_comb]
+for i in range(3):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+            label = labels[i], lw = 2) )
+    
+ax[1].legend(handles = custom_lines, loc = 'lower left', bbox_to_anchor=(-0.18,1.), frameon = False, ncol = 3, fontsize = 12)
+
+ax[0].tick_params(axis='x', labelsize=12)
+ax[0].tick_params(axis='y', labelsize=12)
+ax[1].tick_params(axis='x', labelsize=12)
+ax[2].tick_params(axis='x', labelsize=12)
+
+plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB_v3.pdf', bbox_inches='tight')
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]
