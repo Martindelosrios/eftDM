@@ -571,40 +571,40 @@ comb_valset   = comb[val_ind,:,:]
 comb_testset  = comb[test_ind,:,:]
 # -
 
-save = True
+save = False
 if save:
     
     pars_min = np.min(pars_trainset, axis = 0)
     pars_max = np.max(pars_trainset, axis = 0)    
-    np.savetxt('O1_pars_min_test.txt', pars_min)
-    np.savetxt('O1_pars_max_test.txt', pars_max)
+    np.savetxt('O1_pars_min.txt', pars_min)
+    np.savetxt('O1_pars_max.txt', pars_max)
     
     x_rate = np.log10(rate_trainset) # Observable. Input data.
     x_min_rate = np.min(x_rate, axis = 0)
     x_max_rate = np.max(x_rate, axis = 0)
-    np.savetxt('O1_rate_minmax_test.txt', np.asarray([x_min_rate, x_max_rate]))
+    np.savetxt('O1_rate_minmax.txt', np.asarray([x_min_rate, x_max_rate]))
 
     x_drate = np.log10(diff_rate_trainset) # Observable. Input data. 
     x_min_drate = np.min(x_drate, axis = 0)
     x_max_drate = np.max(x_drate, axis = 0)
-    np.savetxt('O1_drate_min_test.txt', x_min_drate)
-    np.savetxt('O1_drate_max_test.txt', x_max_drate)
+    np.savetxt('O1_drate_min.txt', x_min_drate)
+    np.savetxt('O1_drate_max.txt', x_max_drate)
 
     x_s1s2 = s1s2_trainset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 64x64
     x_min_s1s2 = np.min(x_s1s2, axis = 0)
     x_max_s1s2 = np.max(x_s1s2).reshape(1)
-    np.savetxt('O1_s1s2_min_test.txt', x_min_s1s2)
-    np.savetxt('O1_s1s2_max_test.txt', x_max_s1s2)
+    np.savetxt('O1_s1s2_min.txt', x_min_s1s2)
+    np.savetxt('O1_s1s2_max.txt', x_max_s1s2)
 else:
-    pars_min = np.loadtxt('O1_pars_min_test.txt')
-    pars_max = np.loadtxt('O1_pars_max_test.txt')
-    x_minmax_rate = np.loadtxt('O1_rate_minmax_test.txt')
+    pars_min = np.loadtxt('O1_pars_min.txt')
+    pars_max = np.loadtxt('O1_pars_max.txt')
+    x_minmax_rate = np.loadtxt('O1_rate_minmax.txt')
     x_min_rate = x_minmax_rate[0]
     x_max_rate = x_minmax_rate[1]
-    x_min_drate = np.loadtxt('O1_drate_min_test.txt')
-    x_max_drate = np.loadtxt('O1_drate_max_test.txt')
-    x_min_s1s2 = np.loadtxt('O1_s1s2_min_test.txt')
-    x_max_s1s2 = np.loadtxt('O1_s1s2_max_test.txt')
+    x_min_drate = np.loadtxt('O1_drate_min.txt')
+    x_max_drate = np.loadtxt('O1_drate_max.txt')
+    x_min_s1s2 = np.loadtxt('O1_s1s2_min.txt')
+    x_max_s1s2 = np.loadtxt('O1_s1s2_max.txt')
 
 # ## Ibarra
 
@@ -920,6 +920,13 @@ pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 x_min_rate = np.min(x_rate, axis = 0)
 x_max_rate = np.max(x_rate, axis = 0)
 
+
+if True:
+    np.savetxt('O1_pars_min.txt', pars_min)
+    np.savetxt('O1_pars_max.txt', pars_max)
+    np.savetxt('O1_rate_minmax.txt', np.asarray([x_min_rate, x_max_rate]))
+    
+#x_norm_rate = x_rate / x_max_rate 
 x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
 
 # +
@@ -990,13 +997,14 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=100, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_norm2_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_rate = Network_rate()
 
 # +
 x_test_rate = np.log10(rate_testset)
 x_norm_test_rate = (x_test_rate - x_min_rate) / (x_max_rate - x_min_rate)
+#x_norm_test_rate = x_test_rate / x_max_rate
 x_norm_test_rate = x_norm_test_rate.reshape(len(x_norm_test_rate), 1)
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -1009,15 +1017,15 @@ dm_test_rate = swyft.SwyftDataModule(samples_test_rate, fractions = [0., 0., 1],
 trainer_rate.test(network_rate, dm_test_rate)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_rate.fit(network_rate, dm_rate)
-    checkpoint_callback.to_yaml("./logs/O1_rate.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O1_rate.yaml")
+    checkpoint_callback.to_yaml("./logs/O1_norm2_rate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O1_norm2_rate.yaml")
     email('Termino de entrenar rate O1')
     
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O1_rate.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O1_norm2_rate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.18 at epoch ~50
@@ -1025,6 +1033,7 @@ else:
 
 # +
 x_test_rate = np.log10(rate_testset)
+#x_norm_test_rate = x_test_rate / x_max_rate
 x_norm_test_rate = (x_test_rate - x_min_rate) / (x_max_rate - x_min_rate)
 x_norm_test_rate = x_norm_test_rate.reshape(len(x_norm_test_rate), 1)
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
@@ -1053,7 +1062,7 @@ if fit:
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
-    plt.savefig('../graph/O1_loss_rate.pdf')
+    plt.savefig('../graph/O1_norm2_loss_rate.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -1065,7 +1074,7 @@ if fit:
     for i in range(3):
         swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
     plt.tight_layout()
-    #plt.savefig('../graph/Coverage_rate.pdf')
+    plt.savefig('../graph/O1_norm2_Coverage_rate.pdf')
 
 # ### Let's make some inference
 
@@ -2268,15 +2277,20 @@ x_drate = np.log10(diff_rate_trainset) # Observable. Input data.
 # +
 # Let's normalize everything between 0 and 1
 
-pars_min = np.min(pars_trainset, axis = 0)
-pars_max = np.max(pars_trainset, axis = 0)
+#pars_min = np.min(pars_trainset, axis = 0)
+#pars_max = np.max(pars_trainset, axis = 0)
 
 pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 
 x_min_drate = np.min(x_drate, axis = 0)
 x_max_drate = np.max(x_drate, axis = 0)
 
+if True:
+    np.savetxt('O1_drate_min.txt', x_min_drate)
+    np.savetxt('O1_drate_max.txt', x_max_drate)
+    
 x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_drate = x_drate / x_max_drate
 
 # +
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
@@ -2380,7 +2394,7 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=50, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_norm_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_norm2_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
 
@@ -2388,6 +2402,7 @@ network_drate = Network()
 # +
 x_test_drate = np.log10(diff_rate_testset)
 x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_test_drate = x_test_drate  / x_max_drate
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -2399,14 +2414,14 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_drate.fit(network_drate, dm_drate)
-    checkpoint_callback.to_yaml("./logs/O1_norm_drate.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O1_norm_drate.yaml")
+    checkpoint_callback.to_yaml("./logs/O1_norm2_drate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O1_norm2_drate.yaml")
     email('Termino el entramiento del drate para O1')
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O1_norm_drate.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O1_norm2_drate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.8 @ epoch 20
@@ -2415,6 +2430,7 @@ else:
 # +
 x_test_drate = np.log10(diff_rate_testset)
 x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_test_drate = x_test_drate / x_max_drate
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -2442,7 +2458,7 @@ if fit:
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
-    plt.savefig('../graph/O1_norm_loss_drate.pdf')
+    plt.savefig('../graph/O1_norm2_loss_drate.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -3212,10 +3228,14 @@ pars_max = np.max(pars_trainset, axis = 0)
 
 pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 
-#x_min_s1s2 = np.min(x_s1s2, axis = 0)
-#x_max_s1s2 = np.max(x_s1s2)
+x_min_s1s2 = np.min(x_s1s2, axis = 0)
+x_max_s1s2 = np.max(x_s1s2, axis = 0)
+if True: 
+    np.savetxt('O1_s1s2_min.txt', x_min_s1s2)
+    np.savetxt('O1_s1s2_max.txt', x_max_s1s2)
+x_max_s1s2 = np.max(x_max_s1s2)
 
-#x_norm_s1s2 = x_s1s2
+x_norm_s1s2 = x_s1s2
 #ind_nonzero = np.where(x_max_s1s2 > 0)
 #x_norm_s1s2[:,ind_nonzero[0], ind_nonzero[1]] = (x_s1s2[:,ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]]) / (x_max_s1s2[ind_nonzero[0], ind_nonzero[1]] - x_min_s1s2[ind_nonzero[0], ind_nonzero[1]])
 x_norm_s1s2 = x_s1s2 / x_max_s1s2
@@ -3284,19 +3304,6 @@ class Network(swyft.SwyftModule):
         logratios1 = self.logratios1(f, B['z'])
         logratios2 = self.logratios2(f, B['z'])
         return logratios1, logratios2
-
-
-prueba = torch.nn.Sequential(
-          torch.nn.Conv2d(1, 10, kernel_size=5),
-          torch.nn.MaxPool2d(2),
-          torch.nn.ReLU(),
-          torch.nn.Dropout(0.5),
-          torch.nn.Conv2d(10, 20, kernel_size=5, padding=2),
-          torch.nn.MaxPool2d(2),
-          torch.nn.ReLU(),
-          torch.nn.Dropout(0.5),
-          torch.nn.Flatten()
-        )
 
 
 # +
@@ -3374,11 +3381,12 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
     checkpoint_callback.to_yaml("./logs/O1_norm_s1s2.yaml") 
     ckpt_path = swyft.best_from_yaml("./logs/O1_norm_s1s2.yaml")
+    email('Termino el entramiento del s1s2 para O1')
 else:
     ckpt_path = swyft.best_from_yaml("./logs/O1_norm_s1s2.yaml")
 
@@ -3422,7 +3430,7 @@ if fit:
     plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.savefig('../graph/O1_NOnorm_loss_s1s2_temp.pdf')
+    plt.savefig('../graph/O1_norm_loss_s1s2.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -3434,7 +3442,7 @@ if fit:
     for i in range(3):
         swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
     plt.tight_layout()
-    plt.savefig('../graph/O1_Coverage_s1s2_NOnorm.pdf')
+    plt.savefig('../graph/O1_Coverage_s1s2_norm.pdf')
 
 # ### Let's make some inference
 
@@ -5431,8 +5439,8 @@ m_min_th = 1 # Min Mass for 1d analysis
 m_max_th = 2.6 # Max Mass for 1d analysis
 
 rate  = True # Flag to use the information of the rate analysis
-drate = True # Flag to use the information of the drate analysis
-s1s2  = True # Flag to use the information of the s1s2 analysis
+drate = False # Flag to use the information of the drate analysis
+s1s2  = False # Flag to use the information of the s1s2 analysis
 
 if rate: 
     flag = 'rate_T'
@@ -5450,7 +5458,7 @@ else:
     flag = flag + '_s1s2_F'
 
 flag = flag + '_norm'
-force = False # Flag to force to compute everything again although it was pre-computed
+force = True # Flag to force to compute everything again although it was pre-computed
 
 thetas = ['0', 'minuspidiv2', 'minuspidiv4', 'pluspidiv2', 'pluspidiv4']
 cross_sec_int_prob_sup_aux    = []
@@ -5503,7 +5511,8 @@ for theta in thetas:
             x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
                
             x_rate = np.log10(rate_slices)
-            x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+            #x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+            x_norm_rate = x_rate/ x_max_rate
             x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
         
             cross_sec_int_prob_sup = np.ones(len(pars_norm)) * -99
@@ -5652,17 +5661,17 @@ plt.savefig('../graph/O1_norm_int_prob_distribution_drate.pdf')
 
 
 # +
-CR_int_prob_sup_comb = []
-M_int_prob_sup_comb = []
-M_prob_sup_comb = []
-M_prob_inf_comb = []
+CR_int_prob_sup_rate = []
+M_int_prob_sup_rate = []
+M_prob_sup_rate = []
+M_prob_inf_rate = []
 
 sigma = 1.1
 for i in range(len(thetas)):
-    CR_int_prob_sup_comb.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
-    M_int_prob_sup_comb.append( gaussian_filter(masses_int_prob_sup_aux[i], sigma) )
-    M_prob_sup_comb.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
-    M_prob_inf_comb.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
+    CR_int_prob_sup_rate.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
+    M_int_prob_sup_rate.append( gaussian_filter(masses_int_prob_sup_aux[i], sigma) )
+    M_prob_sup_rate.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
+    M_prob_inf_rate.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
 
 
 # +
@@ -5732,7 +5741,7 @@ ax[0].set_xlim(6, 9.8e2)
 fig.subplots_adjust(right=0.8)
 
 custom_lines = []
-labels = ['$\\mathcal{P}_{\\sigma} = 0.9$', '$\\mathcal{P}^{sup}_{m_{dm}} = 0.9$', '$\\mathcal{P}^{tot}_{m_{dm}} = 0.9$']
+labels = ['$\\langle \\mathcal{P}_{\\sigma} \\rangle = 0.9$', '$\\langle \\mathcal{P}^{sup}_{m_{dm}} \\rangle = 0.9$', '$\\langle \\mathcal{P}^{tot}_{m_{dm}} \\rangle = 0.9$']
 markers = ['solid','dashed', 'dotted']
 colors = [color_comb, color_comb, color_comb]
 for i in range(3):
@@ -5770,7 +5779,7 @@ for i, theta in enumerate([3,4,0]):
     ax[i].contour(m_vals, cross_vals, M_int_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = ':', colors = color_comb)
     ax[i].contour(m_vals, cross_vals, M_prob_sup_comb[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_comb)
 
-    # #%ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_rate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_rate)
+    ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_rate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_rate)
     #ax[i].contour(m_vals, cross_vals, M_int_prob_sup_rate[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_rate)
     #ax[i].contour(m_vals, cross_vals, M_prob_sup_rate[theta].reshape(30,30).T, levels = [0.9], linewidths = 1, linestyles = '--', colors = color_rate)
 
