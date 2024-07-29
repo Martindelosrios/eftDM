@@ -2297,12 +2297,12 @@ pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 x_min_drate = np.min(x_drate, axis = 0)
 x_max_drate = np.max(x_drate, axis = 0)
 
-if True:
+if False:
     np.savetxt('O1_drate_min.txt', x_min_drate)
     np.savetxt('O1_drate_max.txt', x_max_drate)
     
-x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
-#x_norm_drate = x_drate / x_max_drate
+#x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+x_norm_drate = x_drate / x_max_drate
 
 # +
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
@@ -2406,15 +2406,15 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=100, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_norm2_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_norm_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
 
 
 # +
 x_test_drate = np.log10(diff_rate_testset)
-x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
-#x_norm_test_drate = x_test_drate  / x_max_drate
+#x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+x_norm_test_drate = x_test_drate  / x_max_drate
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -2426,14 +2426,14 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_drate.fit(network_drate, dm_drate)
-    checkpoint_callback.to_yaml("./logs/O1_final_drate.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O1_final_drate.yaml")
+    checkpoint_callback.to_yaml("./logs/O1_norm_drate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O1_norm_drate.yaml")
     email('Termino el entramiento del drate para O1')
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O1_final_drate.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O1_norm_drate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.8 @ epoch 20
@@ -2441,8 +2441,8 @@ else:
 
 # +
 x_test_drate = np.log10(diff_rate_testset)
-x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
-#x_norm_test_drate = x_test_drate / x_max_drate
+#x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+x_norm_test_drate = x_test_drate / x_max_drate
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 

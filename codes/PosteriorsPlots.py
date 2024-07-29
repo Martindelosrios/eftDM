@@ -858,7 +858,7 @@ else:
     x_max_rate = x_minmax_rate[1]
     x_min_drate = np.loadtxt('O1_drate_min.txt')
     x_max_drate = np.loadtxt('O1_drate_max.txt')
-    x_min_s1s2 = np.loadtxt('O1_s1s2_min.txt')
+    #x_min_s1s2 = np.loadtxt('O1_s1s2_min.txt')
     x_max_s1s2 = np.max(np.loadtxt('O1_s1s2_max.txt'))
 
 
@@ -1236,7 +1236,7 @@ trainer_rate.test(network_rate, dm_test_rate)
 # -
 
 #ckpt_path = swyft.best_from_yaml("./logs/O1_norm2_rate.yaml")
-ckpt_path = '/home/martinrios/martin/trabajos/eftDM/codes/logs/O1_final_rate.ckpth'
+ckpt_path = '/home/martinrios/martin/trabajos/eftDM/codes/logs/O1_final_rate.ckpt'
 # ---------------------------------------------- 
 # It converges to val_loss = -1.18 at epoch ~50
 # ---------------------------------------------- 
@@ -1366,8 +1366,8 @@ pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 #x_min_drate = np.min(x_drate, axis = 0)
 #x_max_drate = np.max(x_drate, axis = 0)
 
-x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
-#x_norm_drate = x_drate / x_max_drate
+#x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+x_norm_drate = x_drate / x_max_drate
 
 # +
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
@@ -1471,15 +1471,15 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=50, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_norm2_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_norm_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
 
 
 # +
 x_test_drate = np.log10(diff_rate_testset)
-x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
-#x_norm_test_drate = x_test_drate / x_max_drate
+#x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+x_norm_test_drate = x_test_drate / x_max_drate
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -1491,16 +1491,16 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate)
 # -
 
-#ckpt_path = swyft.best_from_yaml("./logs/O1_norm2_drate.yaml")
-ckpt_path = '/home/martinrios/martin/trabajos/eftDM/codes/logs/O1_final_drate.ckpt'
+ckpt_path = swyft.best_from_yaml("./logs/O1_norm_drate.yaml")
+#ckpt_path = '/home/martinrios/martin/trabajos/eftDM/codes/logs/O1_final_drate.ckpt'
 # ---------------------------------------------- 
 # It converges to val_loss = -1.8 @ epoch 20
 # ---------------------------------------------- 
 
 # +
 x_test_drate = np.log10(diff_rate_testset)
-x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
-#x_norm_test_drate = x_test_drate / x_max_drate
+#x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+x_norm_test_drate = x_test_drate / x_max_drate
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -1524,8 +1524,8 @@ trainer_drate.test(network_drate, dm_test_drate, ckpt_path = ckpt_path)
 pars_norm = (emcee_pars - pars_min) / (pars_max - pars_min)
 
 x_drate = np.log10(emcee_diff_rate)
-x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
-#x_norm_drate = x_drate / x_max_drate
+#x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+x_norm_drate = x_drate / x_max_drate
 
 # +
 # First let's create some observation from some "true" theta parameters
@@ -2016,7 +2016,7 @@ ax.set_xlim([-1.6, 1.6])
 ax.set_xticks([-1.5,0,1.5])
 ax.set_xticklabels(['-1.5','0.0', '1.5'], rotation = 45)
 ax.set_yticks([])
-ax.text(0.47,-0.4, '$\\theta$', fontsize = 11, transform = ax.transAxes)
+ax.text(0.47,-0.39, '$\\theta$', fontsize = 11, transform = ax.transAxes)
 #ax.set_xlabel('$\\theta$', fontsize = 12)
 
 custom_lines = []
@@ -2178,7 +2178,7 @@ ax.set_xlim([-1.6, 1.6])
 ax.set_xticks([-1.5,0,1.5])
 ax.set_xticklabels(['-1.5','0.0', '1.5'], rotation = 45)
 ax.set_yticks([])
-ax.text(0.47,-0.4, '$\\theta$', fontsize = 11, transform = ax.transAxes)
+ax.text(0.47,-0.39, '$\\theta$', fontsize = 11, transform = ax.transAxes)
 
 custom_lines = []
 
@@ -2201,15 +2201,15 @@ axes[6].scatter(emcee_pars[0,0], emcee_pars[0,2], marker = 'D', color = 'yellow'
 axes[7].scatter(emcee_pars[0,1], emcee_pars[0,2], marker = 'D', color = 'black', zorder = 4)
 axes[7].scatter(emcee_pars[0,1], emcee_pars[0,2], marker = 'D', color = 'yellow', zorder = 5, s = 10)
 
-fig.savefig('../graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}_noComb.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
+#fig.savefig('../graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}_noComb.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
 fig
 # +
 rate_samples = bilby_rate.samples[:,:2]
 drate_samples = bilby_drate.samples[:,:2]
 s1s2_samples = bilby_s1s2.samples[:,:2]
 
-rate  = True
-drate = False
+rate  = False
+drate = True
 s1s2  = False
 
 prob = [0.9]
@@ -2233,7 +2233,7 @@ if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 0, 
                  fill = False, linestyles = ['solid',':'], color = color_rate, fac = 130, probs = prob)
 if drate: 
-    ax.hist(drate_samples[:,0], color = 'grey', bins = 15, zorder = 0, histtype = 'step', density = True)
+    ax.hist(drate_samples[:,0], color = 'grey', bins = 35, zorder = 0, histtype = 'step', density = True)
     plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 0, 
              fill = False, linestyles = ['solid',':'], color = color_drate, fac = 130, probs = prob)
 if s1s2:
@@ -2252,10 +2252,10 @@ if rate:
     plot2d_emcee(ax, [predictions_rate], pars_true, fill = False, line = True, linestyles = ['solid','--'], 
                  color = color_rate, probs = prob, zorder = 2, nvals = 20, smooth = 2)
 if drate:
-    plot2d_emcee(ax, [predictions_rate, predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid','--'], 
-                 color = color_drate, probs = prob, zorder = 3, nvals = 20, smooth = 2)
+    plot2d_emcee(ax, [predictions_drate], pars_true, fill = False, line = True, linestyles = ['solid','--'], 
+                 color = color_drate, probs = prob, zorder = 3, nvals = 20, smooth = 1)
 if s1s2:
-    plot2d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
+    plot2d_emcee(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                  color = color_s1s2, probs = prob, zorder = 4, nvals = 40)
 ax.set_ylabel('Log$_{10}(\\sigma^{SI} \ $[cm$^{2}$])', fontsize = 11)
 ax.set_xlabel('Log$_{10}(m_{\chi} $[GeV])', fontsize = 11)
@@ -2274,10 +2274,10 @@ if rate:
                  flip = True, fill = False, linestyles = ['solid', ':'], color = color_rate, fac = 70, probs = prob)
 if drate:
     ax.hist(drate_samples[:,1], color = 'grey', bins = 15, zorder = 0, histtype = 'step', orientation="horizontal", density = True)
-    plot1d_emcee(ax, [predictions_rate, predictions_drate], pars_true, par = 1, 
+    plot1d_emcee(ax, [predictions_drate], pars_true, par = 1, 
                  flip = True, fill = False, linestyles = ['solid', ':'], color = color_drate, fac = 80, probs = prob)
 if s1s2:
-    plot1d_emcee(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, par = 1, 
+    plot1d_emcee(ax, [predictions_s1s2], pars_true, par = 1, 
                  flip = True, fill = False, linestyles = ['solid', ':'], color = color_s1s2, fac = 60, probs = prob)
     ax.hist(s1s2_samples[:,1], color = 'grey', bins = 15, zorder = 0, histtype = 'step', orientation="horizontal", density = True)
     #hist = np.histogram(s1s2_samples[:,1], bins = 30)
@@ -2289,7 +2289,21 @@ ax.set_title('')
 ax.set_xticks([])
 ax.set_yticks([])
 
-plt.savefig('../graph/SWYFT_BILBY_rate_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
+custom_lines = []
+
+labels = ['Dif. Rate']
+markers = ['solid']
+colors = [color_drate]
+for i in range(len(labels)):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+            label = labels[i], lw = 2) )
+
+custom_lines.append( Patch(facecolor='gray', edgecolor='gray',
+                         label='MCMC Dif. Rate') )
+ax.legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(-0.1,1.10), fontsize = 10)
+ax.text(0.3,1.35, '$\\mathcal{O}_{1}$', fontsize = 14, transform = ax.transAxes)
+
+#plt.savefig('../graph/SWYFT_BILBY_drate_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
 # -
 
 # # Other
