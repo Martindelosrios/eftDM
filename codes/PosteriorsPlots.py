@@ -795,6 +795,16 @@ print(diff_rate.shape)
 print(s1s2.shape)
 
 # +
+ind_new = np.where(pars[:,1] < -45)[0]
+
+nobs = len(ind_new)
+pars = pars[ind_new]
+
+rate = rate[ind_new]
+diff_rate = diff_rate[ind_new]
+s1s2 = s1s2[ind_new]
+
+# +
 # Let's split in training, validation and testing
 
 ntrain = int(70 * nobs / 100)
@@ -851,15 +861,15 @@ if save:
     np.savetxt('O1_s1s2_min.txt', x_min_s1s2)
     np.savetxt('O1_s1s2_max.txt', x_max_s1s2)
 else:
-    pars_min = np.loadtxt('O1_pars_min.txt')
-    pars_max = np.loadtxt('O1_pars_max.txt')
-    x_minmax_rate = np.loadtxt('O1_rate_minmax.txt')
+    pars_min = np.loadtxt('O1_45_pars_min.txt')
+    pars_max = np.loadtxt('O1_45_pars_max.txt')
+    x_minmax_rate = np.loadtxt('O1_45_rate_minmax.txt')
     x_min_rate = x_minmax_rate[0]
     x_max_rate = x_minmax_rate[1]
-    x_min_drate = np.loadtxt('O1_drate_min.txt')
-    x_max_drate = np.loadtxt('O1_drate_max.txt')
+    x_min_drate = np.loadtxt('O1_45_drate_min.txt')
+    x_max_drate = np.loadtxt('O1_45_drate_max.txt')
     #x_min_s1s2 = np.loadtxt('O1_s1s2_min.txt')
-    x_max_s1s2 = np.max(np.loadtxt('O1_s1s2_max.txt'))
+    x_max_s1s2 = np.max(np.loadtxt('O1_45_s1s2_max.txt'))
 
 
 # ## Data to match emcee
@@ -1300,7 +1310,7 @@ A = pars_min[1]
 obs = swyft.Sample(x = x_obs)
 
 # Then we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
-pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (1_000_000, 3))
 #pars_prior = np.random.uniform(low = pars_min, high = pars_max, size = (100_000, 3))
 #pars_prior = np.random.uniform(low = [6, 1e-50, -1.57], high = [1000, 1e-45, 1.57], size = (100_000, 3))
 #pars_prior[:,0] = np.log10(pars_prior[:,0])
@@ -1354,6 +1364,7 @@ ax[1,1].set_xlabel('$P(\sigma|x)$')
 # ### Training
 
 x_drate = np.log10(diff_rate_trainset) # Observable. Input data. 
+#x_drate = diff_rate_trainset # Observable. Input data. 
 
 # +
 # Let's normalize everything between 0 and 1
@@ -1366,8 +1377,8 @@ pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 #x_min_drate = np.min(x_drate, axis = 0)
 #x_max_drate = np.max(x_drate, axis = 0)
 
-#x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
-x_norm_drate = x_drate / x_max_drate
+x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_drate = x_drate / x_max_drate
 
 # +
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
@@ -1478,8 +1489,9 @@ network_drate = Network()
 
 # +
 x_test_drate = np.log10(diff_rate_testset)
-#x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
-x_norm_test_drate = x_test_drate / x_max_drate
+#x_test_drate = diff_rate_testset
+x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_test_drate = x_test_drate / x_max_drate
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -1492,15 +1504,16 @@ trainer_drate.test(network_drate, dm_test_drate)
 # -
 
 ckpt_path = swyft.best_from_yaml("./logs/O1_norm_drate.yaml")
-#ckpt_path = '/home/martinrios/martin/trabajos/eftDM/codes/logs/O1_final_drate.ckpt'
+# #%ckpt_path = '/home/martinrios/martin/trabajos/eftDM/codes/logs/O1_final_drate.ckpt'
 # ---------------------------------------------- 
 # It converges to val_loss = -1.8 @ epoch 20
 # ---------------------------------------------- 
 
 # +
 x_test_drate = np.log10(diff_rate_testset)
-#x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
-x_norm_test_drate = x_test_drate / x_max_drate
+#x_test_drate = diff_rate_testset
+x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_test_drate = x_test_drate / x_max_drate
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -1524,8 +1537,9 @@ trainer_drate.test(network_drate, dm_test_drate, ckpt_path = ckpt_path)
 pars_norm = (emcee_pars - pars_min) / (pars_max - pars_min)
 
 x_drate = np.log10(emcee_diff_rate)
-#x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
-x_norm_drate = x_drate / x_max_drate
+#x_drate = emcee_diff_rate
+x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_drate = x_drate / x_max_drate
 
 # +
 # First let's create some observation from some "true" theta parameters
@@ -1791,7 +1805,10 @@ obs = swyft.Sample(x = x_obs)
 #prior_samples = swyft.Samples(z = pars_prior)
 
 # Finally we make the inference
+start = time.time()
 predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs, prior_samples)
+stop = time.time()
+print('It takes ' + str(stop-start) + ' seconds')
 
 # +
 par = 2
@@ -1887,8 +1904,8 @@ rate  = True
 drate = True
 s1s2  = True
 prob = [0.9]
-fig = bilby_s1s2.plot_corner(outdir='../graph/', color = 'grey', levels=[0.9], smooth = 1, bins = 15, alpha = 0.6, truth = None)
-#fig = bilby_drate.plot_corner(outdir='.', color = 'grey', levels=prob, smooth = 0.1)
+#fig = bilby_s1s2.plot_corner(outdir='../graph/', color = 'grey', levels=[0.9], smooth = 1, bins = 15, alpha = 0.6, truth = None)
+fig = bilby_drate.plot_corner(outdir='.', color = 'grey', levels=prob, smooth = 0.1)
 #fig = bilby_rate.plot_corner(outdir='.', color = 'grey', levels=prob, smooth = 0.1)
 
 #fig = corner.corner(rate_samples, smooth = 2.5, levels = [0.9], bins = 30, plot_density = False, color = 'black', fill_contours = False, linestyles = ['--'])
@@ -1901,7 +1918,7 @@ axes = fig.get_axes()
 
 ax = axes[0]
 ax.cla()
-ax.hist(s1s2_samples[:,0], color = 'grey', bins = 15, zorder = 0, histtype = 'step', density = True)
+ax.hist(drate_samples[:,0], color = 'grey', bins = 15, zorder = 0, histtype = 'step', density = True)
 
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 0, 
@@ -1939,7 +1956,7 @@ ax.set_ylim([-49.5, -43])
 
 ax = axes[4]
 ax.cla()
-ax.hist(s1s2_samples[:,1], color = 'grey', bins = 15, zorder = 0, histtype = 'step', density = True)
+ax.hist(drate_samples[:,1], color = 'grey', bins = 15, zorder = 0, histtype = 'step', density = True)
 
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 1, 
@@ -1997,7 +2014,7 @@ ax.set_ylim([-1.6, 1.6])
 
 ax = axes[8]
 ax.clear()
-ax.hist(s1s2_samples[:,2], color = 'grey', bins = 15, zorder = 0, histtype = 'step', range = (-1.6,1.6), density = True)
+ax.hist(drate_samples[:,2], color = 'grey', bins = 15, zorder = 0, histtype = 'step', range = (-1.6,1.6), density = True)
 
 if rate:
     plot1d_emcee(ax, [predictions_rate], pars_true, par = 2, 

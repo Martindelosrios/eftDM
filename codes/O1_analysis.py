@@ -528,13 +528,13 @@ comb.shape
 # +
 ind_new = np.where(pars[:,1] < -45)[0]
 
-#nobs = len(ind_new)
-#pars = pars[ind_new]
+nobs = len(ind_new)
+pars = pars[ind_new]
 
-#rate = rate[ind_new]
-#diff_rate = diff_rate[ind_new]
-#s1s2 = s1s2[ind_new]
-#comb = comb[ind_new]
+rate = rate[ind_new]
+diff_rate = diff_rate[ind_new]
+s1s2 = s1s2[ind_new]
+comb = comb[ind_new]
 
 # +
 # Let's split in training, validation and testing
@@ -571,31 +571,31 @@ comb_valset   = comb[val_ind,:,:]
 comb_testset  = comb[test_ind,:,:]
 # -
 
-save = False
+save = True
 if save:
     
     pars_min = np.min(pars_trainset, axis = 0)
     pars_max = np.max(pars_trainset, axis = 0)    
-    np.savetxt('O1_pars_min.txt', pars_min)
-    np.savetxt('O1_pars_max.txt', pars_max)
+    np.savetxt('O1_45_pars_min.txt', pars_min)
+    np.savetxt('O1_45_pars_max.txt', pars_max)
     
     x_rate = np.log10(rate_trainset) # Observable. Input data.
     x_min_rate = np.min(x_rate, axis = 0)
     x_max_rate = np.max(x_rate, axis = 0)
-    np.savetxt('O1_rate_minmax.txt', np.asarray([x_min_rate, x_max_rate]))
+    np.savetxt('O1_45_rate_minmax.txt', np.asarray([x_min_rate, x_max_rate]))
 
     x_drate = np.log10(diff_rate_trainset) # Observable. Input data. 
     x_min_drate = np.min(x_drate, axis = 0)
     x_max_drate = np.max(x_drate, axis = 0)
-    np.savetxt('O1_drate_min.txt', x_min_drate)
-    np.savetxt('O1_drate_max.txt', x_max_drate)
+    np.savetxt('O1_45_drate_min.txt', x_min_drate)
+    np.savetxt('O1_45_drate_max.txt', x_max_drate)
 
     x_s1s2 = s1s2_trainset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 64x64
     x_min_s1s2 = np.min(x_s1s2, axis = 0)
     x_max_s1s2 = np.max(x_s1s2).reshape(1)
-    np.savetxt('O1_s1s2_min.txt', x_min_s1s2)
-    np.savetxt('O1_s1s2_max.txt', x_max_s1s2)
-    with h5py.File('testset.h5', 'w') as data:
+    np.savetxt('O1_45_s1s2_min.txt', x_min_s1s2)
+    np.savetxt('O1_45_s1s2_max.txt', x_max_s1s2)
+    with h5py.File('testset_45.h5', 'w') as data:
         data.create_dataset('pars_testset', data = pars_testset)
         data.create_dataset('rate_testset', data = rate_testset)
         data.create_dataset('drate_testset', data = diff_rate_testset)
@@ -615,7 +615,7 @@ else:
     x_max_rate = x_minmax_rate[1]
     x_min_drate = np.loadtxt('O1_drate_min.txt')
     x_max_drate = np.loadtxt('O1_drate_max.txt')
-    x_min_s1s2 = np.loadtxt('O1_s1s2_min.txt')
+    #x_min_s1s2 = np.loadtxt('O1_s1s2_min.txt')
     x_max_s1s2 = np.loadtxt('O1_s1s2_max.txt')
 
 # ## Ibarra
@@ -2285,6 +2285,7 @@ plt.ylabel('$\sigma_{Pred}$')
 # ### Training
 
 x_drate = np.log10(diff_rate_trainset) # Observable. Input data. 
+#x_drate = diff_rate_trainset # Observable. Input data. 
 
 # +
 # Let's normalize everything between 0 and 1
@@ -2301,8 +2302,8 @@ if False:
     np.savetxt('O1_drate_min.txt', x_min_drate)
     np.savetxt('O1_drate_max.txt', x_max_drate)
     
-#x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
-x_norm_drate = x_drate / x_max_drate
+x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_drate = x_drate / x_max_drate
 
 # +
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
@@ -2406,15 +2407,16 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=100, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_norm_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_45_norm_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
 
 
 # +
-x_test_drate = np.log10(diff_rate_testset)
-#x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
-x_norm_test_drate = x_test_drate  / x_max_drate
+# #%x_test_drate = np.log10(diff_rate_testset)
+x_test_drate = diff_rate_testset
+x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_test_drate = x_test_drate  / x_max_drate
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -2429,11 +2431,11 @@ trainer_drate.test(network_drate, dm_test_drate)
 fit = True
 if fit:
     trainer_drate.fit(network_drate, dm_drate)
-    checkpoint_callback.to_yaml("./logs/O1_norm_drate.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O1_norm_drate.yaml")
+    checkpoint_callback.to_yaml("./logs/O1_45_norm_drate.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O1_45_norm_drate.yaml")
     email('Termino el entramiento del drate para O1')
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O1_norm_drate.yaml")
+    ckpt_path = swyft.best_from_yaml("./logs/O1_45_norm_drate.yaml")
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.8 @ epoch 20
@@ -2441,8 +2443,9 @@ else:
 
 # +
 x_test_drate = np.log10(diff_rate_testset)
-#x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
-x_norm_test_drate = x_test_drate / x_max_drate
+#x_test_drate = diff_rate_testset
+x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
+#x_norm_test_drate = x_test_drate / x_max_drate
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -2470,7 +2473,7 @@ if fit:
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
-    plt.savefig('../graph/O1_norm2_loss_drate.pdf')
+    plt.savefig('../graph/O1_45_norm_loss_drate.pdf')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
