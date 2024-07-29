@@ -67,9 +67,9 @@ print('matplotlib version:', mpl.__version__)
 print('torch version:', torch.__version__)
 
 color_rate = "#d55e00"
-color_drate = "#0072b2"
-color_s1s2 = "#009e73"
-color_comb = 'purple'
+color_drate = 'darkblue' #"#0072b2"
+color_s1s2 = 'limegreen' #"#009e73"
+color_comb = 'limegreen'
 
 # Check if gpu is available
 if torch.cuda.is_available():
@@ -528,13 +528,13 @@ comb.shape
 # +
 ind_new = np.where(pars[:,1] < -45)[0]
 
-nobs = len(ind_new)
-pars = pars[ind_new]
+#nobs = len(ind_new)
+#pars = pars[ind_new]
 
-rate = rate[ind_new]
-diff_rate = diff_rate[ind_new]
-s1s2 = s1s2[ind_new]
-comb = comb[ind_new]
+#rate = rate[ind_new]
+#diff_rate = diff_rate[ind_new]
+#s1s2 = s1s2[ind_new]
+#comb = comb[ind_new]
 
 # +
 # Let's split in training, validation and testing
@@ -571,31 +571,31 @@ comb_valset   = comb[val_ind,:,:]
 comb_testset  = comb[test_ind,:,:]
 # -
 
-save = True
+save = False
 if save:
     
     pars_min = np.min(pars_trainset, axis = 0)
     pars_max = np.max(pars_trainset, axis = 0)    
-    np.savetxt('O1_45_pars_min.txt', pars_min)
-    np.savetxt('O1_45_pars_max.txt', pars_max)
+    np.savetxt('O1_pars_min.txt', pars_min)
+    np.savetxt('O1_pars_max.txt', pars_max)
     
     x_rate = np.log10(rate_trainset) # Observable. Input data.
     x_min_rate = np.min(x_rate, axis = 0)
     x_max_rate = np.max(x_rate, axis = 0)
-    np.savetxt('O1_45_rate_minmax.txt', np.asarray([x_min_rate, x_max_rate]))
+    np.savetxt('O1_rate_minmax.txt', np.asarray([x_min_rate, x_max_rate]))
 
     x_drate = np.log10(diff_rate_trainset) # Observable. Input data. 
     x_min_drate = np.min(x_drate, axis = 0)
     x_max_drate = np.max(x_drate, axis = 0)
-    np.savetxt('O1_45_drate_min.txt', x_min_drate)
-    np.savetxt('O1_45_drate_max.txt', x_max_drate)
+    np.savetxt('O1_drate_min.txt', x_min_drate)
+    np.savetxt('O1_drate_max.txt', x_max_drate)
 
     x_s1s2 = s1s2_trainset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 64x64
     x_min_s1s2 = np.min(x_s1s2, axis = 0)
     x_max_s1s2 = np.max(x_s1s2).reshape(1)
-    np.savetxt('O1_45_s1s2_min.txt', x_min_s1s2)
-    np.savetxt('O1_45_s1s2_max.txt', x_max_s1s2)
-    with h5py.File('testset_45.h5', 'w') as data:
+    np.savetxt('O1_s1s2_min.txt', x_min_s1s2)
+    np.savetxt('O1_s1s2_max.txt', x_max_s1s2)
+    with h5py.File('testset.h5', 'w') as data:
         data.create_dataset('pars_testset', data = pars_testset)
         data.create_dataset('rate_testset', data = rate_testset)
         data.create_dataset('drate_testset', data = diff_rate_testset)
@@ -1009,7 +1009,7 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=100, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_norm2_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_final_rate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_rate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_rate = Network_rate()
 
@@ -1037,8 +1037,8 @@ if fit:
     email('Termino de entrenar rate O1')
     
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O1_final_rate.yaml")
-
+    # #%ckpt_path = swyft.best_from_yaml("./logs/O1_final_rate.yaml")
+    ckpt_path = '/home/martinrios/martin/trabajos/eftDM/codes/logs/O1_final_rate.ckpt'
 # ---------------------------------------------- 
 # It converges to val_loss = -1.18 at epoch ~50
 # ---------------------------------------------- 
@@ -2295,8 +2295,8 @@ x_drate = np.log10(diff_rate_trainset) # Observable. Input data.
 
 pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 
-x_min_drate = np.min(x_drate, axis = 0)
-x_max_drate = np.max(x_drate, axis = 0)
+#x_min_drate = np.min(x_drate, axis = 0)
+#x_max_drate = np.max(x_drate, axis = 0)
 
 if False:
     np.savetxt('O1_drate_min.txt', x_min_drate)
@@ -2407,14 +2407,14 @@ cb = MetricTracker()
 # Let's configure, instantiate and traint the network
 torch.manual_seed(28890)
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=100, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_45_norm_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_final_drate_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_drate = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2000, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_drate = Network()
 
 
 # +
-# #%x_test_drate = np.log10(diff_rate_testset)
-x_test_drate = diff_rate_testset
+x_test_drate = np.log10(diff_rate_testset)
+#x_test_drate = diff_rate_testset
 x_norm_test_drate = (x_test_drate - x_min_drate) / (x_max_drate - x_min_drate)
 #x_norm_test_drate = x_test_drate  / x_max_drate
 
@@ -2428,7 +2428,7 @@ dm_test_drate = swyft.SwyftDataModule(samples_test_drate, fractions = [0., 0., 1
 trainer_drate.test(network_drate, dm_test_drate)
 
 # +
-fit = True
+fit = False
 if fit:
     trainer_drate.fit(network_drate, dm_drate)
     checkpoint_callback.to_yaml("./logs/O1_45_norm_drate.yaml") 
@@ -2436,6 +2436,7 @@ if fit:
     email('Termino el entramiento del drate para O1')
 else:
     ckpt_path = swyft.best_from_yaml("./logs/O1_45_norm_drate.yaml")
+    ckpt_path = '/home/martinrios/martin/trabajos/eftDM/codes/logs/O1_final_drate.ckpt'
 
 # ---------------------------------------------- 
 # It converges to val_loss = -1.8 @ epoch 20
@@ -3243,12 +3244,12 @@ pars_max = np.max(pars_trainset, axis = 0)
 
 pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 
-x_min_s1s2 = np.min(x_s1s2, axis = 0)
-x_max_s1s2 = np.max(x_s1s2, axis = 0)
+#x_min_s1s2 = np.min(x_s1s2, axis = 0)
+#x_max_s1s2 = np.max(x_s1s2, axis = 0)
 if False: 
     np.savetxt('O1_s1s2_min.txt', x_min_s1s2)
     np.savetxt('O1_s1s2_max.txt', x_max_s1s2)
-x_max_s1s2 = np.max(x_max_s1s2)
+#x_max_s1s2 = np.max(x_max_s1s2)
 
 x_norm_s1s2 = x_s1s2
 #ind_nonzero = np.where(x_max_s1s2 > 0)
@@ -3380,7 +3381,7 @@ cb = MetricTracker()
 #torch.manual_seed(28890)
 cb = MetricTracker()
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=50, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_norm_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_final_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2500, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_s1s2 = Network()
 
@@ -3407,6 +3408,7 @@ if fit:
     email('Termino el entramiento del s1s2 para O1')
 else:
     ckpt_path = swyft.best_from_yaml("./logs/O1_final_s1s2.yaml")
+    ckpt_path = '/home/martinrios/martin/trabajos/eftDM/codes/logs/O1_final_s1s2.ckpt'
 
 # ---------------------------------------
 # Min val loss value at 48 epochs. -3.31
@@ -5448,8 +5450,8 @@ m_min_th = 1 # Min Mass for 1d analysis
 m_max_th = 2.6 # Max Mass for 1d analysis
 
 rate  = True # Flag to use the information of the rate analysis
-drate = False # Flag to use the information of the drate analysis
-s1s2  = False # Flag to use the information of the s1s2 analysis
+drate = True # Flag to use the information of the drate analysis
+s1s2  = True # Flag to use the information of the s1s2 analysis
 
 if rate: 
     flag = 'rate_T'
@@ -5467,7 +5469,7 @@ else:
     flag = flag + '_s1s2_F'
 
 flag = flag + '_final'
-force = True # Flag to force to compute everything again although it was pre-computed
+force = False # Flag to force to compute everything again although it was pre-computed
 
 thetas = ['0', 'minuspidiv2', 'minuspidiv4', 'pluspidiv2', 'pluspidiv4']
 cross_sec_int_prob_sup_aux    = []
@@ -5670,17 +5672,17 @@ plt.savefig('../graph/O1_norm_int_prob_distribution_drate.pdf')
 
 
 # +
-CR_int_prob_sup_rate = []
-M_int_prob_sup_rate = []
-M_prob_sup_rate = []
-M_prob_inf_rate = []
+CR_int_prob_sup_comb = []
+M_int_prob_sup_comb = []
+M_prob_sup_comb = []
+M_prob_inf_comb = []
 
 sigma = 1.1
 for i in range(len(thetas)):
-    CR_int_prob_sup_rate.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
-    M_int_prob_sup_rate.append( gaussian_filter(masses_int_prob_sup_aux[i], sigma) )
-    M_prob_sup_rate.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
-    M_prob_inf_rate.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
+    CR_int_prob_sup_comb.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
+    M_int_prob_sup_comb.append( gaussian_filter(masses_int_prob_sup_aux[i], sigma) )
+    M_prob_sup_comb.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
+    M_prob_inf_comb.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
 
 
 # +
@@ -5704,11 +5706,6 @@ class AnyObjectHandler2(HandlerBase):
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]
-
-color_rate  = "#d55e00"
-color_drate = "#0072b2"
-color_s1s2  = "#009e73"
-color_comb = "#009e73"
 
 fig, ax = plt.subplots(1,3, sharex = True, sharey = True, figsize = (13,5))
 fig.subplots_adjust(hspace = 0, wspace = 0)
@@ -5750,7 +5747,7 @@ ax[0].set_xlim(6, 9.8e2)
 fig.subplots_adjust(right=0.8)
 
 custom_lines = []
-labels = ['$\\langle \\mathcal{P}_{\\sigma} \\rangle = 0.9$', '$\\langle \\mathcal{P}^{sup}_{m_{\chi}} \\rangle = 0.9$', '$\\langle \\mathcal{P}^{tot}_{m_{\chi}} \\rangle = 0.9$']
+labels = ['$\\langle \\mathcal{P}_{\\sigma} \\rangle = 0.9$', '$\\langle \\mathcal{P}^{\\rm{low}}_{m_{\chi}} \\rangle = 0.9$', '$\\langle \\mathcal{P}_{m_{\chi}} \\rangle = 0.9$']
 markers = ['solid','dashed', 'dotted']
 colors = [color_comb, color_comb, color_comb]
 for i in range(3):
@@ -5764,7 +5761,7 @@ ax[0].tick_params(axis='y', labelsize=12)
 ax[1].tick_params(axis='x', labelsize=12)
 ax[2].tick_params(axis='x', labelsize=12)
 
-#plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB_v3.pdf', bbox_inches='tight')
+plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB_v3.pdf', bbox_inches='tight')
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]

@@ -71,8 +71,8 @@ print('matplotlib version:', mpl.__version__)
 print('torch version:', torch.__version__)
 
 color_rate = "#d55e00"
-color_drate = "#0072b2"
-color_s1s2 = "#009e73"
+color_drate = 'darkblue' #"#0072b2"
+color_s1s2 = 'limegreen' #"#009e73"
 
 # Check if gpu is available
 if torch.cuda.is_available():
@@ -879,8 +879,8 @@ else:
     x_max_rate = x_minmax_rate[1]
     x_min_drate = np.loadtxt('O4_365_drate_min.txt')
     x_max_drate = np.loadtxt('O4_365_drate_max.txt')
-    x_min_s1s2 = np.loadtxt('O4_365_s1s2_min_test.txt')
-    x_max_s1s2 = np.loadtxt('O4_365_s1s2_max_test.txt')
+    #x_min_s1s2 = np.loadtxt('O4_365_s1s2_min.txt')
+    x_max_s1s2 = np.loadtxt('O4_365_s1s2_max.txt')
     x_max_s1s2 = np.max(x_max_s1s2)
 
 
@@ -1751,7 +1751,7 @@ plt.show()
 
 from matplotlib.patches import Patch
 
-color_s1s2_2 = 'darkblue'
+color_s1s2_2 = 'm'
 
 # +
 rate  = True
@@ -1760,7 +1760,7 @@ s1s2  = True
 
 prob = [0.9]
 
-fig = bilby_s1s2.plot_corner(outdir='../O4_graph/', color = 'grey', levels=prob, smooth = 1, bins = 30, alpha = 0.6, truth = None)
+fig = bilby_s1s2.plot_corner(outdir='../O4_graph/', color = 'gainsboro', levels=prob, smooth = 1, bins = 30, alpha = 0.6, truth = None)
 #fig = bilby_drate.plot_corner(outdir='../O4_graph/', color = 'grey', levels=prob, smooth = 0.1, bins = 30, alpha = 0.6)
 #fig = bilby_rate.plot_corner(outdir='../O4_graph/', color = 'grey', levels=prob, smooth = 2, bins = 30, alpha = 0.6)
 
@@ -1806,7 +1806,7 @@ if s1s2:
                  color = color_s1s2, probs = prob, zorder = 4, nvals = 40, smooth = 1)
     #plot2d_emcee(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
     #             color = color_s1s2_2, probs = prob, zorder = 4, nvals = 40, smooth = 1)
-ax.set_ylabel('Log$_{10}(\\sigma^{SD} \ $[cm$^{2}$])', fontsize = 11)
+ax.set_ylabel('Log$_{10}(\\sigma^{SD} \ $[cm$^{2}$])', fontsize = 10)
 ax.set_xlim([1, 3])
 ax.set_ylim([-41, -36])
 
@@ -1846,7 +1846,7 @@ if s1s2:
     plot2d_emcee_m_theta(ax, [predictions_rate, predictions_drate, predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                 color = color_s1s2, probs = prob, zorder = 2, smooth = 1)
 ax.set_ylabel('$\\theta$', fontsize = 10)
-ax.set_xlabel('Log$_{10}(m_{\chi} \ $[GeV])', fontsize = 11)
+ax.set_xlabel('Log$_{10}(m_{\chi} \ $[GeV])', fontsize = 10)
 ax.set_xlim([1, 3])
 ax.set_ylim([-1.6, 1.6])
 
@@ -1889,7 +1889,7 @@ ax.set_xlim([-1.6, 1.6])
 ax.set_xticks([-1.5,0,1.5])
 ax.set_xticklabels(['-1.5','0.0', '1.5'], rotation = 45)
 ax.set_yticks([])
-ax.text(0.47,-0.4, '$\\theta$', fontsize = 11, transform = ax.transAxes)
+ax.text(0.47,-0.4, '$\\theta$', fontsize = 10, transform = ax.transAxes)
 #ax.set_xlabel('$\\theta$', fontsize = 12)
 
 custom_lines = []
@@ -1900,10 +1900,10 @@ for i in range(3):
     custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
             label = labels[i], lw = 2) )
 
-custom_lines.append( Patch(facecolor='gray', edgecolor='gray',
+custom_lines.append( Patch(facecolor='gainsboro', edgecolor='gainsboro',
                          label='MCMC cS1-cS2') )
-axes[0].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(1.2,0.25), fontsize = 12)
-axes[0].text(1.5,0.9, '$\\mathcal{O}_{4}$', fontsize = 14, transform = axes[0].transAxes)
+axes[0].legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(1.2,0.25), fontsize = 10)
+axes[0].text(1.5,0.8, '$\\mathcal{O}_{4}$', fontsize = 12, transform = axes[0].transAxes)
 
 axes[3].scatter(emcee_pars[0,0], emcee_pars[0,1], marker = 'D', color = 'black', zorder = 4)
 axes[3].scatter(emcee_pars[0,0], emcee_pars[0,1], marker = 'D', color = 'yellow', zorder = 5, s = 10)

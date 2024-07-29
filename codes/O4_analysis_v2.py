@@ -67,9 +67,9 @@ print('matplotlib version:', mpl.__version__)
 print('torch version:', torch.__version__)
 
 color_rate = "#d55e00"
-color_drate = "#0072b2"
-color_s1s2 = "#009e73"
-color_comb = 'purple'
+color_drate = 'darkblue' #"#0072b2"
+color_s1s2 = 'limegreen' #"#009e73"
+color_comb = 'limegreen'
 
 # Check if gpu is available
 if torch.cuda.is_available():
@@ -565,6 +565,53 @@ s1s2_valset   = s1s2[val_ind,:,:]
 s1s2_testset  = s1s2[test_ind,:,:]
 # -
 
+save = False
+if save:
+    
+    pars_min = np.min(pars_trainset, axis = 0)
+    pars_max = np.max(pars_trainset, axis = 0)    
+    np.savetxt('O4_365_pars_min.txt', pars_min)
+    np.savetxt('O4_365_pars_max.txt', pars_max)
+    
+    x_rate = np.log10(rate_trainset) # Observable. Input data.
+    x_min_rate = np.min(x_rate, axis = 0)
+    x_max_rate = np.max(x_rate, axis = 0)
+    np.savetxt('O4_365_rate_minmax.txt', np.asarray([x_min_rate, x_max_rate]))
+
+    x_drate = np.log10(diff_rate_trainset) # Observable. Input data. 
+    x_min_drate = np.min(x_drate, axis = 0)
+    x_max_drate = np.max(x_drate, axis = 0)
+    np.savetxt('O4_365_drate_min.txt', x_min_drate)
+    np.savetxt('O4_365_drate_max.txt', x_max_drate)
+
+    x_s1s2 = s1s2_trainset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 64x64
+    x_min_s1s2 = np.min(x_s1s2, axis = 0)
+    x_max_s1s2 = np.max(x_s1s2).reshape(1)
+    np.savetxt('O4_365_s1s2_min.txt', x_min_s1s2)
+    np.savetxt('O4_365_s1s2_max.txt', x_max_s1s2)
+    with h5py.File('testset_O4.h5', 'w') as data:
+        data.create_dataset('pars_testset', data = pars_testset)
+        data.create_dataset('rate_testset', data = rate_testset)
+        data.create_dataset('drate_testset', data = diff_rate_testset)
+        data.create_dataset('s1s2_testset', data = s1s2_testset[:,:-1,:-1].reshape(585,1,96,96))
+        data.attrs['pars_min'] = pars_min
+        data.attrs['pars_max'] = pars_max
+        data.attrs['x_min_rate'] = x_min_rate
+        data.attrs['x_max_rate'] = x_max_rate
+        data.attrs['x_min_drate'] = x_min_drate
+        data.attrs['x_max_drate'] = x_max_drate
+        data.attrs['x_max_s1s2'] = x_max_s1s2
+else:
+    pars_min = np.loadtxt('O4_365_pars_min.txt')
+    pars_max = np.loadtxt('O4_365_pars_max.txt')
+    x_minmax_rate = np.loadtxt('O4_365_rate_minmax.txt')
+    x_min_rate = x_minmax_rate[0]
+    x_max_rate = x_minmax_rate[1]
+    x_min_drate = np.loadtxt('O4_365_drate_min.txt')
+    x_max_drate = np.loadtxt('O4_365_drate_max.txt')
+    #x_min_s1s2 = np.loadtxt('O4_365_s1s2_min.txt')
+    x_max_s1s2 = np.loadtxt('O4_365_s1s2_max.txt')
+
 # ## Ibarra
 
 # +
@@ -747,7 +794,7 @@ x_min_rate = np.min(x_rate, axis = 0)
 x_max_rate = np.max(x_rate, axis = 0)
 
 
-if True:
+if False:
     np.savetxt('O4_365_pars_min.txt', pars_min)
     np.savetxt('O4_365_pars_max.txt', pars_max)
     np.savetxt('O4_365_rate_minmax.txt', np.asarray([x_min_rate, x_max_rate]))
@@ -2122,10 +2169,10 @@ x_drate = np.log10(diff_rate_trainset) # Observable. Input data.
 
 pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 
-x_min_drate = np.min(x_drate, axis = 0)
-x_max_drate = np.max(x_drate, axis = 0)
+#x_min_drate = np.min(x_drate, axis = 0)
+#x_max_drate = np.max(x_drate, axis = 0)
 
-if True:
+if False:
     np.savetxt('O4_365_drate_min.txt', x_min_drate)
     np.savetxt('O4_365_drate_max.txt', x_max_drate)
     
@@ -3081,9 +3128,9 @@ pars_max = np.max(pars_trainset, axis = 0)
 
 pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
 
-x_min_s1s2 = np.min(x_s1s2, axis = 0)
-x_max_s1s2 = np.max(x_s1s2, axis = 0)
-if True: 
+#x_min_s1s2 = np.min(x_s1s2, axis = 0)
+#x_max_s1s2 = np.max(x_s1s2, axis = 0)
+if False: 
     np.savetxt('O4_365_s1s2_min.txt', x_min_s1s2)
     np.savetxt('O4_365_s1s2_max.txt', x_max_s1s2)
 x_max_s1s2 = np.max(x_max_s1s2)
@@ -5276,8 +5323,8 @@ t_min_th = 0.62 # Min Mass for 1d analysis
 t_max_th = 0.94 # Max Mass for 1d analysis
 
 rate  = True # Flag to use the information of the rate analysis
-drate = False # Flag to use the information of the drate analysis
-s1s2  = False # Flag to use the information of the s1s2 analysis
+drate = True # Flag to use the information of the drate analysis
+s1s2  = True # Flag to use the information of the s1s2 analysis
 
 if rate: 
     flag = 'rate_T'
@@ -5295,7 +5342,7 @@ else:
     flag = flag + '_s1s2_F'
 
 flag = flag + '_final'
-force = True # Flag to force to compute everything again although it was pre-computed
+force = False # Flag to force to compute everything again although it was pre-computed
 
 thetas = ['0', 'minuspidiv2', 'minuspidiv4', 'pluspidiv2', 'pluspidiv4']
 #thetas = ['0', 'pluspidiv2']
@@ -5584,27 +5631,27 @@ plt.savefig('../graph/O4_graph/O4_full_int_prob_distribution_comb.pdf')
 
 
 # +
-CR_int_prob_sup_rate = []
-CR_int_prob_tot_rate = []
-CR_int_prob_inf_rate = []
+CR_int_prob_sup_comb = []
+CR_int_prob_tot_comb = []
+CR_int_prob_inf_comb = []
 
-M_int_prob_sup_rate = []
-M_prob_sup_rate = []
-M_prob_inf_rate = []
+M_int_prob_sup_comb = []
+M_prob_sup_comb = []
+M_prob_inf_comb = []
 
-T_int_prob_rate = []
+T_int_prob_comb = []
 
 sigma = 1
 for i in range(len(thetas)):
-    CR_int_prob_sup_rate.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
-    CR_int_prob_tot_rate.append( gaussian_filter(cross_sec_int_prob_tot_aux[i], sigma) )
-    CR_int_prob_inf_rate.append( gaussian_filter(cross_sec_int_prob_inf_aux[i], sigma) )
+    CR_int_prob_sup_comb.append( gaussian_filter(cross_sec_int_prob_sup_aux[i], sigma) )
+    CR_int_prob_tot_comb.append( gaussian_filter(cross_sec_int_prob_tot_aux[i], sigma) )
+    CR_int_prob_inf_comb.append( gaussian_filter(cross_sec_int_prob_inf_aux[i], sigma) )
     
-    M_int_prob_sup_rate.append( gaussian_filter(masses_int_prob_sup_aux[i], sigma) )
-    M_prob_sup_rate.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
-    M_prob_inf_rate.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
+    M_int_prob_sup_comb.append( gaussian_filter(masses_int_prob_sup_aux[i], sigma) )
+    M_prob_sup_comb.append( gaussian_filter(masses_prob_sup_aux[i], sigma) )
+    M_prob_inf_comb.append( gaussian_filter(masses_prob_inf_aux[i], sigma) )
     
-    T_int_prob_rate.append( gaussian_filter(theta_int_prob_aux[i], sigma) )
+    T_int_prob_comb.append( gaussian_filter(theta_int_prob_aux[i], sigma) )
 
 
 # +
@@ -5628,11 +5675,6 @@ class AnyObjectHandler2(HandlerBase):
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]
-
-color_rate  = "#d55e00"
-color_drate = "#0072b2"
-color_s1s2  = "#009e73"
-color_comb = "#009e73"
 
 fig, ax = plt.subplots(1,3, sharex = True, sharey = True, figsize = (13,5))
 fig.subplots_adjust(hspace = 0, wspace = 0)
@@ -5674,7 +5716,7 @@ ax[0].set_xlim(6, 9.8e2)
 fig.subplots_adjust(right=0.8)
 
 custom_lines = []
-labels = ['$\\langle \\mathcal{P}_{\\sigma} \\rangle = 0.9$', '$\\langle \\mathcal{P}^{sup}_{m_{\chi}} \\rangle = 0.9$', '$\\langle \\mathcal{P}^{tot}_{m_{\chi}} \\rangle = 0.9$']
+labels = ['$\\langle \\mathcal{P}_{\\sigma} \\rangle = 0.9$', r'$\langle \mathcal{P}^{\rm{low}}_{m_{\chi}} \rangle = 0.9$', '$\\langle \\mathcal{P}_{m_{\chi}} \\rangle = 0.9$']
 markers = ['solid','dashed', 'dotted']
 colors = [color_comb, color_comb, color_comb]
 for i in range(3):
