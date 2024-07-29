@@ -880,8 +880,8 @@ else:
 
 # +
 # where are your files?
-#datFolder = ['../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma2e-47-thetapidiv2/']
-datFolder = ['../data/andresData/new-bilby-O1-O4-saved0/new-bilby/O1/examples-to-match-emcee/mDM50GeV-sigma5e-47-thetapidiv4/']
+datFolder = ['../data/andresData/28-05-24-files/examples-to-match-emcee/mDM50GeV-sigma2e-47-thetapidiv2/']
+#datFolder = ['../data/andresData/new-bilby-O1-O4-saved0/new-bilby/O1/examples-to-match-emcee/mDM50GeV-sigma5e-47-thetapidiv4/']
 emcee_nobs = 0
 for i, folder in enumerate(datFolder):
     print(i)
@@ -2057,7 +2057,7 @@ axes[6].scatter(emcee_pars[0,0], emcee_pars[0,2], marker = 'D', color = 'yellow'
 axes[7].scatter(emcee_pars[0,1], emcee_pars[0,2], marker = 'D', color = 'black', zorder = 4)
 axes[7].scatter(emcee_pars[0,1], emcee_pars[0,2], marker = 'D', color = 'yellow', zorder = 5, s = 10)
 
-fig.savefig('../graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}_s1s2.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
+#fig.savefig('../graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}_s1s2.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
 fig
 # -
 color_s1s2_2 = 'm'
@@ -2219,9 +2219,12 @@ axes[6].scatter(emcee_pars[0,0], emcee_pars[0,2], marker = 'D', color = 'yellow'
 axes[7].scatter(emcee_pars[0,1], emcee_pars[0,2], marker = 'D', color = 'black', zorder = 4)
 axes[7].scatter(emcee_pars[0,1], emcee_pars[0,2], marker = 'D', color = 'yellow', zorder = 5, s = 10)
 
-fig.savefig('../graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}_noComb.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
+#fig.savefig('../graph/SWYFT_BILBY_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}_noComb.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
 fig
 # +
+color_drate = 'dodgerblue'
+color_s1s2 = 'm'
+
 rate_samples = bilby_rate.samples[:,:2]
 drate_samples = bilby_drate.samples[:,:2]
 s1s2_samples = bilby_s1s2.samples[:,:2]
@@ -2235,11 +2238,11 @@ prob = [0.9]
 fig,axes = plt.subplots(2,2, width_ratios = [1,0.4], height_ratios = [0.4,1])
 
 if rate:
-    corner.corner(rate_samples, fig = fig, smooth = 1.8, levels=prob, bins = 15, plot_density=False, color = 'gray', fill_contours=True)
+    corner.corner(rate_samples, fig = fig, smooth = 1.8, levels=prob, bins = 15, plot_density=False, color = 'gainsboro', fill_contours=True)
 if drate:
-    corner.corner(drate_samples, fig = fig, smooth = 1.5, levels=prob, bins = 15, plot_density=False, color = 'gray', fill_contours=True)
+    corner.corner(drate_samples, fig = fig, smooth = 1.5, levels=prob, bins = 15, plot_density=False, color = 'gainsboro', fill_contours=True)
 if s1s2:
-    corner.corner(s1s2_samples, fig = fig, smooth = 1, levels=prob, bins = 15, plot_density=False, color = 'gray', fill_contours=True)
+    corner.corner(s1s2_samples, fig = fig, smooth = 1, levels=prob, bins = 15, plot_density=False, color = 'gainsboro', fill_contours=True)
 
 #axes = fig.get_axes()
 
@@ -2275,8 +2278,8 @@ if drate:
 if s1s2:
     plot2d_emcee(ax, [predictions_s1s2], pars_true, fill = False, line = True, linestyles = ['solid', '--'], 
                  color = color_s1s2, probs = prob, zorder = 4, nvals = 40)
-ax.set_ylabel('Log$_{10}(\\sigma^{SI} \ $[cm$^{2}$])', fontsize = 10)
-ax.set_xlabel('Log$_{10}(m_{\chi} $[GeV])', fontsize = 10)
+ax.set_ylabel('Log$_{10}(\\sigma^{SI} \ $[cm$^{2}$])', fontsize = 12)
+ax.set_xlabel('Log$_{10}(m_{\chi} $[GeV])', fontsize = 12)
 ax.set_xlim([1, 3])
 ax.set_ylim([-49.5, -43])
 
@@ -2316,10 +2319,10 @@ for i in range(len(labels)):
     custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
             label = labels[i], lw = 2) )
 
-custom_lines.append( Patch(facecolor='gray', edgecolor='gray',
+custom_lines.append( Patch(facecolor='gainsboro', edgecolor='gainsboro',
                          label='MCMC cS1-cS2') )
-ax.legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(-0.1,1.10), fontsize = 10)
-ax.text(0.3,1.35, '$\\mathcal{O}_{1}$', fontsize = 12, transform = ax.transAxes)
+ax.legend(handles = custom_lines, frameon = False, loc = 'lower left', bbox_to_anchor=(-0.1,1.07), fontsize = 12)
+ax.text(0.3,1.35, '$\\mathcal{O}_{1}$', fontsize = 14, transform = ax.transAxes)
 
 plt.savefig('../graph/SWYFT_BILBY_s1s2_comparison_O1_m_{:.2f}_s_{:.2f}_t_{:.2f}.pdf'.format(emcee_pars[0,0],emcee_pars[0,1],emcee_pars[0,2]), bbox_inches='tight')
 # -
