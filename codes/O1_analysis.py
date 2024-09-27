@@ -1088,6 +1088,24 @@ if fit:
     plt.tight_layout()
     plt.savefig('../graph/O1_norm2_Coverage_rate.pdf')
 
+# +
+
+#pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+#prior_samples = swyft.Samples(z = pars_prior)
+
+#coverage_samples = trainer_rate.test_coverage(network_rate, samples_test_rate[:5000], prior_samples)
+
+fix, axes = plt.subplots(1, 3, figsize = (12, 4))
+for i in range(3):
+    swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
+
+axes[0].text(0.5,1.03,'$m_{\\chi}$', transform = axes[0].transAxes, fontsize =12)
+axes[1].text(0.5,1.03,'$\sigma^{SI}$', transform = axes[1].transAxes, fontsize =12)
+axes[2].text(0.5,1.03,'$\\theta$', transform = axes[2].transAxes, fontsize =12)
+plt.tight_layout()
+plt.savefig('../graph/O1_Coverage_rate_final.pdf')
+# -
+
 # ### Let's make some inference
 
 # +
@@ -2488,6 +2506,20 @@ if fit:
     plt.tight_layout()
     plt.savefig('../graph/Coverage_drate_norm.pdf')
 
+# +
+
+#pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+#prior_samples = swyft.Samples(z = pars_prior)
+
+#coverage_samples = trainer_drate.test_coverage(network_drate, samples_test_drate[:5000], prior_samples)
+
+fix, axes = plt.subplots(1, 3, figsize = (12, 4))
+for i in range(3):
+    swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
+plt.tight_layout()
+plt.savefig('../graph/O1_Coverage_drate_final.pdf')
+# -
+
 # ### Let's make some inference
 
 # +
@@ -3465,6 +3497,20 @@ if fit:
         swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
     plt.tight_layout()
     plt.savefig('../graph/O1_Coverage_s1s2_norm.pdf')
+
+# +
+
+pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+prior_samples = swyft.Samples(z = pars_prior)
+
+coverage_samples = trainer_s1s2.test_coverage(network_s1s2, samples_test_s1s2[:500], prior_samples)
+
+fix, axes = plt.subplots(1, 3, figsize = (12, 4))
+for i in range(3):
+    swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
+plt.tight_layout()
+plt.savefig('../graph/O1_Coverage_s1s2_final.pdf')
+# -
 
 # ### Let's make some inference
 
