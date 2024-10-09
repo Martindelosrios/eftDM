@@ -465,7 +465,7 @@ diff_rate = diff_rate_WIMP + diff_rate_er + diff_rate_ac + diff_rate_cevns_SM + 
 
 s1s2 = s1s2_WIMP + s1s2_er + s1s2_ac + s1s2_cevns_SM + s1s2_radio + s1s2_wall
 rate = np.sum(s1s2, axis = 1) # Just to have the same as on the other notebooks. This already includes the backgrounds
-s1s2 = s1s2.reshape(nobs, 97, 97)
+s1s2 = s1s2.reshape(nobs, 97*97)
 
 # Let's work with the log of the mass and cross-section
 
@@ -502,39 +502,12 @@ print(s1s2_cevns_SM.shape)
 print(s1s2_radio.shape)
 print(s1s2_wall.shape)
 
-###############
-# EXTRA FILES # backgrounds
-###############
-print(np.loadtxt(folder+'s1s2_CEVNS-NSI.txt').shape)
-print(np.loadtxt(folder+'s1s2_EVES-NSI.txt').shape)
-print(np.loadtxt(folder+'s1s2_EVES-SM.txt').shape)
 # -
 
 print(pars.shape)
 print(rate.shape)
 print(diff_rate.shape)
 print(s1s2.shape)
-
-aux_row = np.zeros((11678,1,96))
-aux_row[:,0,:58] = diff_rate
-aux_row[:,0,58]  = rate
-
-aux_row.shape
-
-comb = np.hstack((aux_row,s1s2[:,:-2,:-1]))
-
-comb.shape
-
-# +
-ind_new = np.where(pars[:,1] < -45)[0]
-
-#nobs = len(ind_new)
-#pars = pars[ind_new]
-
-#rate = rate[ind_new]
-#diff_rate = diff_rate[ind_new]
-#s1s2 = s1s2[ind_new]
-#comb = comb[ind_new]
 
 # +
 # Let's split in training, validation and testing
@@ -562,44 +535,40 @@ diff_rate_trainset = diff_rate[train_ind,:]
 diff_rate_valset   = diff_rate[val_ind,:]
 diff_rate_testset  = diff_rate[test_ind,:]
 
-s1s2_trainset = s1s2[train_ind,:,:]
-s1s2_valset   = s1s2[val_ind,:,:]
-s1s2_testset  = s1s2[test_ind,:,:]
-
-comb_trainset = comb[train_ind,:,:]
-comb_valset   = comb[val_ind,:,:]
-comb_testset  = comb[test_ind,:,:]
+s1s2_trainset = s1s2[train_ind,:]
+s1s2_valset   = s1s2[val_ind,:]
+s1s2_testset  = s1s2[test_ind,:]
 # -
 
-save = False
+save = True
 if save:
     
     pars_min = np.min(pars_trainset, axis = 0)
     pars_max = np.max(pars_trainset, axis = 0)    
-    np.savetxt('O1_pars_min.txt', pars_min)
-    np.savetxt('O1_pars_max.txt', pars_max)
+    np.savetxt('O1_vectorize_pars_min.txt', pars_min)
+    np.savetxt('O1_vectorize_pars_max.txt', pars_max)
     
     x_rate = np.log10(rate_trainset) # Observable. Input data.
     x_min_rate = np.min(x_rate, axis = 0)
     x_max_rate = np.max(x_rate, axis = 0)
-    np.savetxt('O1_rate_minmax.txt', np.asarray([x_min_rate, x_max_rate]))
+    np.savetxt('O1_vectorize_rate_minmax.txt', np.asarray([x_min_rate, x_max_rate]))
 
     x_drate = np.log10(diff_rate_trainset) # Observable. Input data. 
     x_min_drate = np.min(x_drate, axis = 0)
     x_max_drate = np.max(x_drate, axis = 0)
-    np.savetxt('O1_drate_min.txt', x_min_drate)
-    np.savetxt('O1_drate_max.txt', x_max_drate)
+    np.savetxt('O1_vectorize_drate_min.txt', x_min_drate)
+    np.savetxt('O1_vectorize_drate_max.txt', x_max_drate)
 
-    x_s1s2 = s1s2_trainset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 64x64
+    x_s1s2 = s1s2_trainset # Observable. Input data. I am cutting a bit the images to have 64x64
     x_min_s1s2 = np.min(x_s1s2, axis = 0)
     x_max_s1s2 = np.max(x_s1s2).reshape(1)
-    np.savetxt('O1_s1s2_min.txt', x_min_s1s2)
-    np.savetxt('O1_s1s2_max.txt', x_max_s1s2)
-    with h5py.File('testset.h5', 'w') as data:
+    np.savetxt('O1_vectorize_s1s2_min.txt', x_min_s1s2)
+    np.savetxt('O1_vectorize_s1s2_max.txt', x_max_s1s2)
+    with h5py.File('testset_vectorize.h5', 'w') as data:
         data.create_dataset('pars_testset', data = pars_testset)
         data.create_dataset('rate_testset', data = rate_testset)
         data.create_dataset('drate_testset', data = diff_rate_testset)
-        data.create_dataset('s1s2_testset', data = s1s2_testset[:,:-1,:-1].reshape(585,1,96,96))
+        data.create_dataset('s1s2_testset', data = s1s2_testset)
         data.attrs['pars_min'] = pars_min
         data.attrs['pars_max'] = pars_max
         data.attrs['x_min_rate'] = x_min_rate
@@ -608,15 +577,15 @@ if save:
         data.attrs['x_max_drate'] = x_max_drate
         data.attrs['x_max_s1s2'] = x_max_s1s2
 else:
-    pars_min = np.loadtxt('O1_pars_min.txt')
-    pars_max = np.loadtxt('O1_pars_max.txt')
-    x_minmax_rate = np.loadtxt('O1_rate_minmax.txt')
+    pars_min = np.loadtxt('O1_vectorize_pars_min.txt')
+    pars_max = np.loadtxt('O1_vectorize_pars_max.txt')
+    x_minmax_rate = np.loadtxt('O1_vectorize_rate_minmax.txt')
     x_min_rate = x_minmax_rate[0]
     x_max_rate = x_minmax_rate[1]
-    x_min_drate = np.loadtxt('O1_drate_min.txt')
-    x_max_drate = np.loadtxt('O1_drate_max.txt')
-    #x_min_s1s2 = np.loadtxt('O1_s1s2_min.txt')
-    x_max_s1s2 = np.loadtxt('O1_s1s2_max.txt')
+    x_min_drate = np.loadtxt('O1_vectorize_drate_min.txt')
+    x_max_drate = np.loadtxt('O1_vectorize_drate_max.txt')
+    #x_min_s1s2 = np.loadtxt('O1_vectorize_s1s2_min.txt')
+    x_max_s1s2 = np.loadtxt('O1_vectorize_s1s2_max.txt')
 
 # ## Ibarra
 
@@ -3266,22 +3235,11 @@ plt.ylabel('$\sigma_{Pred}$')
 
 # ### training
 
-x_s1s2 = s1s2_trainset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 64x64
+x_s1s2 = s1s2_trainset # Observable. Input data. I am cutting a bit the images to have 64x64
 
 # +
 # Let's normalize everything between 0 and 1
-
-pars_min = np.min(pars_trainset, axis = 0)
-pars_max = np.max(pars_trainset, axis = 0)
-
 pars_norm = (pars_trainset - pars_min) / (pars_max - pars_min)
-
-#x_min_s1s2 = np.min(x_s1s2, axis = 0)
-#x_max_s1s2 = np.max(x_s1s2, axis = 0)
-if False: 
-    np.savetxt('O1_s1s2_min.txt', x_min_s1s2)
-    np.savetxt('O1_s1s2_max.txt', x_max_s1s2)
-#x_max_s1s2 = np.max(x_max_s1s2)
 
 x_norm_s1s2 = x_s1s2
 #ind_nonzero = np.where(x_max_s1s2 > 0)
@@ -3295,7 +3253,7 @@ x_max_s1s2
 # +
 fig,ax = plt.subplots(2,2, gridspec_kw = {'hspace':0.5, 'wspace':0.5})
 
-ax[0,0].hist(x_norm_s1s2[:,50,30])
+ax[0,0].hist(x_norm_s1s2[:,50])
 ax[0,0].set_xlabel('# Events')
 
 ax[1,0].hist(pars_norm[:,0])
@@ -3307,11 +3265,6 @@ ax[0,1].set_xlabel('$\sigma$')
 ax[1,1].hist(pars_norm[:,2])
 ax[1,1].set_xlabel('$\\theta$')
 
-# -
-
-x_norm_s1s2 = x_norm_s1s2.reshape(len(x_norm_s1s2), 1, 96, 96) # The shape need to be (#obs, #channels, dim, dim)
-print(x_norm_s1s2.shape)
-print(pars_norm.shape)
 
 # +
 # We have to build a swyft.Samples object that will handle the data
@@ -3330,23 +3283,24 @@ class Network(swyft.SwyftModule):
         self.optimizer_init = swyft.OptimizerInit(torch.optim.Adam, dict(lr = lr, weight_decay=1e-5),
               torch.optim.lr_scheduler.ExponentialLR, dict(gamma = gamma))
         self.net = torch.nn.Sequential(
-          torch.nn.Conv2d(1, 10, kernel_size=5),
-          torch.nn.MaxPool2d(2),
+          torch.nn.Linear(9409, 5000),
+          torch.nn.ReLU(),
+          torch.nn.Linear(5000, 2000),
+          torch.nn.ReLU(),
+          torch.nn.Linear(2000, 1000),
+          torch.nn.ReLU(),
+          torch.nn.Linear(1000, 500),
+          torch.nn.ReLU(),
+          torch.nn.Linear(500, 250),
+          torch.nn.ReLU(),
+          torch.nn.Linear(250, 50),
           torch.nn.ReLU(),
           torch.nn.Dropout(0.2),
-          torch.nn.Conv2d(10, 20, kernel_size=5, padding=2),
-          torch.nn.MaxPool2d(2),
-          torch.nn.ReLU(),
-          torch.nn.Dropout(0.2),
-          torch.nn.Flatten(),
-          torch.nn.Linear(10580, 50),
-          torch.nn.ReLU(),
-          torch.nn.Dropout(0.2),
-          torch.nn.Linear(50, 10),
+          torch.nn.Linear(50, 5)
         )
         marginals = ((0, 1), (0, 2), (1, 2))
-        self.logratios1 = swyft.LogRatioEstimator_1dim(num_features = 10, num_params = 3, varnames = 'pars_norm')
-        self.logratios2 = swyft.LogRatioEstimator_Ndim(num_features = 10, marginals = marginals, varnames = 'pars_norm')
+        self.logratios1 = swyft.LogRatioEstimator_1dim(num_features = 5, num_params = 3, varnames = 'pars_norm')
+        self.logratios2 = swyft.LogRatioEstimator_Ndim(num_features = 5, marginals = marginals, varnames = 'pars_norm')
 
     def forward(self, A, B):
         img = torch.tensor(A['x'])
@@ -3356,40 +3310,6 @@ class Network(swyft.SwyftModule):
         logratios2 = self.logratios2(f, B['z'])
         return logratios1, logratios2
 
-
-# +
-# Now let's define a network that estimates all the 1D and 2D marginal posteriors
-# #%class Network(swyft.SwyftModule):
-#%    def __init__(self, lr = 1e-3, gamma = 1.):
-#%        super().__init__()
-#%        self.optimizer_init = swyft.OptimizerInit(torch.optim.Adam, dict(lr = lr, weight_decay=1e-5),
-#%              torch.optim.lr_scheduler.ExponentialLR, dict(gamma = gamma))
-#%        self.net = torch.nn.Sequential(
-#%          torch.nn.Conv2d(1, 10, kernel_size=5),
-#%          torch.nn.MaxPool2d(2),
-#%          torch.nn.ReLU(),
-#%          torch.nn.Dropout(0.5),
-#%          torch.nn.Conv2d(10, 20, kernel_size=5, padding=2),
-#%          torch.nn.MaxPool2d(2),
-#%          torch.nn.ReLU(),
-#%          torch.nn.Dropout(0.5),
-#%          torch.nn.Flatten(),
-#%          torch.nn.Linear(10580, 50),
-#%          torch.nn.ReLU(),
-#%          torch.nn.Dropout(0.5),
-#%          torch.nn.Linear(50, 10),
-#%        )
-#%        marginals = ((0, 1), (0, 2), (1, 2))
-#%        self.logratios1 = swyft.LogRatioEstimator_1dim(num_features = 10, num_params = 3, varnames = 'pars_norm')
-#%        self.logratios2 = swyft.LogRatioEstimator_Ndim(num_features = 10, marginals = marginals, varnames = 'pars_norm')
-#%
-#%    def forward(self, A, B):
-#%        img = torch.tensor(A['x'])
-#%        #z   = torch.tensor(B['z'])
-#%        f   = self.net(img)
-#%        logratios1 = self.logratios1(f, B['z'])
-#%        logratios2 = self.logratios2(f, B['z'])
-#%        return logratios1, logratios2
 
 # +
 class MetricTracker(Callback):
@@ -3413,14 +3333,12 @@ cb = MetricTracker()
 #torch.manual_seed(28890)
 cb = MetricTracker()
 early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta = 0., patience=50, verbose=False, mode='min')
-checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_final_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
+checkpoint_callback     = ModelCheckpoint(monitor='val_loss', dirpath='./logs/', filename='O1_vectorize_s1s2_{epoch}_{val_loss:.2f}_{train_loss:.2f}', mode='min')
 trainer_s1s2 = swyft.SwyftTrainer(accelerator = device, devices=1, max_epochs = 2500, precision = 64, callbacks=[early_stopping_callback, checkpoint_callback, cb])
 network_s1s2 = Network()
 
 # +
-x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
-x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
-x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
+x_norm_test_s1s2 = s1s2_testset / x_max_s1s2 # Observable. Input data. 
 
 pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
 
@@ -3432,15 +3350,14 @@ dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1],
 trainer_s1s2.test(network_s1s2, dm_test_s1s2)
 
 # +
-fit = False
+fit = True
 if fit:
     trainer_s1s2.fit(network_s1s2, dm_s1s2)
-    checkpoint_callback.to_yaml("./logs/O1_final_s1s2.yaml") 
-    ckpt_path = swyft.best_from_yaml("./logs/O1_final_s1s2.yaml")
+    checkpoint_callback.to_yaml("./logs/O1_vectorize_s1s2.yaml") 
+    ckpt_path = swyft.best_from_yaml("./logs/O1_vectorize_s1s2.yaml")
     email('Termino el entramiento del s1s2 para O1')
 else:
-    ckpt_path = swyft.best_from_yaml("./logs/O1_final_s1s2.yaml")
-    ckpt_path = '/home/martinrios/martin/trabajos/eftDM/codes/logs/O1_final_s1s2.ckpt'
+    ckpt_path = swyft.best_from_yaml("./logs/O1_vectorize_s1s2.yaml")
 
 # ---------------------------------------
 # Min val loss value at 48 epochs. -3.31
@@ -3448,29 +3365,7 @@ else:
 # -
 
 
-ckpt_path = '/home/martinrios/martin/trabajos/eftDM/codes/logs/O1_norm_s1s2_good.ckpt'
-
 trainer_s1s2.test(network_s1s2, dm_test_s1s2, ckpt_path = ckpt_path)
-
-# +
-x_norm_test_s1s2 = s1s2_testset[:,:-1,:-1] # Observable. Input data. I am cutting a bit the images to have 96x96
-x_norm_test_s1s2 = x_norm_test_s1s2 / x_max_s1s2 # Observable. Input data. I am cutting a bit the images to have 96x96
-x_norm_test_s1s2 = x_norm_test_s1s2.reshape(len(x_norm_test_s1s2), 1, 96, 96)
-
-pars_norm_test = (pars_testset - pars_min) / (pars_max - pars_min)
-
-# We have to build a swyft.Samples object that will handle the data
-samples_test_s1s2 = swyft.Samples(x = x_norm_test_s1s2, z = pars_norm_test)
-
-# We have to build a swyft.SwyftDataModule object that will split the data into training, testing and validation sets
-dm_test_s1s2 = swyft.SwyftDataModule(samples_test_s1s2, fractions = [0., 0., 1], batch_size = 32)
-trainer_s1s2.test(network_s1s2, dm_test_s1s2, ckpt_path = ckpt_path)
-
-# ---------------------------------------
-# Min val loss value at 7 epochs. -1.53 @ testset
-# ---------------------------------------
-
-# -
 
 if fit:
     val_loss = []
@@ -3484,7 +3379,10 @@ if fit:
     plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.savefig('../graph/O1_norm_loss_s1s2.pdf')
+    plt.text(1.02,0.9,'Val Loss = ' + str(np.round(np.min(val_loss), 2)), transform = plt.gca().transAxes)
+    plt.text(1.02,0.95,'Train Loss = ' + str(np.round(np.min(train_loss), 2)), transform = plt.gca().transAxes)
+    plt.text(1.02,1,'Epoch = ' + str(np.argmin(train_loss)), transform = plt.gca().transAxes)
+    plt.savefig('../graph/O1_vectorize_loss_s1s2.pdf', bbox_inches='tight')
 
 if fit:
     pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
@@ -3496,20 +3394,20 @@ if fit:
     for i in range(3):
         swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
     plt.tight_layout()
-    plt.savefig('../graph/O1_Coverage_s1s2_norm.pdf')
+    plt.savefig('../graph/O1_vectorize_Coverage_s1s2.pdf')
 
 # +
 
-pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
-prior_samples = swyft.Samples(z = pars_prior)
+#pars_prior    = np.random.uniform(low = 0, high = 1, size = (100_000, 3))
+#prior_samples = swyft.Samples(z = pars_prior)
 
-coverage_samples = trainer_s1s2.test_coverage(network_s1s2, samples_test_s1s2[:500], prior_samples)
+#coverage_samples = trainer_s1s2.test_coverage(network_s1s2, samples_test_s1s2[:500], prior_samples)
 
-fix, axes = plt.subplots(1, 3, figsize = (12, 4))
-for i in range(3):
-    swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
-plt.tight_layout()
-plt.savefig('../graph/O1_Coverage_s1s2_final.pdf')
+#fix, axes = plt.subplots(1, 3, figsize = (12, 4))
+#for i in range(3):
+#    swyft.plot_zz(coverage_samples, "pars_norm[%i]"%i, ax = axes[i])
+#plt.tight_layout()
+#plt.savefig('../graph/O1_vectorize_Coverage_s1s2.pdf')
 # -
 
 # ### Let's make some inference

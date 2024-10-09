@@ -413,6 +413,16 @@ def plot2d_comb(ax, predictions, pars_true, fill = True, line = False, linestyle
 
 # # Let's load the data
 
+nobs_new = 4000
+
+try:
+    valLoss = np.load('O1_valLoss_nobs_' + str(nobs_new) + '.npy')
+    iter = len(valLoss[0,:])
+    valLoss = np.hstack((valLoss, np.zeros((3,1))))
+except:
+    valLoss = np.zeros((3,1))
+    iter = 0
+
 # !ls ../data/andresData/SI-run0and1/
 
 # +
@@ -519,8 +529,9 @@ print(rate.shape)
 print(diff_rate.shape)
 print(s1s2.shape)
 
+print(nobs_new)
+
 # +
-nobs_new = 4000
 ind_new = np.random.choice(np.arange(nobs), nobs_new)
 
 nobs = len(ind_new)
@@ -739,15 +750,18 @@ trainer_rate.test(network_rate, dm_test_rate, ckpt_path = ckpt_path)
 # ---------------------------------------------- 
 # It converges to val_loss = -1. in testset
 # ---------------------------------------------- 
-# -
+
+# +
+val_loss = []
+train_loss = []
+for i in range(1, len(cb.collection)):
+    train_loss.append( np.asarray(cb.train_loss[i].cpu()) )
+    val_loss.append( np.asarray(cb.val_loss[i].cpu()) )
+
+valLoss[0,iter] = np.min(val_loss)
 
 if fit:
-    val_loss = []
-    train_loss = []
-    for i in range(1, len(cb.collection)):
-        train_loss.append( np.asarray(cb.train_loss[i].cpu()) )
-        val_loss.append( np.asarray(cb.val_loss[i].cpu()) )
-    
+
     plt.plot(train_loss, label = 'Train Loss')
     plt.plot(val_loss, label = 'Val Loss')
     plt.xlabel('Epoch')
@@ -920,15 +934,17 @@ trainer_drate.test(network_drate, dm_test_drate, ckpt_path = ckpt_path)
 # ---------------------------------------------- 
 # It converges to -1.51 @ testset
 # ---------------------------------------------- 
-# -
 
+# +
+val_loss = []
+train_loss = []
+for i in range(1, len(cb.collection)):
+    train_loss.append( np.asarray(cb.train_loss[i].cpu()) )
+    val_loss.append( np.asarray(cb.val_loss[i].cpu()) )
+
+valLoss[1,iter] = np.min(val_loss)
 if fit:
-    val_loss = []
-    train_loss = []
-    for i in range(1, len(cb.collection)):
-        train_loss.append( np.asarray(cb.train_loss[i].cpu()) )
-        val_loss.append( np.asarray(cb.val_loss[i].cpu()) )
-
+  
     plt.plot(val_loss, label = 'Val Loss')
     plt.plot(train_loss, label = 'Train Loss')
     plt.xlabel('Epoch')
@@ -1111,15 +1127,18 @@ trainer_s1s2.test(network_s1s2, dm_test_s1s2, ckpt_path = ckpt_path)
 # Min val loss value at 7 epochs. -1.53 @ testset
 # ---------------------------------------
 
-# -
+
+# +
+val_loss = []
+train_loss = []
+for i in range(1, len(cb.collection)):
+    train_loss.append( np.asarray(cb.train_loss[i].cpu()) )
+    val_loss.append( np.asarray(cb.val_loss[i].cpu()) )
+    
+valLoss[2,iter] = np.min(val_loss)
 
 if fit:
-    val_loss = []
-    train_loss = []
-    for i in range(1, len(cb.collection)):
-        train_loss.append( np.asarray(cb.train_loss[i].cpu()) )
-        val_loss.append( np.asarray(cb.val_loss[i].cpu()) )
-
+    
     plt.plot(val_loss, label = 'Val Loss')
     plt.plot(train_loss, label = 'Train Loss')
     plt.legend()
@@ -1146,39 +1165,42 @@ if fit:
 
 # # plots
 
+np.save('O1_valLoss_nobs_' + str(nobs_new) + '.npy', valLoss)
+
 # +
 nobs_list       = [1000 , 2000 , 3000 , 4000 , 5000 , 6000 , 7000 , 8000 , 
-                   #9000 , 10000, 11000, 12000, 13000, 14000,
+                   9000 , 10000, 11000, 12000, 13000, 14000,
                    15000, 20000]
              
 rate_valLoss    = [-0.93, -0.86, -1.10, -1.02, -1.03, -1.02, -1.1 , -1.08
-                   #, -1.03, -0.99, -1.12, -1.07, -1.00, -1.16
+                   , -1.03, -0.99, -1.12, -1.07, -1.00, -1.16
                    , -1.15, -1.05]
 rate_trainLoss  = [-2.91, -2.43, -1.25, -2.08, -1.69, -1.4 , -3.34, -1.73
-                   #, -1.66, -2.71, -1.31, -2.02, -4.77, -2.01
+                   , -1.66, -2.71, -1.31, -2.02, -4.77, -2.01
                    , -1.74, -2.18]
 
 drate_valLoss   = [-0.87, -1.29, -1.32, -1.42, -1.43, -1.61, -1.59, -1.48
-                   #, -1.80, -1.63, -1.67, -1.51, -1.70, -1.65
+                   , -1.80, -1.63, -1.67, -1.51, -1.70, -1.65
                    , -1.63, -1.60]
 drate_trainLoss = [-6.94, -5.82, -3.17, -5.96, -4.66, -3.82, -6.98, -4.19
-                   #, -4.02, -7.73, -5.14, -3.87, -8.23, -4.88
+                   , -4.02, -7.73, -5.14, -3.87, -8.23, -4.88
                    , -3.75, -6.64]
 
 s1s2_valLoss    = [-1.19, -1.60, -1.61, -1.59, -1.8 , -1.76, -1.84, -1.78
-                   #, -1.88, -1.66, -1.72, -1.78, -1.64, -1.83
+                   , -1.88, -1.66, -1.72, -1.78, -1.64, -1.83
                    , -1.94, -1.75]
 s1s2_trainLoss  = [-4.73, -2.92, -2.04, -4.04, -2.19, 2.32 , -6.6 , -3.17
-                   #, -2.60, -6.98, -2.48, -2.68, -7.38, -4.51
+                   , -2.60, -6.98, -2.48, -2.68, -7.38, -4.51
                    , -2.96, -2.93]
-# -
 
-plt.plot(nobs_list, rate_valLoss, label = 'Rate', color = color_rate)
-plt.plot(nobs_list, drate_valLoss, label = 'Dif. Rate', color = color_drate)
-plt.plot(nobs_list, s1s2_valLoss, label = 'cS1-cS2', color = color_s1s2)
-plt.legend()
-plt.ylabel('Val Loss')
-plt.xlabel('# data')
-plt.savefig('../graph/O1_datavsValloss.pdf')
+# +
+#plt.plot(nobs_list, rate_valLoss, label = 'Rate', color = color_rate)
+#plt.plot(nobs_list, drate_valLoss, label = 'Dif. Rate', color = color_drate)
+#plt.plot(nobs_list, s1s2_valLoss, label = 'cS1-cS2', color = color_s1s2)
+#plt.legend()
+#plt.ylabel('Val Loss')
+#plt.xlabel('# data')
+#plt.savefig('../graph/O1_datavsValloss.pdf')
+# -
 
 
