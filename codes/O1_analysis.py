@@ -12,7 +12,7 @@ import pandas as pd
 import os
 from scipy.ndimage import gaussian_filter
 from scipy.integrate import trapezoid
-from scipy.interpolate import CloughTocher2DInterpolator
+from scipy.interpolate import CloughTocher2DInterpolator, interp1d
 from scipy.integrate import simps
 from matplotlib.pyplot import contour, show
 from matplotlib.lines import Line2D
@@ -3445,10 +3445,11 @@ else:
 # ---------------------------------------
 # Min val loss value at 48 epochs. -3.31
 # ---------------------------------------
+
+
+# +
+#ckpt_path = '/home/martinrios/martin/trabajos/eftDM/codes/logs/O1_norm_s1s2_good.ckpt'
 # -
-
-
-ckpt_path = '/home/martinrios/martin/trabajos/eftDM/codes/logs/O1_norm_s1s2_good.ckpt'
 
 trainer_s1s2.test(network_s1s2, dm_test_s1s2, ckpt_path = ckpt_path)
 
@@ -5485,15 +5486,23 @@ pars_slices, rate_slices, diff_rate_slices, s1s2_slices, rate_raw_slices = read_
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
+plt.plot(parameter, ratios, color ='black', ls = '--')
+
+par = 1 # 0 = mass, 1 = cross-section, 2 = theta
+parameter = np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+ratios = np.zeros_like(np.asarray(predictions_rate[0].logratios[:,par]))
+
+flag + '_m_' + str(m_min_th) + '_' + str(m_max_th)
+
 # +
 plotMass = False
 plotCross = False
 iplot = [283, 284, 313, 342, 372, 402, 432, 463, 492, 493, 522, 523, 553,
        583, 613, 644, 674, 704, 734, 765, 795, 825, 856, 885, 886]
 
-cross_section_th = -49 # Cross-section threshold for 1d analysis 
-m_min_th = 1 # Min Mass for 1d analysis
-m_max_th = 2.6 # Max Mass for 1d analysis
+cross_section_th = -48.7 # Cross-section threshold for 1d analysis # 49
+m_min_th = 0.8 # Min Mass for 1d analysis # 1
+m_max_th = 2.6 # Max Mass for 1d analysis # 2.6
 
 rate  = True # Flag to use the information of the rate analysis
 drate = True # Flag to use the information of the drate analysis
@@ -5514,7 +5523,8 @@ if s1s2:
 else:
     flag = flag + '_s1s2_F'
 
-flag = flag + '_final'
+flag_cs = flag + '_sigma_' + str(-cross_section_th)
+flag_m = flag + '_m_' + str(m_min_th) + '_' + str(m_max_th)
 force = False # Flag to force to compute everything again although it was pre-computed
 
 thetas = ['0', 'minuspidiv2', 'minuspidiv4', 'pluspidiv2', 'pluspidiv4']
@@ -5553,10 +5563,10 @@ for theta in thetas:
         pars_slices, rate_slices, diff_rate_slices, s1s2_slices, rate_raw_slices = read_slice([folder])
         
         if (
-            os.path.exists(folder + 'cross_sec_int_prob_sup_' + flag + '.txt') &
-            os.path.exists(folder + 'masses_int_prob_sup_' + flag + '.txt') &
-            os.path.exists(folder + 'masses_prob_sup_' + flag + '.txt') &
-            os.path.exists(folder + 'masses_prob_inf_' + flag + '.txt') 
+            os.path.exists(folder + 'cross_sec_int_prob_sup_' + flag_cs + '.txt') &
+            os.path.exists(folder + 'masses_int_prob_sup_' + flag_m + '.txt') &
+            os.path.exists(folder + 'masses_prob_sup_' + flag_m + '.txt') &
+            os.path.exists(folder + 'masses_prob_inf_' + flag_m + '.txt') 
            ) == False or force == True:
             # Let's normalize testset between 0 and 1
             
@@ -5605,7 +5615,7 @@ for theta in thetas:
                 parameter = parameter[ind_sort]
                 
                 # Let's compute the integrated probability for different threshold
-                cr_th = np.argmin(np.abs(parameter - (-49)))
+                cr_th = np.argmin(np.abs(parameter - cross_section_th))
                 cross_sec_int_prob_sup[itest] = trapezoid(ratios[cr_th:], parameter[cr_th:]) / trapezoid(ratios, parameter)
 
                 
@@ -5619,7 +5629,7 @@ for theta in thetas:
                     plt.xlabel('$\\sigma$')
                     plt.ylabel('$P$')
                     plt.legend()
-                    plt.savefig('../graph/CrossPosteriorsComb_' + flag + '_theta_' + theta + '_obs_' + str(itest) + '_folder_' + folder[-2:-1] + '.pdf')
+                    plt.savefig('../graph/CrossPosteriorsComb_' + flag_cs + '_theta_' + theta + '_obs_' + str(itest) + '_folder_' + folder[-2:-1] + '.pdf')
                     plt.clf()
                 #-----------------------------------------------------------------------------------------------------------
                 
@@ -5655,7 +5665,7 @@ for theta in thetas:
                     plt.xlabel('$log10(mass)$')
                     plt.ylabel('$P$')
                     plt.legend()
-                    plt.savefig('../graph/MassPosteriorsComb_' + flag + '_theta_' + theta + '_obs_' + str(itest) + '_folder_' + folder[-2:-1] + '.pdf')
+                    plt.savefig('../graph/MassPosteriorsComb_' + flag_m + '_theta_' + theta + '_obs_' + str(itest) + '_folder_' + folder[-2:-1] + '.pdf')
                     plt.clf()
                     
                 #-----------------------------------------------------------------------------------------------------------
@@ -5665,16 +5675,16 @@ for theta in thetas:
             masses_prob_sup_full.append(masses_prob_sup)
             masses_prob_inf_full.append(masses_prob_inf)
                 
-            np.savetxt(folder + 'cross_sec_int_prob_sup_' + flag + '.txt', cross_sec_int_prob_sup)
-            np.savetxt(folder + 'masses_int_prob_sup_' + flag + '.txt', masses_int_prob_sup)
-            np.savetxt(folder + 'masses_prob_sup_' + flag + '.txt', masses_prob_sup)
-            np.savetxt(folder + 'masses_prob_inf_' + flag + '.txt', masses_prob_inf)
+            np.savetxt(folder + 'cross_sec_int_prob_sup_' + flag_cs + '.txt', cross_sec_int_prob_sup)
+            np.savetxt(folder + 'masses_int_prob_sup_' + flag_m + '.txt', masses_int_prob_sup)
+            np.savetxt(folder + 'masses_prob_sup_' + flag_m + '.txt', masses_prob_sup)
+            np.savetxt(folder + 'masses_prob_inf_' + flag_m + '.txt', masses_prob_inf)
         else:
             print('pre-computed')
-            cross_sec_int_prob_sup = np.loadtxt(folder + 'cross_sec_int_prob_sup_' + flag + '.txt')
-            masses_int_prob_sup    = np.loadtxt(folder + 'masses_int_prob_sup_' + flag + '.txt')
-            masses_prob_sup        = np.loadtxt(folder + 'masses_prob_sup_' + flag + '.txt')
-            masses_prob_inf        = np.loadtxt(folder + 'masses_prob_inf_' + flag + '.txt')
+            cross_sec_int_prob_sup = np.loadtxt(folder + 'cross_sec_int_prob_sup_' + flag_cs + '.txt')
+            masses_int_prob_sup    = np.loadtxt(folder + 'masses_int_prob_sup_' + flag_m + '.txt')
+            masses_prob_sup        = np.loadtxt(folder + 'masses_prob_sup_' + flag_m + '.txt')
+            masses_prob_inf        = np.loadtxt(folder + 'masses_prob_inf_' + flag_m + '.txt')
     
             cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
             masses_int_prob_sup_full.append(masses_int_prob_sup)
@@ -5713,7 +5723,7 @@ ax[1,0].set_xlabel('$\int_{m_{min}}^{\inf} P(m_{DM}|x)$')
 ax[1,1].legend()
 ax[1,1].set_xlabel('$\int_{0}^{m_{max}} P(m_{DM}|x)$')
 
-plt.savefig('../graph/O1_norm_int_prob_distribution_drate.pdf')
+#plt.savefig('../graph/O1_norm_int_prob_distribution_drate.pdf')
 
 
 
@@ -5749,6 +5759,12 @@ class AnyObjectHandler2(HandlerBase):
         l2 = plt.Line2D([x0,y0+width], [0.1*height,0.1*height], color=color_comb, linestyle = orig_handle[1], lw = 2)
         return [l1, l2]
 
+
+# -
+
+CR_int_prob_sup_comb_sigma487 = CR_int_prob_sup_comb
+M_int_prob_sup_comb_m08_26 = M_int_prob_sup_comb
+M_prob_sup_comb_m08_26 = M_prob_sup_comb
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]
@@ -5807,7 +5823,7 @@ ax[0].tick_params(axis='y', labelsize=12)
 ax[1].tick_params(axis='x', labelsize=12)
 ax[2].tick_params(axis='x', labelsize=12)
 
-plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB_v3.pdf', bbox_inches='tight')
+#plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB_changeIntBound.pdf', bbox_inches='tight')
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]
@@ -5971,7 +5987,7 @@ leg2 = ax.legend([('--', ':')], ['$\\mathcal{P}_{M_{DM}}$'],
            handler_map={tuple: AnyObjectHandler2()}, loc = 'lower right', fontsize = 12, bbox_to_anchor=(0.75,0.))
 ax.add_artist(leg2)
 
-plt.savefig('../graph/ContourPlot_O1_pi2_6.pdf')
+#plt.savefig('../graph/ContourPlot_O1_pi2_6.pdf')
 
 # +
 fig.subplots_adjust(right=0.8)
@@ -6001,6 +6017,254 @@ leg1 = ax[2].legend([('--', ':')], ['$\\mathcal{P}_{M_{DM}}$'],
 ax[2].add_artist(leg1)
 
 #plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB.pdf', bbox_inches='tight')
+# -
+
+# ## Change limits
+
+# +
+cont = plt.contour(m_vals, cross_vals, CR_int_prob_sup_comb_sigma493[0].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_comb)
+x = cont.collections[0].get_paths()[2].vertices[:,0]
+y = cont.collections[0].get_paths()[2].vertices[:,1]
+
+aux_ind = np.where( (y < 5e-44) & (y > 1e-49))[0]
+
+x = x[aux_ind]
+y = y[aux_ind]
+
+plt.scatter(x, y)
+
+f = interp1d(x, y, kind='linear')
+
+x493 = np.logspace(0.92, 3, 100)  # Puntos más densos
+
+# Evaluar la función interpolada en los nuevos puntos
+y493 = f(x493)
+plt.scatter(x493, y493, color = 'red')
+
+plt.yscale('log')
+plt.xscale('log')
+
+# +
+cont = plt.contour(m_vals, cross_vals, M_int_prob_sup_comb_m11_28[0].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_comb)
+x = cont.collections[0].get_paths()[0].vertices[:,0]
+y = cont.collections[0].get_paths()[0].vertices[:,1]
+
+aux_ind = np.where( (y < 5e-44) & (y > 1e-49))[0]
+
+x = x[aux_ind]
+y = y[aux_ind]
+
+plt.scatter(x, y)
+
+f = interp1d(x, y, kind='linear', bounds_error=False, fill_value=0)
+
+x28 = np.logspace(0.92, 2.8, 100)  # Puntos más densos
+
+# Evaluar la función interpolada en los nuevos puntos
+y28 = f(x28)
+plt.scatter(x28, y28, color = 'red')
+
+plt.yscale('log')
+plt.xscale('log')
+
+# +
+cont = plt.contour(m_vals, cross_vals, M_int_prob_sup_comb_m12_26[0].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_comb)
+x = cont.collections[0].get_paths()[0].vertices[:,0]
+y = cont.collections[0].get_paths()[0].vertices[:,1]
+
+aux_ind = np.where( (y < 5e-44) & (y > 1e-49))[0]
+
+x = x[aux_ind]
+y = y[aux_ind]
+
+plt.scatter(x, y)
+
+f = interp1d(x, y, kind='linear', bounds_error=False, fill_value=0)
+
+x12 = np.logspace(0.92, 2.8, 100)  # Puntos más densos
+
+# Evaluar la función interpolada en los nuevos puntos
+y12 = f(x12)
+plt.scatter(x12, y12, color = 'red')
+plt.scatter(x1, y1, color = 'magenta')
+
+plt.yscale('log')
+plt.xscale('log')
+# -
+
+aux_ind = np.where( (y12 != 0) & (y1 != 0))[0]
+y12[aux_ind] / y1[aux_ind]
+
+# +
+fig,ax = plt.subplots(1,3, figsize = (10,5), sharey = True, sharex = True)
+fig.subplots_adjust(hspace = 0, wspace = 0)
+
+ax[0].plot(x493, (y493 / y49), color = color_comb)
+ax[0].plot(x493, (y487 / y49), color = color_comb)
+ax[0].axhline(y=1)
+
+ax[0].set_xscale('log')
+
+aux_ind = np.where( (y08 != 0) & (y1 != 0))[0] # Sacamos los valores extrapolados
+ax[1].plot(x08[aux_ind], (y08[aux_ind] / y1[aux_ind]), color = color_comb, ls = ':')
+aux_ind = np.where( (y12 != 0) & (y1 != 0))[0] # Sacamos los valores extrapolados
+ax[1].plot(x12[aux_ind], (y12[aux_ind] / y1[aux_ind]), color = color_comb, ls = ':')
+ax[1].axhline(y=1)
+
+ax[1].set_xscale('log')
+ax[1].set_ylim(0,3)
+
+aux_ind = np.where(y24 != 0)[0] # Sacamos los valores extrapolados
+ax[2].plot(x24[aux_ind], (y24[aux_ind] / y26[aux_ind]), color = color_comb, ls = '--')
+aux_ind = np.where(y28 != 0)[0] # Sacamos los valores extrapolados
+ax[2].plot(x28[aux_ind], (y28[aux_ind] / y26[aux_ind]), color = color_comb, ls = '--')
+ax[2].axhline(y=1)
+
+ax[2].set_xscale('log')
+
+custom_lines = []
+labels = ['$\\langle \\mathcal{P}_{\\sigma} \\rangle = 0.9$', '$\\langle \\mathcal{P}^{\\rm{low}}_{m_{\chi}} \\rangle = 0.9$', '$\\langle \\mathcal{P}_{m_{\chi}} \\rangle = 0.9$']
+markers = ['solid','dashed', 'dotted']
+colors = [color_comb, color_comb, color_comb]
+for i in range(3):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+            label = labels[i], lw = 2) )
+    
+ax[1].legend(handles = custom_lines, loc = 'lower left', bbox_to_anchor=(-0.43,1.), frameon = False, ncol = 3, fontsize = 12)
+
+ax[0].tick_params(axis='x', labelsize=12)
+ax[0].tick_params(axis='y', labelsize=12)
+ax[1].tick_params(axis='x', labelsize=12)
+ax[2].tick_params(axis='x', labelsize=12)
+
+
+ax[0].set_ylabel('$\sigma^{SI} \ $[cm$^{2}$]', fontsize = 12)
+ax[0].set_xlabel('$m_{\\chi}$ [GeV]', fontsize = 12)
+ax[1].set_xlabel('$m_{\\chi}$ [GeV]', fontsize = 12)
+ax[2].set_xlabel('$m_{\\chi}$ [GeV]', fontsize = 12)
+
+plt.savefig('../graph/changeLimits.pdf', bbox_inches = 'tight')
+# -
+
+# ## individual points
+
+folder = ['../data/andresData/O1-slices-5vecescadatheta/theta-0/SI-slices01-0/']
+
+pars_slices, rate_slices, diff_rate_slices, s1s2_slices, rate_raw_slices = read_slice(folder)
+
+
+# +
+pars_norm = (pars_slices - pars_min) / (pars_max - pars_min)
+                
+x_norm_s1s2 = x_s1s2 = s1s2_slices[:,:-1,:-1] / x_max_s1s2
+                   
+x_drate = np.log10(diff_rate_slices)
+x_norm_drate = (x_drate - x_min_drate) / (x_max_drate - x_min_drate)
+                   
+x_rate = np.log10(rate_slices)
+x_norm_rate = (x_rate - x_min_rate) / (x_max_rate - x_min_rate)
+#x_norm_rate = x_rate / x_max_rate
+x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
+            
+cross_sec_int_prob_sup = np.ones(len(pars_norm)) * -99
+masses_int_prob_sup = np.ones(len(pars_norm)) * -99
+masses_prob_sup     = np.ones(len(pars_norm)) * -99
+masses_prob_inf     = np.ones(len(pars_norm)) * -99
+               
+
+# +
+   
+itest = 28*13 + 9
+# -
+
+10**pars_slices[itest,0]
+
+10**pars_slices[itest,1]
+
+# +
+x_obs_s1s2 = x_norm_s1s2[itest, :,:]
+obs_s1s2 = swyft.Sample(x = x_obs_s1s2.reshape(1,96,96))
+predictions_s1s2 = trainer_s1s2.infer(network_s1s2, obs_s1s2, prior_samples)
+                    
+x_obs_drate = x_norm_drate[itest, :]
+obs_drate = swyft.Sample(x = x_obs_drate)
+predictions_drate = trainer_drate.infer(network_drate, obs_drate, prior_samples)
+        
+x_obs_rate = x_norm_rate[itest, :]
+obs_rate = swyft.Sample(x = x_obs_rate)
+predictions_rate = trainer_rate.infer(network_rate, obs_rate, prior_samples)
+        
+# Cross-section
+par = 1 # 0 = mass, 1 = cross-section, 2 = theta
+parameter = np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+ratios = np.zeros_like(np.asarray(predictions_rate[0].logratios[:,par]))
+if rate:  ratios = ratios + np.asarray(predictions_rate[0].logratios[:,par])
+if drate: ratios = ratios + np.asarray(predictions_drate[0].logratios[:,par])
+if s1s2:  ratios = ratios + np.asarray(predictions_s1s2[0].logratios[:,par])
+                        
+ratios = np.exp(ratios)
+                        
+ind_sort  = np.argsort(parameter)
+ratios    = ratios[ind_sort]
+parameter = parameter[ind_sort]
+                    
+# Let's compute the integrated probability for different threshold
+cr_th = np.argmin(np.abs(parameter - cross_section_th))
+cross_sec_int_prob_sup[itest] = trapezoid(ratios[cr_th:], parameter[cr_th:]) / trapezoid(ratios, parameter)
+    
+     
+
+# +
+plt.plot(parameter, np.exp(np.asarray(predictions_rate[0].logratios[:,par])[ind_sort]), color =color_rate, label = 'rate')
+plt.plot(parameter, np.exp(np.asarray(predictions_drate[0].logratios[:,par])[ind_sort]), color =color_drate, label = 'drate')
+plt.plot(parameter, np.exp(np.asarray(predictions_s1s2[0].logratios[:,par])[ind_sort]), color =color_s1s2, label = 's1s2')
+                        
+plt.plot(parameter, ratios, color ='black', ls = '--')
+
+plt.axvline(pars_slices[itest, par])
+plt.axvline(cross_section_th, ls = ':', c = 'black')
+plt.xlabel('$\\sigma$')
+plt.ylabel('$P$')
+plt.legend()
+
+# +
+# Mass
+par = 0 # 0 = mass, 1 = cross-section, 2 = theta
+parameter = np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
+ratios = np.zeros_like(np.asarray(predictions_rate[0].logratios[:,par]))
+if rate:  ratios = ratios + np.asarray(predictions_rate[0].logratios[:,par])
+if drate: ratios = ratios + np.asarray(predictions_drate[0].logratios[:,par])
+if s1s2:  ratios = ratios + np.asarray(predictions_s1s2[0].logratios[:,par])
+                        
+ratios = np.exp(ratios)
+                    
+ind_sort  = np.argsort(parameter)
+ratios    = ratios[ind_sort]
+parameter = parameter[ind_sort]
+                    
+# Let's compute the integrated probability for different threshold            
+m_min = np.argmin(np.abs(parameter - m_min_th))
+m_max = np.argmin(np.abs(parameter - m_max_th))
+                    
+masses_int_prob_sup[itest] = trapezoid(ratios[m_min:m_max], parameter[m_min:m_max]) / trapezoid(ratios, parameter)
+masses_prob_sup[itest] = trapezoid(ratios[m_min:], parameter[m_min:]) / trapezoid(ratios, parameter)
+masses_prob_inf[itest] = trapezoid(ratios[:m_max], parameter[:m_max]) / trapezoid(ratios, parameter)
+   
+
+# +
+plt.plot(parameter, np.exp(np.asarray(predictions_rate[0].logratios[:,par])[ind_sort]), color =color_rate, label = 'rate')
+plt.plot(parameter, np.exp(np.asarray(predictions_drate[0].logratios[:,par])[ind_sort]), color =color_drate, label = 'drate')
+plt.plot(parameter, np.exp(np.asarray(predictions_s1s2[0].logratios[:,par])[ind_sort]), color =color_s1s2, label = 's1s2')
+                        
+plt.plot(parameter, ratios, color ='black', ls = '--')
+
+plt.axvline(pars_slices[itest, par])
+
+plt.axvline(m_min_th, ls = ':', c = 'black')
+plt.axvline(m_max_th, ls = ':', c = 'black')
+plt.xlabel('$log10(mass)$')
+plt.ylabel('$P$')
+plt.legend()
 # -
 
 # # Some other plots
