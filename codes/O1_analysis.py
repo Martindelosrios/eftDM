@@ -5486,13 +5486,32 @@ pars_slices, rate_slices, diff_rate_slices, s1s2_slices, rate_raw_slices = read_
 m_vals = np.logspace(np.min(pars_slices[:,0]), np.max(pars_slices[:,0]),30)
 cross_vals = np.logspace(np.min(pars_slices[:,1]), np.max(pars_slices[:,1]),30)
 
+
+def estimate_conf_interval(ratios, parameters, prob = 0.68):
+    ML_par = parameter[np.argmax(ratios)]
+    bines = np.linspace(np.min(ratios), np.max(ratios), 10)
+
+    fac = trapezoid(ratios, parameter)
+    aux_int = []
+    for ibin in range(10):
+        aux_ind = np.where(ratios > bines[ibin])
+        aux_int.append(trapezoid(ratios[aux_ind], parameter[aux_ind]) / fac)
+    
+    aux_int = np.asarray(aux_int)
+    aux_ind = np.where(ratios > bines[np.argmin(np.abs(aux_int - prob))])[0]
+
+    min_par = np.min(parameter[aux_ind])
+    max_par = np.max(parameter[aux_ind])
+
+    return ML_par, min_par, max_par
+
+
+ML_par, min_par, max_par = estimate_conf_interval(ratios, parameter, prob = 0.9998)
+
 plt.plot(parameter, ratios, color ='black', ls = '--')
-
-par = 1 # 0 = mass, 1 = cross-section, 2 = theta
-parameter = np.asarray(predictions_rate[0].params[:,par,0]) * (pars_max[par] - pars_min[par]) + pars_min[par]
-ratios = np.zeros_like(np.asarray(predictions_rate[0].logratios[:,par]))
-
-flag + '_m_' + str(m_min_th) + '_' + str(m_max_th)
+plt.axvline(x = ML_par)
+plt.axvline(x = min_par)
+plt.axvline(x = max_par)
 
 # +
 plotMass = False
@@ -5500,9 +5519,9 @@ plotCross = False
 iplot = [283, 284, 313, 342, 372, 402, 432, 463, 492, 493, 522, 523, 553,
        583, 613, 644, 674, 704, 734, 765, 795, 825, 856, 885, 886]
 
-cross_section_th = -48.7 # Cross-section threshold for 1d analysis # 49
-m_min_th = 0.8 # Min Mass for 1d analysis # 1
-m_max_th = 2.6 # Max Mass for 1d analysis # 2.6
+cross_section_th = -49. # Cross-section threshold for 1d analysis # 49 (48.7, 49.3)
+m_min_th = 1. # Min Mass for 1d analysis # 1 (0.8, 1.2)
+m_max_th = 2.9 # Max Mass for 1d analysis # 2.6 (2.4, 2.8)
 
 rate  = True # Flag to use the information of the rate analysis
 drate = True # Flag to use the information of the drate analysis
@@ -5530,12 +5549,29 @@ force = False # Flag to force to compute everything again although it was pre-co
 thetas = ['0', 'minuspidiv2', 'minuspidiv4', 'pluspidiv2', 'pluspidiv4']
 cross_sec_int_prob_sup_aux    = []
 cross_sec_int_prob_sup_aux_sd = []
+ML_cross = []
+ML_cross_sd = []
+min68_cross = []
+max68_cross = []
+min95_cross = []
+max95_cross = []
+min99_cross = []
+max99_cross = []
+
 masses_int_prob_sup_aux       = []
 masses_int_prob_sup_aux_sd    = []
 masses_prob_sup_aux           = []
 masses_prob_sup_aux_sd        = []
 masses_prob_inf_aux           = []
 masses_prob_inf_aux_sd        = []
+ML_mass = []
+ML_mass_sd = []
+min68_mass = []
+max68_mass = []
+min95_mass = []
+max95_mass = []
+min99_mass = []
+max99_mass = []
 
 # we generate a prior over the theta parameters that we want to infer and add them to a swyft.Sample object
 pars_prior    = np.random.uniform(low = 0, high = 1, size = (10_000, 3))
@@ -5554,10 +5590,24 @@ for theta in thetas:
              ]
     
     cross_sec_int_prob_sup_full = []
+    ML_cross_full = []
+    min68_cross_full = []
+    max68_cross_full = []
+    min95_cross_full = []
+    max95_cross_full = []
+    min99_cross_full = []
+    max99_cross_full = []
     
     masses_int_prob_sup_full = []
     masses_prob_sup_full     = []
     masses_prob_inf_full     = []
+    ML_mass_full = []
+    min68_mass_full = []
+    max68_mass_full = []
+    min95_mass_full = []
+    max95_mass_full = []
+    min99_mass_full = []
+    max99_mass_full = []
 
     for folder in folders:
         pars_slices, rate_slices, diff_rate_slices, s1s2_slices, rate_raw_slices = read_slice([folder])
@@ -5583,9 +5633,24 @@ for theta in thetas:
             x_norm_rate = x_norm_rate.reshape(len(x_norm_rate), 1)
         
             cross_sec_int_prob_sup = np.ones(len(pars_norm)) * -99
+            cross_ML               = np.ones(len(pars_norm)) * -99
+            cross_min68            = np.ones(len(pars_norm)) * -99
+            cross_max68            = np.ones(len(pars_norm)) * -99
+            cross_min95            = np.ones(len(pars_norm)) * -99
+            cross_max95            = np.ones(len(pars_norm)) * -99
+            cross_min99            = np.ones(len(pars_norm)) * -99
+            cross_max99            = np.ones(len(pars_norm)) * -99
+               
             masses_int_prob_sup = np.ones(len(pars_norm)) * -99
             masses_prob_sup     = np.ones(len(pars_norm)) * -99
             masses_prob_inf     = np.ones(len(pars_norm)) * -99
+            mass_ML             = np.ones(len(pars_norm)) * -99
+            mass_min68          = np.ones(len(pars_norm)) * -99
+            mass_max68          = np.ones(len(pars_norm)) * -99
+            mass_min95          = np.ones(len(pars_norm)) * -99
+            mass_max95          = np.ones(len(pars_norm)) * -99
+            mass_min99          = np.ones(len(pars_norm)) * -99
+            mass_max99          = np.ones(len(pars_norm)) * -99
                
             for itest in tqdm(range(len(pars_norm))):
                 x_obs_s1s2 = x_norm_s1s2[itest, :,:]
@@ -5618,6 +5683,9 @@ for theta in thetas:
                 cr_th = np.argmin(np.abs(parameter - cross_section_th))
                 cross_sec_int_prob_sup[itest] = trapezoid(ratios[cr_th:], parameter[cr_th:]) / trapezoid(ratios, parameter)
 
+                cross_ML[itest], cross_min68[itest], cross_max68[itest] = estimate_conf_interval(ratios, parameter, prob = 0.68)
+                cross_ML[itest], cross_min95[itest], cross_max95[itest] = estimate_conf_interval(ratios, parameter, prob = 0.95)
+                cross_ML[itest], cross_min99[itest], cross_max99[itest] = estimate_conf_interval(ratios, parameter, prob = 0.99)
                 
                 if plotCross & (itest in iplot):
                     plt.plot(parameter, np.exp(np.asarray(predictions_rate[0].logratios[:,par])[ind_sort]), color =color_rate, label = 'rate')
@@ -5655,6 +5723,10 @@ for theta in thetas:
                 masses_prob_sup[itest] = trapezoid(ratios[m_min:], parameter[m_min:]) / trapezoid(ratios, parameter)
                 masses_prob_inf[itest] = trapezoid(ratios[:m_max], parameter[:m_max]) / trapezoid(ratios, parameter)
 
+                mass_ML[itest], mass_min68[itest], mass_max68[itest] = estimate_conf_interval(ratios, parameter, prob = 0.68)
+                mass_ML[itest], mass_min95[itest], mass_max95[itest] = estimate_conf_interval(ratios, parameter, prob = 0.95)
+                mass_ML[itest], mass_min99[itest], mass_max99[itest] = estimate_conf_interval(ratios, parameter, prob = 0.99)
+
                 if plotMass & (itest in iplot):
                     plt.plot(parameter, np.exp(np.asarray(predictions_rate[0].logratios[:,par])[ind_sort]), color =color_rate, label = 'rate')
                     plt.plot(parameter, np.exp(np.asarray(predictions_drate[0].logratios[:,par])[ind_sort]), color =color_drate, label = 'drate')
@@ -5671,35 +5743,157 @@ for theta in thetas:
                 #-----------------------------------------------------------------------------------------------------------
                 
             cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
+            ML_cross_full.append(cross_ML)
+            min68_cross_full.append(cross_min68)
+            max68_cross_full.append(cross_max68)
+            min95_cross_full.append(cross_min95)
+            max95_cross_full.append(cross_max95)
+            min99_cross_full.append(cross_min99)
+            max99_cross_full.append(cross_max99)
+               
             masses_int_prob_sup_full.append(masses_int_prob_sup)
             masses_prob_sup_full.append(masses_prob_sup)
             masses_prob_inf_full.append(masses_prob_inf)
+            ML_mass_full.append(mass_ML)
+            min68_mass_full.append(mass_min68)
+            max68_mass_full.append(mass_max68)
+            min95_mass_full.append(mass_min95)
+            max95_mass_full.append(mass_max95)
+            min99_mass_full.append(mass_min99)
+            max99_mass_full.append(mass_max99)
                 
             np.savetxt(folder + 'cross_sec_int_prob_sup_' + flag_cs + '.txt', cross_sec_int_prob_sup)
+            np.savetxt(folder + 'ML_cross_' + flag_cs + '.txt', ML_cross)
+            np.savetxt(folder + 'min68_cross_' + flag_cs + '.txt', min68_cross)
+            np.savetxt(folder + 'max68_cross_' + flag_cs + '.txt', max68_cross)
+            np.savetxt(folder + 'min95_cross_' + flag_cs + '.txt', min95_cross)
+            np.savetxt(folder + 'max95_cross_' + flag_cs + '.txt', max95_cross)
+            np.savetxt(folder + 'min99_cross_' + flag_cs + '.txt', min99_cross)
+            np.savetxt(folder + 'max99_cross_' + flag_cs + '.txt', max99_cross)
+               
             np.savetxt(folder + 'masses_int_prob_sup_' + flag_m + '.txt', masses_int_prob_sup)
             np.savetxt(folder + 'masses_prob_sup_' + flag_m + '.txt', masses_prob_sup)
             np.savetxt(folder + 'masses_prob_inf_' + flag_m + '.txt', masses_prob_inf)
+            np.savetxt(folder + 'ML_mass_' + flag_cs + '.txt', ML_cross)
+            np.savetxt(folder + 'min68_mass_' + flag_cs + '.txt', min68_mass)
+            np.savetxt(folder + 'max68_mass_' + flag_cs + '.txt', max68_mass)
+            np.savetxt(folder + 'min95_mass_' + flag_cs + '.txt', min95_mass)
+            np.savetxt(folder + 'max95_mass_' + flag_cs + '.txt', max95_mass)
+            np.savetxt(folder + 'min99_mass_' + flag_cs + '.txt', min99_mass)
+            np.savetxt(folder + 'max99_mass_' + flag_cs + '.txt', max99_mass)
         else:
             print('pre-computed')
             cross_sec_int_prob_sup = np.loadtxt(folder + 'cross_sec_int_prob_sup_' + flag_cs + '.txt')
+            #cross_ML = np.loadtxt(folder + 'ML_cross_' + flag_cs + '.txt')
+            #cross_min68 = np.loadtxt(folder + 'min68_cross_' + flag_cs + '.txt')
+            #cross_max68 = np.loadtxt(folder + 'max68_cross_' + flag_cs + '.txt')
+            #cross_min95 = np.loadtxt(folder + 'min95_cross_' + flag_cs + '.txt')
+            #cross_max95 = np.loadtxt(folder + 'max95_cross_' + flag_cs + '.txt')
+            #cross_min99 = np.loadtxt(folder + 'min99_cross_' + flag_cs + '.txt')
+            #cross_max99 = np.loadtxt(folder + 'max99_cross_' + flag_cs + '.txt')
+            
             masses_int_prob_sup    = np.loadtxt(folder + 'masses_int_prob_sup_' + flag_m + '.txt')
             masses_prob_sup        = np.loadtxt(folder + 'masses_prob_sup_' + flag_m + '.txt')
             masses_prob_inf        = np.loadtxt(folder + 'masses_prob_inf_' + flag_m + '.txt')
+            #mass_ML = np.loadtxt(folder + 'ML_mass_' + flag_cs + '.txt')
+            #mass_min68 = np.loadtxt(folder + 'min68_mass_' + flag_cs + '.txt')
+            #mass_max68 = np.loadtxt(folder + 'max68_mass_' + flag_cs + '.txt')
+            #mass_min95 = np.loadtxt(folder + 'min95_mass_' + flag_cs + '.txt')
+            #mass_max95 = np.loadtxt(folder + 'max95_mass_' + flag_cs + '.txt')
+            #mass_min99 = np.loadtxt(folder + 'min99_mass_' + flag_cs + '.txt')
+            #mass_max99 = np.loadtxt(folder + 'max99_mass_' + flag_cs + '.txt')
     
             cross_sec_int_prob_sup_full.append(cross_sec_int_prob_sup)
+            #ML_cross_full.append(cross_ML)
+            #min68_cross_full.append(cross_min68)
+            #max68_cross_full.append(cross_max68)
+            #min95_cross_full.append(cross_min95)
+            #max95_cross_full.append(cross_max95)
+            #min99_cross_full.append(cross_min99)
+            #max99_cross_full.append(cross_max99)
+
             masses_int_prob_sup_full.append(masses_int_prob_sup)
             masses_prob_sup_full.append(masses_prob_sup)
             masses_prob_inf_full.append(masses_prob_inf)
+            #ML_mass_full.append(mass_ML)
+            #min68_mass_full.append(mass_min68)
+            #max68_mass_full.append(mass_max68)
+            #min95_mass_full.append(mass_min95)
+            #max95_mass_full.append(mass_max95)
+            #min99_mass_full.append(mass_min99)
+            #max99_mass_full.append(mass_max99)
     
     
     cross_sec_int_prob_sup_aux.append( np.mean(np.asarray(cross_sec_int_prob_sup_full), axis = 0) )
     cross_sec_int_prob_sup_aux_sd.append( np.std(np.asarray(cross_sec_int_prob_sup_full), axis = 0) )
+    ML_cross.append( np.mean(np.asarray(ML_cross_full), axis = 0) )
+    ML_cross_sd.append( np.std(np.asarray(ML_cross_full), axis = 0) )
+    min68_cross.append( np.mean(np.asarray(min68_cross_full), axis = 0) )
+    max68_cross.append( np.mean(np.asarray(max68_cross_full), axis = 0) )
+    min95_cross.append( np.mean(np.asarray(min95_cross_full), axis = 0) )
+    max95_cross.append( np.mean(np.asarray(max95_cross_full), axis = 0) )
+    min99_cross.append( np.mean(np.asarray(min99_cross_full), axis = 0) )
+    max99_cross.append( np.mean(np.asarray(max99_cross_full), axis = 0) )
+
     masses_int_prob_sup_aux.append( np.mean(np.asarray(masses_int_prob_sup_full), axis = 0) )
     masses_int_prob_sup_aux_sd.append( np.std(np.asarray(masses_int_prob_sup_full), axis = 0) )
     masses_prob_sup_aux.append( np.mean(np.asarray(masses_prob_sup_full), axis = 0) )
     masses_prob_sup_aux_sd.append( np.std(np.asarray(masses_prob_sup_full), axis = 0) )
     masses_prob_inf_aux.append( np.mean(np.asarray(masses_prob_inf_full), axis = 0) )
     masses_prob_inf_aux_sd.append( np.std(np.asarray(masses_prob_inf_full), axis = 0) )
+    ML_mass.append( np.mean(np.asarray(ML_mass_full), axis = 0) )
+    ML_mass_sd.append( np.std(np.asarray(ML_mass_full), axis = 0) )
+    min68_mass.append( np.mean(np.asarray(min68_mass_full), axis = 0) )
+    max68_mass.append( np.mean(np.asarray(max68_mass_full), axis = 0) )
+    min95_mass.append( np.mean(np.asarray(min95_mass_full), axis = 0) )
+    max95_mass.append( np.mean(np.asarray(max95_mass_full), axis = 0) )
+    min99_mass.append( np.mean(np.asarray(min99_mass_full), axis = 0) )
+    max99_mass.append( np.mean(np.asarray(max99_mass_full), axis = 0) )
+# -
+
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+# +
+i = 4
+fig,ax = plt.subplots(3,2)
+
+aux_min = np.abs(min68_cross[i] - ML_cross[i])
+aux_min[np.where(aux_min == 0)[0]] = np.min(aux_min[np.where(aux_min != 0)[0]])
+aux_max = np.abs(min68_cross[i] - ML_cross[i])
+aux_max[np.where(aux_max == 0)[0]] = np.min(aux_max[np.where(aux_max != 0)[0]])
+
+ax0 = ax[0,0].scatter(pars_slices[:,1], ML_cross[i], c = pars_slices[:,0], cmap = 'viridis')
+ax[0,0].errorbar(pars_slices[:,1], ML_cross[i], 
+             yerr = np.vstack((aux_min, aux_max)),
+             fmt = 'none', zorder = 1)
+ax[0,0].plot([-50,-43],[-50,-43])
+ax[0,0].set_xlabel('$\sigma^{SI,R} \ $[cm$^{2}$]', fontsize = 12)
+ax[0,0].set_ylabel('$\sigma^{SI,P} \ $[cm$^{2}$]', fontsize = 12)
+
+axins = inset_axes(ax[0,0], width="80%", height="5%", loc='upper center',
+                   bbox_to_anchor=(0., 0.15, 1, 1), bbox_transform=ax[0,0].transAxes, borderpad=0)
+cbar0 = plt.colorbar(ax0, cax=axins, orientation = 'horizontal')
+cbar0.set_label('$m_{\\chi}$ [GeV]')
+
+aux_min = np.abs(min68_mass[i] - ML_mass[i])
+aux_min[np.where(aux_min == 0)[0]] = np.min(aux_min[np.where(aux_min != 0)[0]])
+aux_max = np.abs(min68_mass[i] - ML_mass[i])
+aux_max[np.where(aux_max == 0)[0]] = np.min(aux_max[np.where(aux_max != 0)[0]])
+
+ax1 = ax[0,1].scatter(pars_slices[:,0], ML_mass[i], c = pars_slices[:,1], cmap = 'viridis')
+ax[0,1].errorbar(pars_slices[:,0], ML_mass[i], 
+             yerr = np.vstack((aux_min, aux_max)),
+             fmt = 'none', zorder = 1)
+ax[0,1].plot([1,3],[1,3])
+ax[0,1].set_xlabel('$m_{\\chi}^{R}$ [GeV]', fontsize = 12)
+ax[0,1].set_ylabel('$m_{\\chi}^{P}$ [GeV]', fontsize = 12)
+
+axins1 = inset_axes(ax[0,1], width="80%", height="5%", loc='upper center',
+                   bbox_to_anchor=(0., 0.15, 1, 1), bbox_transform=ax[0,1].transAxes, borderpad=0)
+cbar1 = plt.colorbar(ax1, cax=axins1, orientation = 'horizontal')
+cbar1.set_label('$\sigma^{SI} \ $[cm$^{2}$]')
+
+
 
 # +
 fig, ax = plt.subplots(2,2)
@@ -5762,9 +5956,9 @@ class AnyObjectHandler2(HandlerBase):
 
 # -
 
-CR_int_prob_sup_comb_sigma487 = CR_int_prob_sup_comb
-M_int_prob_sup_comb_m08_26 = M_int_prob_sup_comb
-M_prob_sup_comb_m08_26 = M_prob_sup_comb
+CR_int_prob_sup_comb_sigma49 = CR_int_prob_sup_comb
+M_int_prob_sup_comb_m1_29 = M_int_prob_sup_comb
+M_prob_sup_comb_m1_29 = M_prob_sup_comb
 
 # +
 levels = [0.67, 0.76, 0.84, 0.9, 1]
@@ -6022,9 +6216,9 @@ ax[2].add_artist(leg1)
 # ## Change limits
 
 # +
-cont = plt.contour(m_vals, cross_vals, CR_int_prob_sup_comb_sigma493[0].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_comb)
-x = cont.collections[0].get_paths()[2].vertices[:,0]
-y = cont.collections[0].get_paths()[2].vertices[:,1]
+cont = plt.contour(m_vals, cross_vals, CR_int_prob_sup_comb_sigma493[4].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_comb)
+x = cont.collections[0].get_paths()[1].vertices[:,0]
+y = cont.collections[0].get_paths()[1].vertices[:,1]
 
 aux_ind = np.where( (y < 5e-44) & (y > 1e-49))[0]
 
@@ -6035,17 +6229,17 @@ plt.scatter(x, y)
 
 f = interp1d(x, y, kind='linear')
 
-x493 = np.logspace(0.92, 3, 100)  # Puntos más densos
+x493_theta_4 = np.logspace(0.92, 3, 100)  # Puntos más densos
 
 # Evaluar la función interpolada en los nuevos puntos
-y493 = f(x493)
-plt.scatter(x493, y493, color = 'red')
+y493_theta_4 = f(x493_theta_4)
+plt.scatter(x493_theta_4, y493_theta_4, color = 'red')
 
 plt.yscale('log')
 plt.xscale('log')
 
 # +
-cont = plt.contour(m_vals, cross_vals, M_int_prob_sup_comb_m11_28[0].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_comb)
+cont = plt.contour(m_vals, cross_vals, M_int_prob_sup_comb_m1_28[4].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_comb)
 x = cont.collections[0].get_paths()[0].vertices[:,0]
 y = cont.collections[0].get_paths()[0].vertices[:,1]
 
@@ -6056,13 +6250,13 @@ y = y[aux_ind]
 
 plt.scatter(x, y)
 
-f = interp1d(x, y, kind='linear', bounds_error=False, fill_value=0)
+f = interp1d(x, y, kind='linear', bounds_error=False, fill_value=(0,5e-44))
 
-x28 = np.logspace(0.92, 2.8, 100)  # Puntos más densos
+x28_4heta0 = np.logspace(0.92, 3, 100)  # Puntos más densos
 
 # Evaluar la función interpolada en los nuevos puntos
-y28 = f(x28)
-plt.scatter(x28, y28, color = 'red')
+y28_4heta0 = f(x28_4heta0)
+plt.scatter(x28_4heta0, y28_4heta0, color = 'red')
 
 plt.yscale('log')
 plt.xscale('log')
@@ -6090,10 +6284,77 @@ plt.scatter(x1, y1, color = 'magenta')
 
 plt.yscale('log')
 plt.xscale('log')
-# -
 
-aux_ind = np.where( (y12 != 0) & (y1 != 0))[0]
-y12[aux_ind] / y1[aux_ind]
+# +
+levels = [0.67, 0.76, 0.84, 0.9, 1]
+
+fig, ax = plt.subplots(1,3, sharex = True, sharey = True, figsize = (13,5))
+fig.subplots_adjust(hspace = 0, wspace = 0)
+
+for i, theta in enumerate([3,4,0]):
+    
+    ax[i].contour(m_vals, cross_vals, CR_int_prob_sup_comb_sigma49[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, colors = color_comb)
+    ax[i].contour(m_vals, cross_vals, M_int_prob_sup_comb_m1_26[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = ':', colors = color_comb)
+    ax[i].contour(m_vals, cross_vals, M_prob_sup_comb_m1_26[theta].reshape(30,30).T, levels = [0.9], linewidths = 2, linestyles = '--', colors = color_comb)
+
+ax[0].fill_between(x49_theta_3, y487_theta_3, y493_theta_3, color = color_comb, alpha = 0.4)
+ax[1].fill_between(x49_theta_4, y487_theta_4, y493_theta_4, color = color_comb, alpha = 0.4)
+ax[2].fill_between(x49_theta_0, y487_theta_0, y493_theta_0, color = color_comb, alpha = 0.4)
+
+aux_ind = np.where( (y26_theta3 != 0) & (y28_theta3 != 0))[0] # Sacamos los valores extrapolados
+ax[0].fill_between(x26_theta3[aux_ind], y26_theta3[aux_ind], y28_theta3[aux_ind], color = color_comb, alpha = 0.4)
+aux_ind = np.where( (y26_theta4 != 0) & (y28_theta4 != 0))[0] # Sacamos los valores extrapolados
+ax[1].fill_between(x26_theta4[aux_ind], y26_theta4[aux_ind], y28_theta4[aux_ind], color = color_comb, alpha = 0.4)
+aux_ind = np.where( (y26_theta0 != 0) & (y28_theta0 != 0))[0] # Sacamos los valores extrapolados
+ax[2].fill_between(x26_theta0[aux_ind], y26_theta0[aux_ind], y28_theta0[aux_ind], color = color_comb, alpha = 0.4)
+
+
+ax[0].fill_between(masses, s1s2_current_pi2[2,:], 1e-35, color = 'black', alpha = 0.2, label = 'Exclusion (1 tonne-year)', zorder = 1)
+ax[0].plot(masses, s1s2_90_CL_pi2[2,:], color = 'black', linestyle = ':', label = 'Exclusion (20 tonne-year)')
+ax[0].fill_between(neutrino_mDM, neutrino_floor_pluspidiv2, -50, color = "none", edgecolor='black', label = '1-$\\nu$ floor', alpha = 0.8, hatch = '///')
+
+ax[0].set_yscale('log')
+ax[0].set_xscale('log')
+ax[0].text(0.7, 0.9, '$\\theta = \pi/2$', transform = ax[0].transAxes, fontsize =12)
+
+ax[1].plot(masses, s1s2_90_CL_pi4[2,:], color = 'black', linestyle = ':')
+ax[1].fill_between(masses, s1s2_current_pi4[2,:], 1e-35, color = 'black', alpha = 0.2)
+ax[1].fill_between(neutrino_mDM, neutrino_floor_pluspidiv4, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
+
+ax[1].text(0.7, 0.9, '$\\theta = \pi/4$', transform = ax[1].transAxes, fontsize =12)
+
+ax[2].plot(masses, s1s2_90_CL_0[2,:], color = 'black', linestyle = ':')
+ax[2].fill_between(masses, s1s2_current_0[2,:], 1e-35, color = 'black', alpha = 0.2, label = 'Excluded')
+ax[2].fill_between(neutrino_mDM, neutrino_floor_zero, -50, color = "none", edgecolor='black', label = '$\\nu$ fog', alpha = 0.8, hatch = '///')
+
+ax[2].text(0.7, 0.9, '$\\theta = 0$', transform = ax[2].transAxes, fontsize =12)
+
+ax[0].set_ylabel('$\sigma^{SI} \ $[cm$^{2}$]', fontsize = 12)
+ax[0].set_xlabel('$m_{\\chi}$ [GeV]', fontsize = 12)
+ax[1].set_xlabel('$m_{\\chi}$ [GeV]', fontsize = 12)
+ax[2].set_xlabel('$m_{\\chi}$ [GeV]', fontsize = 12)
+
+ax[0].set_ylim(1e-49, 5e-44)
+ax[0].set_xlim(6, 9.8e2)
+
+fig.subplots_adjust(right=0.8)
+
+custom_lines = []
+labels = ['$\\langle \\mathcal{P}_{\\sigma} \\rangle = 0.9$', '$\\langle \\mathcal{P}^{\\rm{low}}_{m_{\chi}} \\rangle = 0.9$', '$\\langle \\mathcal{P}_{m_{\chi}} \\rangle = 0.9$']
+markers = ['solid','dashed', 'dotted']
+colors = [color_comb, color_comb, color_comb]
+for i in range(3):
+    custom_lines.append( Line2D([0],[0], linestyle = markers[i], color = colors[i], 
+            label = labels[i], lw = 2) )
+    
+ax[1].legend(handles = custom_lines, loc = 'lower left', bbox_to_anchor=(-0.33,1.), frameon = False, ncol = 3, fontsize = 12)
+
+ax[0].tick_params(axis='x', labelsize=12)
+ax[0].tick_params(axis='y', labelsize=12)
+ax[1].tick_params(axis='x', labelsize=12)
+ax[2].tick_params(axis='x', labelsize=12)
+
+plt.savefig('../graph/O1_contours_all_int_prob_sup_COMB_changeIntBound_m28.pdf', bbox_inches='tight')
 
 # +
 fig,ax = plt.subplots(1,3, figsize = (10,5), sharey = True, sharex = True)
@@ -6143,7 +6404,7 @@ ax[0].set_xlabel('$m_{\\chi}$ [GeV]', fontsize = 12)
 ax[1].set_xlabel('$m_{\\chi}$ [GeV]', fontsize = 12)
 ax[2].set_xlabel('$m_{\\chi}$ [GeV]', fontsize = 12)
 
-plt.savefig('../graph/changeLimits.pdf', bbox_inches = 'tight')
+#plt.savefig('../graph/changeLimits.pdf', bbox_inches = 'tight')
 # -
 
 # ## individual points
@@ -6170,7 +6431,7 @@ cross_sec_int_prob_sup = np.ones(len(pars_norm)) * -99
 masses_int_prob_sup = np.ones(len(pars_norm)) * -99
 masses_prob_sup     = np.ones(len(pars_norm)) * -99
 masses_prob_inf     = np.ones(len(pars_norm)) * -99
-               
+
 
 # +
    
@@ -6212,7 +6473,7 @@ parameter = parameter[ind_sort]
 cr_th = np.argmin(np.abs(parameter - cross_section_th))
 cross_sec_int_prob_sup[itest] = trapezoid(ratios[cr_th:], parameter[cr_th:]) / trapezoid(ratios, parameter)
     
-     
+
 
 # +
 plt.plot(parameter, np.exp(np.asarray(predictions_rate[0].logratios[:,par])[ind_sort]), color =color_rate, label = 'rate')
@@ -6249,7 +6510,7 @@ m_max = np.argmin(np.abs(parameter - m_max_th))
 masses_int_prob_sup[itest] = trapezoid(ratios[m_min:m_max], parameter[m_min:m_max]) / trapezoid(ratios, parameter)
 masses_prob_sup[itest] = trapezoid(ratios[m_min:], parameter[m_min:]) / trapezoid(ratios, parameter)
 masses_prob_inf[itest] = trapezoid(ratios[:m_max], parameter[:m_max]) / trapezoid(ratios, parameter)
-   
+
 
 # +
 plt.plot(parameter, np.exp(np.asarray(predictions_rate[0].logratios[:,par])[ind_sort]), color =color_rate, label = 'rate')
